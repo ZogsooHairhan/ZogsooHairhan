@@ -13,7 +13,6 @@ function MenuPage() {
   const [orderSuccess, setOrderSuccess] = useState(false);
   const [placedOrderId, setPlacedOrderId] = useState(''); 
 
-  // ШИНЭЭР НЭМЭГДСЭН: Сагсны цонх нээлттэй эсэхийг хянах
   const [isCartOpen, setIsCartOpen] = useState(false);
 
   useEffect(() => {
@@ -56,7 +55,6 @@ function MenuPage() {
         )
         .filter((cartItem) => cartItem.quantity > 0); 
       
-      // Хэрвээ сагс хоосон болбол цонхыг автоматаар хаана
       if (newCart.length === 0) {
         setIsCartOpen(false);
       }
@@ -91,7 +89,6 @@ function MenuPage() {
     return sum + (item.price * qty);
   }, 0);
 
-  // Нийт сагсанд байгаа барааны тоо (Хөвдөг товч дээр харуулах)
   const totalItemsCount = cart.reduce((sum, item) => sum + (parseInt(item.quantity, 10) || 0), 0);
 
   const placeOrder = async () => {
@@ -141,7 +138,7 @@ function MenuPage() {
       setPhone(''); 
       setOrderType('dine-in'); 
       setPlacedOrderId(newOrder.order_number); 
-      setIsCartOpen(false); // Захиалга амжилттай болмогц цонхыг хаах
+      setIsCartOpen(false); 
       setOrderSuccess(true); 
 
     } catch (err) {
@@ -181,10 +178,11 @@ function MenuPage() {
           Та тооцоогоо хийж захиалгаа баталгаажуулна уу.
         </p>
 
+        {/* 💳 ШИНЭЧЛЭГДСЭН ДАНСНЫ МЭДЭЭЛЭЛ */}
         <div style={{ background: '#f8fafc', padding: '20px', borderRadius: '12px', marginBottom: '30px', textAlign: 'left', border: '1px solid #e2e8f0' }}>
           <p style={{ margin: '0 0 8px 0', color: '#64748b', fontSize: '1rem' }}>Төлбөр шилжүүлэх данс:</p>
-          <strong style={{ display: 'block', fontSize: '1.3rem', color: '#0f172a', marginBottom: '5px' }}>Хаан банк: 5000 0000 00</strong>
-          <strong style={{ display: 'block', fontSize: '1.1rem', color: '#475569' }}>Хүлээн авагч: Зогсоо Хайрхан зоогийн газар</strong>
+          <strong style={{ display: 'block', fontSize: '1.2rem', color: '#0f172a', marginBottom: '5px' }}>Хаан банк: MN340005005819257247</strong>
+          <strong style={{ display: 'block', fontSize: '1.1rem', color: '#475569' }}>Хүлээн авагч: ӨЛЗИЙТОГТОХ СЭРЖМАА</strong>
         </div>
 
         <button 
@@ -243,9 +241,6 @@ function MenuPage() {
         ))}
       </div>
 
-      {/* ========================================================
-          1. ХӨВДӨГ САГСНЫ ТОВЧ (Дэлгэцийн доор үргэлж харагдана)
-          ======================================================== */}
       {cart.length > 0 && !isCartOpen && (
         <div className="floating-cart-wrapper">
           <button className="floating-cart-btn" onClick={() => setIsCartOpen(true)}>
@@ -255,12 +250,8 @@ function MenuPage() {
         </div>
       )}
 
-      {/* ========================================================
-          2. САГСНЫ ЦОНХ (Товч дарах үед доороос гарч ирнэ)
-          ======================================================== */}
       {isCartOpen && (
         <div className="cart-modal-overlay" onClick={(e) => {
-          // Гадуур нь хар сүүдэр дээр дарвал цонх хаагдана
           if (e.target.className === 'cart-modal-overlay') setIsCartOpen(false);
         }}>
           <div className="cart-modal-content">
