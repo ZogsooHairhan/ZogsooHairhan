@@ -222,3 +222,96 @@ h1 {
 .cart-items-list::-webkit-scrollbar-thumb:hover {
   background: #94a3b8;
 }
+/* =========================================
+   ШИНЭЭР НЭМЭГДСЭН: ХӨВДӨГ САГС БОЛОН MODAL
+   ========================================= */
+
+/* Хөвдөг товчны гаднах хүрээ */
+.floating-cart-wrapper {
+  position: fixed;
+  bottom: 0;
+  left: 0;
+  width: 100%;
+  padding: 15px 20px 25px 20px;
+  background: linear-gradient(to top, rgba(255,255,255,1) 40%, rgba(255,255,255,0));
+  display: flex;
+  justify-content: center;
+  box-sizing: border-box;
+  z-index: 99;
+}
+
+/* Хөвдөг ногоон товч */
+.floating-cart-btn {
+  width: 100%;
+  max-width: 500px;
+  background-color: #10b981;
+  color: white;
+  border: none;
+  border-radius: 30px;
+  padding: 18px 24px;
+  font-size: 1.2rem;
+  font-weight: 700;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  box-shadow: 0 8px 20px rgba(16, 185, 129, 0.4);
+  cursor: pointer;
+  transition: transform 0.2s;
+}
+
+.floating-cart-btn:active {
+  transform: scale(0.97);
+}
+
+/* Сагсны цонхны арын хар сүүдэр */
+.cart-modal-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background: rgba(0, 0, 0, 0.5);
+  z-index: 1000;
+  display: flex;
+  justify-content: center;
+  align-items: flex-end; /* Доороос гарч ирэх тул */
+}
+
+/* Сагсны дэлгэрэнгүй хайрцаг (Доороос гарч ирнэ) */
+.cart-modal-content {
+  background: white;
+  width: 100%;
+  max-width: 600px;
+  border-radius: 24px 24px 0 0;
+  padding: 25px;
+  padding-bottom: 40px; /* Утасны доод хүрээнд зай гаргах */
+  box-sizing: border-box;
+  animation: slideUp 0.3s ease-out forwards;
+  max-height: 85vh; /* Хэт өндөр болохоос сэргийлэх */
+  overflow-y: auto;
+}
+
+/* Доороос дээш гулсаж орж ирэх анимейшн */
+@keyframes slideUp {
+  from { transform: translateY(100%); }
+  to { transform: translateY(0); }
+}
+
+.close-modal-btn {
+  background: #f1f5f9;
+  border: none;
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  font-size: 1.2rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  color: #64748b;
+}
+
+/* Цэсний хамгийн доор зай үлдээх (Хөвдөг товчинд дарагдахгүй байх) */
+.menu-container {
+  padding-bottom: 100px; 
+}

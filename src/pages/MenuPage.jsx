@@ -13,6 +13,9 @@ function MenuPage() {
   const [orderSuccess, setOrderSuccess] = useState(false);
   const [placedOrderId, setPlacedOrderId] = useState(''); 
 
+  // ШИНЭЭР НЭМЭГДСЭН: Сагсны цонх нээлттэй эсэхийг хянах
+  const [isCartOpen, setIsCartOpen] = useState(false);
+
   useEffect(() => {
     fetchMenu();
   }, []);
@@ -47,20 +50,24 @@ function MenuPage() {
 
   const removeFromCart = (itemId) => {
     setCart((prevCart) => {
-      return prevCart
+      const newCart = prevCart
         .map((cartItem) =>
           cartItem.id === itemId ? { ...cartItem, quantity: (parseInt(cartItem.quantity) || 0) - 1 } : cartItem
         )
         .filter((cartItem) => cartItem.quantity > 0); 
+      
+      // Хэрвээ сагс хоосон болбол цонхыг автоматаар хаана
+      if (newCart.length === 0) {
+        setIsCartOpen(false);
+      }
+      return newCart;
     });
   };
 
-  // ШИНЭ: Гараар тоо бичих үед ажиллах функц
   const handleManualQuantity = (itemId, value) => {
     setCart((prevCart) =>
       prevCart.map((cartItem) => {
         if (cartItem.id === itemId) {
-          // Гараар устгаж хоосон болгохыг зөвшөөрнө, үгүй бол тоог нь авна
           return { ...cartItem, quantity: value === '' ? '' : parseInt(value, 10) };
         }
         return cartItem;
@@ -68,23 +75,26 @@ function MenuPage() {
     );
   };
 
-  // ШИНЭ: Гараар бичиж дуусаад өөр газар дарах үед шалгах
   const handleInputBlur = (itemId, value) => {
     const qty = parseInt(value, 10);
-    // Хэрэв тоо бичээгүй хоосон орхисон эсвэл 0 болгосон бол сагснаас бүрмөсөн устгах
     if (isNaN(qty) || qty <= 0) {
-      setCart((prev) => prev.filter((c) => c.id !== itemId));
+      setCart((prev) => {
+        const newCart = prev.filter((c) => c.id !== itemId);
+        if (newCart.length === 0) setIsCartOpen(false);
+        return newCart;
+      });
     }
   };
 
-  // Нийт дүн бодохдоо хоосон ('') утгыг 0 гэж тооцох
   const totalPrice = cart.reduce((sum, item) => {
     const qty = parseInt(item.quantity, 10) || 0;
     return sum + (item.price * qty);
   }, 0);
 
+  // Нийт сагсанд байгаа барааны тоо (Хөвдөг товч дээр харуулах)
+  const totalItemsCount = cart.reduce((sum, item) => sum + (parseInt(item.quantity, 10) || 0), 0);
+
   const placeOrder = async () => {
-    // Зөвхөн тоо нь 0-ээс их байгаа хоолнуудыг ялгаж авах
     const validCartItems = cart.filter(item => (parseInt(item.quantity, 10) || 0) > 0);
 
     if (validCartItems.length === 0) {
@@ -131,6 +141,7 @@ function MenuPage() {
       setPhone(''); 
       setOrderType('dine-in'); 
       setPlacedOrderId(newOrder.order_number); 
+      setIsCartOpen(false); // Захиалга амжилттай болмогц цонхыг хаах
       setOrderSuccess(true); 
 
     } catch (err) {
@@ -172,8 +183,8 @@ function MenuPage() {
 
         <div style={{ background: '#f8fafc', padding: '20px', borderRadius: '12px', marginBottom: '30px', textAlign: 'left', border: '1px solid #e2e8f0' }}>
           <p style={{ margin: '0 0 8px 0', color: '#64748b', fontSize: '1rem' }}>Төлбөр шилжүүлэх данс:</p>
-          <strong style={{ display: 'block', fontSize: '1.3rem', color: '#0f172a', marginBottom: '5px' }}>Хаан банк:MN34 000 500 5819 257 247</strong>
-          <strong style={{ display: 'block', fontSize: '1.1rem', color: '#475569' }}>Хүлээн авагч: ӨЛЗИЙТОГТОХ СЭРЖМАА</strong>
+          <strong style={{ display: 'block', fontSize: '1.3rem', color: '#0f172a', marginBottom: '5px' }}>Хаан банк: 5000 0000 00</strong>
+          <strong style={{ display: 'block', fontSize: '1.1rem', color: '#475569' }}>Хүлээн авагч: Зогсоо Хайрхан зоогийн газар</strong>
         </div>
 
         <button 
@@ -192,7 +203,7 @@ function MenuPage() {
 
   return (
     <div className="menu-container">
-      <h1>🍽️ Зогсоо Хайрхан зоогийн газар</h1>
+      <h1>🍽️ Зогсоо Хайрхан</h1>
 
       <div>
         {Object.entries(grouped).map(([cat, items]) => (
@@ -200,8 +211,6 @@ function MenuPage() {
             <h2 className="group-title">{cat}</h2>
             {items.map((item) => {
               const cartItem = cart.find((c) => c.id === item.id);
-              
-              // Хэрэв сагсанд байвал тоог нь авна (хоосон байвал '' байна)
               const quantity = cartItem ? cartItem.quantity : 0;
               const isAdded = cartItem !== undefined;
 
@@ -215,8 +224,6 @@ function MenuPage() {
                     {isAdded && (
                       <button className="btn-remove" onClick={() => removeFromCart(item.id)}>-</button>
                     )}
-                    
-                    {/* ШИНЭЭР НЭМЭГДСЭН: Гараар тоо бичдэг хэсэг */}
                     {isAdded && (
                       <input 
                         type="number"
@@ -224,21 +231,9 @@ function MenuPage() {
                         value={quantity}
                         onChange={(e) => handleManualQuantity(item.id, e.target.value)}
                         onBlur={(e) => handleInputBlur(item.id, e.target.value)}
-                        style={{
-                          width: '50px',
-                          textAlign: 'center',
-                          fontSize: '1.3rem',
-                          fontWeight: '700',
-                          border: '2px solid #cbd5e1',
-                          borderRadius: '8px',
-                          padding: '4px',
-                          color: '#111827',
-                          backgroundColor: '#fff',
-                          outline: 'none'
-                        }}
+                        style={{ width: '50px', textAlign: 'center', fontSize: '1.3rem', fontWeight: '700', border: '2px solid #cbd5e1', borderRadius: '8px', padding: '4px', color: '#111827', backgroundColor: '#fff', outline: 'none' }}
                       />
                     )}
-                    
                     <button className="btn-add" onClick={() => addToCart(item)}>+</button>
                   </div>
                 </div>
@@ -248,38 +243,68 @@ function MenuPage() {
         ))}
       </div>
 
-      {cart.length > 0 && (
-        <div className="cart-summary">
-          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '15px' }}>
-            <h2 style={{ margin: 0, flex: 1 }}>Нийт дүн: <span>{totalPrice.toLocaleString()} ₮</span></h2>
-            <button 
-              onClick={() => setCart([])} 
-              style={{ marginLeft: '15px', backgroundColor: '#fee2e2', color: '#ef4444', border: 'none', padding: '8px 12px', borderRadius: '8px', fontSize: '0.9rem', fontWeight: '600', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '5px' }}
-            >
-              🗑 Хоослох
-            </button>
-          </div>
-          
-          <ul className="cart-items-list">
-            {cart.map((item) => (
-              <li key={item.id} style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '8px', borderBottom: '1px dashed #cbd5e1', paddingBottom: '4px' }}>
-                <span>{item.name}</span>
-                <strong>{item.quantity} ш</strong>
-              </li>
-            ))}
-          </ul>
-          
-          <input type="number" placeholder="Таны утасны дугаар (Заавал)" value={phone} onChange={(e) => setPhone(e.target.value)} />
-          <select value={orderType} onChange={(e) => setOrderType(e.target.value)}>
-            <option value="dine-in">Сууж идэх</option>
-            <option value="pickup">Аваад явах</option>
-          </select>
-          
-          <button className="order-btn" onClick={placeOrder} disabled={isSubmitting}>
-            {isSubmitting ? 'БАТАЛГААЖУУЛЖ БАЙНА...' : 'ЗАХИАЛАХ'}
+      {/* ========================================================
+          1. ХӨВДӨГ САГСНЫ ТОВЧ (Дэлгэцийн доор үргэлж харагдана)
+          ======================================================== */}
+      {cart.length > 0 && !isCartOpen && (
+        <div className="floating-cart-wrapper">
+          <button className="floating-cart-btn" onClick={() => setIsCartOpen(true)}>
+            <span>🛒 Сагсанд {totalItemsCount} ш</span>
+            <span>{totalPrice.toLocaleString()} ₮</span>
           </button>
         </div>
       )}
+
+      {/* ========================================================
+          2. САГСНЫ ЦОНХ (Товч дарах үед доороос гарч ирнэ)
+          ======================================================== */}
+      {isCartOpen && (
+        <div className="cart-modal-overlay" onClick={(e) => {
+          // Гадуур нь хар сүүдэр дээр дарвал цонх хаагдана
+          if (e.target.className === 'cart-modal-overlay') setIsCartOpen(false);
+        }}>
+          <div className="cart-modal-content">
+            
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px', borderBottom: '2px solid #f1f5f9', paddingBottom: '15px' }}>
+              <h2 style={{ margin: 0, fontSize: '1.5rem', color: '#0f172a' }}>Таны сагс</h2>
+              <button className="close-modal-btn" onClick={() => setIsCartOpen(false)}>✖</button>
+            </div>
+
+            <div className="cart-summary" style={{ margin: 0, padding: 0, border: 'none', background: 'transparent' }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '15px' }}>
+                <h2 style={{ margin: 0, flex: 1, fontSize: '1.2rem' }}>Нийт дүн: <span style={{ color: '#e63946' }}>{totalPrice.toLocaleString()} ₮</span></h2>
+                <button 
+                  onClick={() => { setCart([]); setIsCartOpen(false); }} 
+                  style={{ backgroundColor: '#fee2e2', color: '#ef4444', border: 'none', padding: '8px 12px', borderRadius: '8px', fontSize: '0.9rem', fontWeight: '600', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '5px' }}
+                >
+                  🗑 Хоослох
+                </button>
+              </div>
+              
+              <ul className="cart-items-list" style={{ maxHeight: '250px', borderBottom: '1px solid #e2e8f0', paddingBottom: '15px', marginBottom: '15px' }}>
+                {cart.map((item) => (
+                  <li key={item.id} style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '10px', fontSize: '1.1rem' }}>
+                    <span style={{ color: '#475569' }}>{item.name}</span>
+                    <strong style={{ color: '#0f172a' }}>{item.quantity} ш</strong>
+                  </li>
+                ))}
+              </ul>
+              
+              <input type="number" placeholder="Таны утасны дугаар (Заавал)" value={phone} onChange={(e) => setPhone(e.target.value)} />
+              <select value={orderType} onChange={(e) => setOrderType(e.target.value)}>
+                <option value="dine-in">Сууж идэх</option>
+                <option value="pickup">Аваад явах</option>
+              </select>
+              
+              <button className="order-btn" onClick={placeOrder} disabled={isSubmitting}>
+                {isSubmitting ? 'БАТАЛГААЖУУЛЖ БАЙНА...' : 'ЗАХИАЛАХ'}
+              </button>
+            </div>
+            
+          </div>
+        </div>
+      )}
+
     </div>
   );
 }
