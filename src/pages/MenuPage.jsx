@@ -12,8 +12,6 @@ function MenuPage() {
   
   const [orderSuccess, setOrderSuccess] = useState(false);
   const [placedOrderId, setPlacedOrderId] = useState(''); 
-  
-  // 💰 ШИНЭ: Захиалсан нийт дүнг хадгалах төлөв
   const [placedOrderTotal, setPlacedOrderTotal] = useState(0);
 
   const [isCartOpen, setIsCartOpen] = useState(false);
@@ -94,6 +92,9 @@ function MenuPage() {
 
   const totalItemsCount = cart.reduce((sum, item) => sum + (parseInt(item.quantity, 10) || 0), 0);
 
+  // ========================================================
+  // ЗАХИАЛГА ИЛГЭЭХ БОЛОН ШАЛГАХ ФУНКЦ
+  // ========================================================
   const placeOrder = async () => {
     const validCartItems = cart.filter(item => (parseInt(item.quantity, 10) || 0) > 0);
 
@@ -107,10 +108,23 @@ function MenuPage() {
       return;
     }
 
+    // 🔒 ШИНЭЭР НЭМЭГДСЭН: Сууж идэх үед уух юм шалгах логик
+    if (orderType === 'dine-in') {
+      // Сагсанд байгаа хоолнууд дундаас ангилал (category) нь "уух", "ундаа", "цай" гэсэн үг агуулж байгааг хайх
+      const hasDrink = validCartItems.some(item => {
+        const categoryName = (item.category || '').toLowerCase();
+        return categoryName.includes('уух') || categoryName.includes('ундаа') || categoryName.includes('цай');
+      });
+
+      if (!hasDrink) {
+        alert("⚠️ Сууж идэх тохиолдолд заавал дор хаяж нэг уух юм (ундаа, цай гм) сонгох шаардлагатай.");
+        return; // Захиалгыг цааш явуулахгүй зогсооно
+      }
+    }
+
     setIsSubmitting(true);
 
     try {
-      // 1. Одоо байгаа нийт дүнг хувьсагчид авч үлдэх
       const currentTotal = totalPrice;
 
       const { data: orderData, error: orderError } = await supabase
@@ -140,8 +154,7 @@ function MenuPage() {
 
       if (itemsError) throw itemsError;
 
-      // 2. Амжилттай болсны дараа утгуудыг оноох
-      setPlacedOrderTotal(currentTotal); // Төлөх дүнг хадгалах
+      setPlacedOrderTotal(currentTotal); 
       setCart([]); 
       setPhone(''); 
       setOrderType('dine-in'); 
@@ -171,9 +184,6 @@ function MenuPage() {
     </div>
   );
 
-  // ========================================================
-  // ЗАХИАЛГА АМЖИЛТТАЙ БОЛСОН ДЭЛГЭЦ (ШИНЭЧЛЭГДСЭН)
-  // ========================================================
   if (orderSuccess) {
     return (
       <div className="menu-container" style={{ textAlign: 'center', padding: '40px 20px' }}>
@@ -189,12 +199,10 @@ function MenuPage() {
           Та тооцоогоо хийж захиалгаа баталгаажуулна уу.
         </p>
 
-        {/* 💰 ШИНЭЭР НЭМЭГДСЭН: ТӨЛӨХ МӨНГӨН ДҮНГИЙН ХЭСЭГ */}
-        <div style={{ backgroundColor: '#f0fdf4', border: '1px solid #bbf7d0', padding: '18px', borderRadius: '12px', marginBottom: '25px', fontSize: '1.3rem', color: '#16a34a', fontWeight: 'bold', display: 'flex', justifyContent: 'center', alignItems: 'center', gap: '10px', boxShadow: '0 2px 4px rgba(0,0,0,0.02)' }}>
+        <div style={{ backgroundColor: '#f0fdf4', border: '1px solid #bbf7d0', padding: '18px', borderRadius: '12px', marginBottom: '25px', fontSize: '1.3rem', color: '#16a34a', fontWeight: 'bold', display: 'flex', justifyContent: 'center', alignItems: 'center', gap: '10px' }}>
           💵 Төлөх нийт дүн: <span style={{ fontSize: '1.5rem', color: '#15803d' }}>{placedOrderTotal.toLocaleString()} ₮</span>
         </div>
 
-        {/* 💳 БАНКНЫ ДАНСНЫ МЭДЭЭЛЭЛ */}
         <div style={{ background: '#f8fafc', padding: '20px', borderRadius: '12px', marginBottom: '30px', textAlign: 'left', border: '1px solid #e2e8f0' }}>
           <p style={{ margin: '0 0 8px 0', color: '#64748b', fontSize: '1rem' }}>Төлбөр шилжүүлэх данс:</p>
           <strong style={{ display: 'block', fontSize: '1.2rem', color: '#0f172a', marginBottom: '5px' }}>Хаан банк: MN340005005819257247</strong>
@@ -206,9 +214,9 @@ function MenuPage() {
           onClick={() => {
             setOrderSuccess(false);
             setPlacedOrderId('');
-            setPlacedOrderTotal(0); // Шинэ захиалга өгөхөд дүнг тэглэх
+            setPlacedOrderTotal(0);
           }}
-          style={{ backgroundColor: '#3b82f6', boxShadow: '0 4px 6px -1px rgba(59, 130, 246, 0.2)' }}
+          style={{ backgroundColor: '#3b82f6' }}
         >
           Шинээр захиалга өгөх
         </button>
