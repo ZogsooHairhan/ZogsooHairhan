@@ -1,0 +1,98 @@
+/* Import Inter font */
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;600&display=swap');
+
+body {
+  margin: 0;
+  font-family: 'Inter', sans-serif;
+  background: #f0f2f5;
+  min-height: 100vh;
+  display: flex;
+  justify-content: center;
+  align-items: flex-start;
+  padding-top: 40px;
+}
+
+.admin-container {
+  background: #ffffff;
+  border-radius: 12px;
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.12);
+  max-width: 860px;
+  width: 100%;
+  padding: 32px;
+  box-sizing: border-box;
+}
+
+.admin-header h1 {
+  text-align: center;
+  font-size: 2rem;
+  margin-bottom: 24px;
+  color: #222222;
+}
+
+.orders-grid {
+  display: grid;
+  gap: 24px;
+}
+
+.order-card {
+  background: #fafafa;
+  border-radius: 10px;
+  padding: 20px;
+  box-shadow: 0 4px 12px rgba(0,0,0,0.08);
+}
+
+.order-header {
+  display: flex;
+  justify-content: space-between;
+  margin-bottom: 12px;
+  font-weight: 600;
+  color: #222222;
+}
+
+.status-badge {
+  padding: 4px 8px;
+  border-radius: 6px;
+  font-size: 0.9rem;
+  text-transform: capitalize;
+}
+
+.status-new { background: #ffeb3b; color: #222; }
+.status-preparing { background: #ff9800; color: #fff; }
+.status-completed { background: #4caf50; color: #fff; }
+
+.order-details {
+  margin-bottom: 12px;
+}
+
+.order-item {
+  display: flex;
+  justify-content: space-between;
+  padding: 6px 0;
+  border-bottom: 1px dashed #ccc;
+}
+
+.order-total {
+  font-weight: 600;
+  margin-top: 8px;
+  font-size: 1.1rem;
+  color: #c0392b;
+}
+
+.order-actions button {
+  padding: 8px 12px;
+  margin-right: 8px;
+  border: none;
+  border-radius: 6px;
+  cursor: pointer;
+  font-size: 0.95rem;
+  transition: background 0.2s;
+}
+
+.btn-admin {
+  color: #fff;
+}
+
+.btn-prepare { background: #ff9800; }
+.btn-complete { background: #27ae60; }
+
+.btn-admin:hover { opacity: 0.9; }
