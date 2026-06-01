@@ -13,6 +13,10 @@ function MenuPage() {
   const [orderSuccess, setOrderSuccess] = useState(false);
   const [placedOrderId, setPlacedOrderId] = useState(''); 
   const [placedOrderTotal, setPlacedOrderTotal] = useState(0);
+  
+  // ⏳ ШИНЭ: Захиалсан утас болон төрлийг амжилттай дэлгэц рүү дамжуулах төлөвүүд
+  const [placedOrderType, setPlacedOrderType] = useState('dine-in');
+  const [placedOrderPhone, setPlacedOrderPhone] = useState('');
 
   const [isCartOpen, setIsCartOpen] = useState(false);
 
@@ -92,9 +96,6 @@ function MenuPage() {
 
   const totalItemsCount = cart.reduce((sum, item) => sum + (parseInt(item.quantity, 10) || 0), 0);
 
-  // ========================================================
-  // ЗАХИАЛГА ИЛГЭЭХ БОЛОН ШАЛГАХ ФУНКЦ
-  // ========================================================
   const placeOrder = async () => {
     const validCartItems = cart.filter(item => (parseInt(item.quantity, 10) || 0) > 0);
 
@@ -108,9 +109,7 @@ function MenuPage() {
       return;
     }
 
-    // 🔒 ШИНЭЭР НЭМЭГДСЭН: Сууж идэх үед уух юм шалгах логик
     if (orderType === 'dine-in') {
-      // Сагсанд байгаа хоолнууд дундаас ангилал (category) нь "уух", "ундаа", "цай" гэсэн үг агуулж байгааг хайх
       const hasDrink = validCartItems.some(item => {
         const categoryName = (item.category || '').toLowerCase();
         return categoryName.includes('уух') || categoryName.includes('ундаа') || categoryName.includes('цай');
@@ -118,7 +117,7 @@ function MenuPage() {
 
       if (!hasDrink) {
         alert("⚠️ Сууж идэх тохиолдолд заавал дор хаяж нэг уух юм (ундаа, цай гм) сонгох шаардлагатай.");
-        return; // Захиалгыг цааш явуулахгүй зогсооно
+        return; 
       }
     }
 
@@ -126,14 +125,16 @@ function MenuPage() {
 
     try {
       const currentTotal = totalPrice;
+      const currentOrderType = orderType;
+      const currentPhone = phone;
 
       const { data: orderData, error: orderError } = await supabase
         .from('orders')
         .insert([{
             table_number: '1',                 
-            phone_number: phone, 
+            phone_number: currentPhone, 
             total_amount: currentTotal,
-            order_type: orderType,           
+            order_type: currentOrderType,           
             status: 'pending'
         }])
         .select();
@@ -154,11 +155,16 @@ function MenuPage() {
 
       if (itemsError) throw itemsError;
 
+      // Төлөвүүдийг хадгалах
       setPlacedOrderTotal(currentTotal); 
+      setPlacedOrderType(currentOrderType);
+      setPlacedOrderPhone(currentPhone);
+      setPlacedOrderId(newOrder.order_number); 
+
+      // Сагс болон формыг цэвэрлэх
       setCart([]); 
       setPhone(''); 
       setOrderType('dine-in'); 
-      setPlacedOrderId(newOrder.order_number); 
       setIsCartOpen(false); 
       setOrderSuccess(true); 
 
@@ -184,42 +190,72 @@ function MenuPage() {
     </div>
   );
 
+  // ========================================================
+  // ⏳ ХҮЛЭЭГДЭЖ БУЙ ШИНЭ СҮРЛЭГ ЗАХИАЛГЫН ДЭЛГЭЦ
+  // ========================================================
   if (orderSuccess) {
     return (
-      <div className="menu-container" style={{ textAlign: 'center', padding: '40px 20px' }}>
-        <div style={{ fontSize: '60px', marginBottom: '15px' }}>✅</div>
-        <h2 style={{ color: '#10b981', marginBottom: '15px', fontSize: '1.8rem' }}>Захиалга илгээгдлээ!</h2>
+      <div className="menu-container" style={{ padding: '35px 20px', fontFamily: 'inherit' }}>
         
-        <div style={{ backgroundColor: '#fffbe1', padding: '15px', borderRadius: '10px', display: 'inline-block', marginBottom: '20px', border: '2px dashed #f39c12' }}>
-          <span style={{ fontSize: '1.1rem', color: '#555', fontWeight: '500' }}>Таны захиалгын дугаар:</span><br/>
-          <strong style={{ fontSize: '2.5rem', color: '#e74c3c', letterSpacing: '2px' }}>#{placedOrderId}</strong>
+        {/* Жинхэнэ Хүлээж буй тэмдэг болон Гарчиг томоор */}
+        <div style={{ textAlign: 'center', marginBottom: '25px' }}>
+          <div style={{ fontSize: '65px', animation: 'pulse 2s infinite', marginBottom: '10px' }}>⏱️</div>
+          <h1 style={{ color: '#d97706', fontSize: '2.1rem', fontWeight: '800', margin: '0 0 5px 0' }}>
+            Төлбөр хүлээгдэж байна
+          </h1>
         </div>
 
-        <p style={{ fontSize: '1.1rem', color: '#374151', lineHeight: '1.5', marginBottom: '20px', fontWeight: '500' }}>
-          Та тооцоогоо хийж захиалгаа баталгаажуулна уу.
-        </p>
-
-        <div style={{ backgroundColor: '#f0fdf4', border: '1px solid #bbf7d0', padding: '18px', borderRadius: '12px', marginBottom: '25px', fontSize: '1.3rem', color: '#16a34a', fontWeight: 'bold', display: 'flex', justifyContent: 'center', alignItems: 'center', gap: '10px' }}>
-          💵 Төлөх нийт дүн: <span style={{ fontSize: '1.5rem', color: '#15803d' }}>{placedOrderTotal.toLocaleString()} ₮</span>
+        {/* Захиалгын дугаар - Маш Томоор */}
+        <div style={{ backgroundColor: '#fffbeb', padding: '20px', borderRadius: '16px', textStyle: 'center', marginBottom: '20px', border: '2px dashed #f59e0b', textAlign: 'center' }}>
+          <span style={{ fontSize: '1.1rem', color: '#b45309', fontWeight: '600', uppercase: 'true' }}>Таны захиалгын дугаар</span><br/>
+          <strong style={{ fontSize: '4.5rem', color: '#b45309', display: 'block', margin: '5px 0', lineHeight: '1' }}>
+            #{placedOrderId}
+          </strong>
         </div>
 
-        <div style={{ background: '#f8fafc', padding: '20px', borderRadius: '12px', marginBottom: '30px', textAlign: 'left', border: '1px solid #e2e8f0' }}>
-          <p style={{ margin: '0 0 8px 0', color: '#64748b', fontSize: '1rem' }}>Төлбөр шилжүүлэх данс:</p>
-          <strong style={{ display: 'block', fontSize: '1.2rem', color: '#0f172a', marginBottom: '5px' }}>Хаан банк: MN340005005819257247</strong>
-          <strong style={{ display: 'block', fontSize: '1.1rem', color: '#475569' }}>Хүлээн авагч: ӨЛЗИЙТОГТОХ СЭРЖМАА</strong>
+        {/* Төлөх нийт дүн - Ногоон хайрцаг томоор */}
+        <div style={{ backgroundColor: '#f0fdf4', border: '2px solid #bbf7d0', padding: '20px', borderRadius: '16px', marginBottom: '20px', textAlign: 'center', fontSize: '1.4rem', color: '#16a34a', fontWeight: 'bold' }}>
+          💵 Төлөх нийт дүн: <span style={{ fontSize: '1.9rem', color: '#15803d', display: 'block', marginTop: '5px' }}>{placedOrderTotal.toLocaleString()} ₮</span>
         </div>
 
-        <button 
-          className="order-btn" 
-          onClick={() => {
-            setOrderSuccess(false);
-            setPlacedOrderId('');
-            setPlacedOrderTotal(0);
-          }}
-          style={{ backgroundColor: '#3b82f6' }}
-        >
-          Шинээр захиалга өгөх
-        </button>
+        {/* ⚠️ Хэрвээ АВААД ЯВАХ сонгосон бол харагдах санамж */}
+        {placedOrderType === 'pickup' && (
+          <div style={{ backgroundColor: '#fef2f2', border: '1px solid #fecaca', color: '#dc2626', padding: '15px', borderRadius: '12px', marginBottom: '20px', fontSize: '1.05rem', fontWeight: '600', lineHeight: '1.4' }}>
+            🛍️ Аваад явах санамж: Сав баглаа боодлын үнээс хамаарч касс дээр нийт үнэ бага зэрэг нэмэгдэж болзошгүйг анхаарна уу.
+          </div>
+        )}
+
+        {/* Банкны дансны мэдээлэл */}
+        <div style={{ background: '#f8fafc', padding: '20px', borderRadius: '16px', marginBottom: '20px', border: '1px solid #e2e8f0' }}>
+          <p style={{ margin: '0 0 8px 0', color: '#64748b', fontSize: '0.95rem', fontWeight: '500' }}>Төлбөр шилжүүлэх данс:</p>
+          <strong style={{ display: 'block', fontSize: '1.25rem', color: '#0f172a', marginBottom: '6px', letterSpacing: '0.5px' }}>
+            Хаан банк: <span style={{ color: '#2563eb' }}>MN340005005819257247</span>
+          </strong>
+          <strong style={{ display: 'block', fontSize: '1.1rem', color: '#334155' }}>
+            Хүлээн авагч: ӨЛЗИЙТОГТОХ СЭРЖМАА
+          </strong>
+        </div>
+
+        {/* 📝 Гүйлгээний утга - ШИНЭ */}
+        <div style={{ backgroundColor: '#eff6ff', border: '1px solid #bfdbfe', padding: '18px', borderRadius: '16px', marginBottom: '25px' }}>
+          <span style={{ display: 'block', color: '#1e40af', fontWeight: '700', fontSize: '1.1rem', marginBottom: '8px' }}>
+            ✍️ Гүйлгээний утга:
+          </span>
+          <p style={{ margin: '0', color: '#1e3a8a', fontSize: '1.15rem', lineHeight: '1.5' }}>
+            Гүйлгээний утга дээр өөрийн <strong style={{ color: '#dc2626' }}>утасны дугаар</strong> болон <strong style={{ color: '#dc2626' }}>захиалгын номерыг</strong> заавал хамт оруулна уу.
+          </p>
+          <div style={{ marginTop: '10px', background: '#ffffff', padding: '10px', borderRadius: '8px', border: '1px dashed #93c5fd', fontSize: '1.05rem', color: '#475569' }}>
+            💡 Жишээ нь: <strong style={{ color: '#0f172a' }}>{placedOrderPhone} #{placedOrderId}</strong>
+          </div>
+        </div>
+
+        {/* 🚨 Хамгийн доорх Хатуу Анхааруулга - Улаанаар томоор */}
+        <div style={{ borderTop: '2px solid #f1f5f9', paddingTop: '20px', textAlign: 'center' }}>
+          <p style={{ color: '#ef4444', fontSize: '1.25rem', fontWeight: '800', margin: '0', lineHeight: '1.5' }}>
+            ⚠️ Тооцоогоо хийж кассанд баталгаажуулахгүй бол захиалга хийгдэж эхлэхгүйг анхаарна уу!
+          </p>
+        </div>
+
       </div>
     );
   }
