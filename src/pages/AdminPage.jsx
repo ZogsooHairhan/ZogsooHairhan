@@ -225,22 +225,23 @@ function AdminPage() {
   // ҮНДСЭН УДИРДЛАГЫН ДЭЛГЭЦ 
   // ==============================================
   return (
-    <div style={{ padding: '20px', fontFamily: 'sans-serif', backgroundColor: '#f5f6fa', minHeight: '100vh' }}>
+    <div style={{ padding: '20px', fontFamily: 'sans-serif', backgroundColor: '#f5f6fa', minHeight: '100vh', boxSizing: 'border-box' }}>
       
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderBottom: '2px solid #bdc3c7', paddingBottom: '15px', marginBottom: '20px' }}>
-        <h1 style={{ color: '#2c3e50', margin: 0 }}>👨‍🍳 Удирдлагын дэлгэц</h1>
+      {/* ТОЛГОЙ БОЛОН TAB СОЛИХ ХЭСЭГ (Утсан дээр автоматаар доошоо цуврах уян хатан бүтэцтэй) */}
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderBottom: '2px solid #bdc3c7', paddingBottom: '15px', marginBottom: '20px', flexWrap: 'wrap', gap: '15px' }}>
+        <h1 style={{ color: '#2c3e50', margin: 0, fontSize: 'clamp(1.5rem, 4vw, 2.3rem)' }}>👨‍🍳 Удирдлагын дэлгэц</h1>
         
-        <div style={{ display: 'flex', gap: '10px' }}>
-          <button onClick={() => setActiveTab('orders')} style={{ padding: '10px 15px', fontSize: '1rem', fontWeight: 'bold', border: 'none', borderRadius: '8px', cursor: 'pointer', backgroundColor: activeTab === 'orders' ? '#3498db' : '#e0e6ed', color: activeTab === 'orders' ? 'white' : '#7f8c8d' }}>
+        <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
+          <button onClick={() => setActiveTab('orders')} style={{ padding: '12px 18px', fontSize: '1rem', fontWeight: 'bold', border: 'none', borderRadius: '8px', cursor: 'pointer', backgroundColor: activeTab === 'orders' ? '#3498db' : '#e0e6ed', color: activeTab === 'orders' ? 'white' : '#7f8c8d' }}>
             📋 Захиалгууд
           </button>
-          <button onClick={() => setActiveTab('menu')} style={{ padding: '10px 15px', fontSize: '1rem', fontWeight: 'bold', border: 'none', borderRadius: '8px', cursor: 'pointer', backgroundColor: activeTab === 'menu' ? '#3498db' : '#e0e6ed', color: activeTab === 'menu' ? 'white' : '#7f8c8d' }}>
+          <button onClick={() => setActiveTab('menu')} style={{ padding: '12px 18px', fontSize: '1rem', fontWeight: 'bold', border: 'none', borderRadius: '8px', cursor: 'pointer', backgroundColor: activeTab === 'menu' ? '#3498db' : '#e0e6ed', color: activeTab === 'menu' ? 'white' : '#7f8c8d' }}>
             🍔 Цэс
           </button>
-          <button onClick={() => setActiveTab('report')} style={{ padding: '10px 15px', fontSize: '1rem', fontWeight: 'bold', border: 'none', borderRadius: '8px', cursor: 'pointer', backgroundColor: activeTab === 'report' ? '#10b981' : '#e0e6ed', color: activeTab === 'report' ? 'white' : '#7f8c8d' }}>
+          <button onClick={() => setActiveTab('report')} style={{ padding: '12px 18px', fontSize: '1rem', fontWeight: 'bold', border: 'none', borderRadius: '8px', cursor: 'pointer', backgroundColor: activeTab === 'report' ? '#10b981' : '#e0e6ed', color: activeTab === 'report' ? 'white' : '#7f8c8d' }}>
             📊 Тайлан
           </button>
-          <button onClick={handleLogout} style={{ padding: '10px 15px', fontSize: '1rem', fontWeight: 'bold', border: 'none', borderRadius: '8px', cursor: 'pointer', backgroundColor: '#e74c3c', color: 'white', marginLeft: '10px' }}>
+          <button onClick={handleLogout} style={{ padding: '12px 18px', fontSize: '1rem', fontWeight: 'bold', border: 'none', borderRadius: '8px', cursor: 'pointer', backgroundColor: '#e74c3c', color: 'white' }}>
             🚪 Гарах
           </button>
         </div>
@@ -254,50 +255,96 @@ function AdminPage() {
           ) : orders.length === 0 ? (
             <h3 style={{ textAlign: 'center', color: '#7f8c8d', marginTop: '50px' }}>Одоогоор идэвхтэй захиалга байхгүй байна.</h3>
           ) : (
-            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(300px, 1fr))', gap: '20px' }}>
+            
+            /* 🖥️ РЕСПОНСИВ ГРИД: Утсан дээр 1 багана, компьютер/таблет дээр томорч 3-4 багана болно */
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(clamp(320px, 28vw, 500px), 1fr))', gap: '25px' }}>
               {orders.map((order) => (
-                <div key={order.id} style={{ backgroundColor: 'white', padding: '20px', borderRadius: '10px', boxShadow: '0 4px 6px rgba(0,0,0,0.1)', display: 'flex', flexDirection: 'column', justifyContent: 'space-between', borderLeft: order.status === 'cooking' ? '5px solid #f39c12' : '5px solid #e74c3c' }}>
+                <div key={order.id} style={{ 
+                  backgroundColor: 'white', 
+                  padding: '24px', 
+                  borderRadius: '14px', 
+                  boxShadow: '0 6px 16px rgba(0,0,0,0.06)', 
+                  display: 'flex', 
+                  flexDirection: 'column', 
+                  justifyContent: 'space-between', 
+                  borderTop: order.status === 'cooking' ? '8px solid #f39c12' : '8px solid #e74c3c' 
+                }}>
                   <div>
-                    <div style={{ display: 'flex', justifyContent: 'space-between', borderBottom: '2px solid #eee', paddingBottom: '10px', marginBottom: '10px' }}>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', borderBottom: '2px solid #f1f2f6', paddingBottom: '12px', marginBottom: '15px' }}>
                       <div>
-                        <strong style={{ fontSize: '18px' }}>Захиалга #{order.order_number}</strong>
+                        {/* Захиалгын дугаар - ТОМООР */}
+                        <strong style={{ fontSize: '1.7rem', color: '#1e293b', block: 'true' }}>Захиалга #{order.order_number}</strong>
                         
-                        {/* 🕒 ЭНД ШИНЭЭР ЦАГ НЭМЭГДЛЭЭ */}
-                        <div style={{ color: '#7f8c8d', fontSize: '14px', marginTop: '5px', fontWeight: '500' }}>
+                        <div style={{ color: '#64748b', fontSize: '1.05rem', marginTop: '6px', fontWeight: '600' }}>
                           🕒 {new Date(order.created_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })} 
-                          {' • '}
-                          {order.order_type === 'dine-in' ? 'Сууж идэх' : 'Аваад явах'} 
-                          {order.phone_number && ` • Утас: ${order.phone_number}`}
+                          {order.phone_number && ` • 📱 Утас: ${order.phone_number}`}
                         </div>
-
                       </div>
-                      <span style={{ padding: '5px 10px', backgroundColor: order.status === 'pending' ? '#e74c3c' : '#f39c12', color: 'white', borderRadius: '5px', fontSize: '12px', fontWeight: 'bold', height: 'fit-content' }}>
-                        {order.status === 'pending' ? 'ХҮЛЭЭГДЭЖ БУЙ' : 'ХИЙГДЭЖ БАЙНА'}
+                      
+                      {/* СТАТУС БЭДЖ */}
+                      <span style={{ padding: '6px 12px', backgroundColor: order.status === 'pending' ? '#fee2e2' : '#fef3c7', color: order.status === 'pending' ? '#dc2626' : '#d97706', borderRadius: '6px', fontSize: '0.9rem', fontWeight: '800', whiteSpace: 'nowrap' }}>
+                        {order.status === 'pending' ? 'ТӨЛБӨР ХҮЛЭЭХ' : 'ХИЙЖ БАЙНА'}
                       </span>
                     </div>
 
-                    <div style={{ minHeight: '80px', marginBottom: '15px' }}>
+                    {/* ✨ ШИНЭ: Аваад явах уу, Сууж идэх үү гэдэг сонголт - ХҮН БҮРТ ХАРАГДАХААР МАШ ТОМООР */}
+                    <div style={{
+                      backgroundColor: order.order_type === 'dine-in' ? '#eff6ff' : '#fff7ed',
+                      color: order.order_type === 'dine-in' ? '#1d4ed8' : '#c2410c',
+                      border: order.order_type === 'dine-in' ? '1px solid #bfdbfe' : '1px solid #ffedd5',
+                      padding: '10px 15px',
+                      borderRadius: '8px',
+                      fontSize: '1.4rem',
+                      fontWeight: '800',
+                      textAlign: 'center',
+                      marginBottom: '15px'
+                    }}>
+                      {order.order_type === 'dine-in' ? '🍽️ СУУЖ ИДЭХ' : '🛍️ АВААД ЯВАХ'}
+                    </div>
+
+                    {/* ✨ ШИНЭ: Хоолны нэрсүүд - ХОЛЫН ЗАЙНААС Ч ТӨГС ХАРАГДАХААР МАШ ТОМООР */}
+                    <div style={{ minHeight: '100px', marginBottom: '20px' }}>
                       {order.order_items && order.order_items.map((item, idx) => (
-                        <div key={idx} style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '8px', fontSize: '15px', paddingBottom: '5px', borderBottom: '1px dashed #ecf0f1' }}>
-                          <span>{item.menu_items?.name || 'Тодорхойгүй хоол'}</span>
-                          <strong>{item.quantity} ш</strong>
+                        <div key={idx} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '10px', fontSize: '1.45rem', paddingBottom: '8px', borderBottom: '1px dashed #e2e8f0' }}>
+                          <span style={{ color: '#0f172a', fontWeight: '700', flex: 1, paddingRight: '10px' }}>
+                            {item.menu_items?.name || 'Тодорхойгүй хоол'}
+                          </span>
+                          <strong style={{ color: '#ef4444', fontSize: '1.6rem', fontWeight: '800', whiteSpace: 'nowrap', backgroundColor: '#fef2f2', padding: '2px 10px', borderRadius: '6px' }}>
+                            {item.quantity} ш
+                          </strong>
                         </div>
                       ))}
                     </div>
                   </div>
 
-                  <div style={{ paddingTop: '15px', borderTop: '2px dashed #eee', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                    <strong style={{ fontSize: '18px', color: '#333' }}>{order.total_amount?.toLocaleString()} ₮</strong>
-                    {order.status === 'pending' ? (
-                      <button onClick={() => updateOrderStatus(order.id, 'cooking')} style={{ padding: '10px 15px', backgroundColor: '#3498db', color: 'white', border: 'none', borderRadius: '5px', cursor: 'pointer', fontWeight: 'bold' }}>
-                        Төлбөр авсан 💰
+                  {/* ДООД ХЭСЭГ: ҮНЭ БОЛОН ҮЙЛДЛИЙН ТОВЧНУУД */}
+                  <div style={{ paddingTop: '15px', borderTop: '2px dashed #e2e8f0', display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '10px' }}>
+                    <strong style={{ fontSize: '1.6rem', color: '#0f172a', fontWeight: '800' }}>{order.total_amount?.toLocaleString()} ₮</strong>
+                    
+                    <div style={{ display: 'flex', gap: '8px' }}>
+                      <button 
+                        onClick={() => {
+                          if (window.confirm(`⚠️ Захиалга #${order.order_number}-ийг цуцлахдаа итгэлтэй байна уу?`)) {
+                            updateOrderStatus(order.id, 'cancelled');
+                          }
+                        }}
+                        style={{ padding: '12px 16px', backgroundColor: '#fee2e2', color: '#ef4444', border: 'none', borderRadius: '8px', cursor: 'pointer', fontWeight: 'bold', fontSize: '1rem' }}
+                      >
+                        ❌ Цуцлах
                       </button>
-                    ) : (
-                      <button onClick={() => updateOrderStatus(order.id, 'completed')} style={{ padding: '10px 15px', backgroundColor: '#2ecc71', color: 'white', border: 'none', borderRadius: '5px', cursor: 'pointer', fontWeight: 'bold' }}>
-                        Хоол гарсан ✔️
-                      </button>
-                    )}
+
+                      {order.status === 'pending' ? (
+                        <button onClick={() => updateOrderStatus(order.id, 'cooking')} style={{ padding: '12px 18px', backgroundColor: '#3b82f6', color: 'white', border: 'none', borderRadius: '8px', cursor: 'pointer', fontWeight: 'bold', fontSize: '1rem' }}>
+                          💰 Төлбөр авсан
+                        </button>
+                      ) : (
+                        <button onClick={() => updateOrderStatus(order.id, 'completed')} style={{ padding: '12px 18px', backgroundColor: '#10b981', color: 'white', border: 'none', borderRadius: '8px', cursor: 'pointer', fontWeight: 'bold', fontSize: '1rem' }}>
+                          ✔️ Хоол бэлэн
+                        </button>
+                      )}
+                    </div>
                   </div>
+
                 </div>
               ))}
             </div>
@@ -307,19 +354,19 @@ function AdminPage() {
 
       {/* ТАБ 2: ЦЭС УДИРДАХ */}
       {activeTab === 'menu' && (
-        <div style={{ backgroundColor: 'white', borderRadius: '12px', padding: '20px', boxShadow: '0 4px 6px rgba(0,0,0,0.05)' }}>
+        <div style={{ backgroundColor: 'white', borderRadius: '12px', padding: '25px', boxShadow: '0 4px 6px rgba(0,0,0,0.05)' }}>
           <h2 style={{ marginTop: 0, color: '#2c3e50', marginBottom: '20px' }}>Хоолны үлдэгдэл тохируулах</h2>
           {isLoadingMenu ? (
             <p style={{ textAlign: 'center', color: '#7f8c8d' }}>Цэс уншиж байна...</p>
           ) : (
-            <div style={{ display: 'flex', flexDirection: 'column', gap: '15px' }}>
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(280px, 1fr))', gap: '15px' }}>
               {menuItems.map((item) => (
                 <div key={item.id} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '15px', border: '1px solid #eee', borderRadius: '8px', backgroundColor: item.is_active ? '#ffffff' : '#f9f9f9', opacity: item.is_active ? 1 : 0.6 }}>
                   <div>
-                    <h3 style={{ margin: '0 0 5px 0', fontSize: '1.1rem', color: '#2c3e50', textDecoration: item.is_active ? 'none' : 'line-through' }}>{item.name}</h3>
-                    <span style={{ color: '#7f8c8d', fontSize: '0.9rem' }}>{item.price.toLocaleString()} ₮</span>
+                    <h3 style={{ margin: '0 0 5px 0', fontSize: '1.2rem', color: '#2c3e50', textDecoration: item.is_active ? 'none' : 'line-through', fontWeight: '700' }}>{item.name}</h3>
+                    <span style={{ color: '#7f8c8d', fontSize: '1rem', fontWeight: '600' }}>{item.price.toLocaleString()} ₮</span>
                   </div>
-                  <button onClick={() => toggleMenuItemStatus(item.id, item.is_active)} style={{ padding: '10px 20px', borderRadius: '30px', border: 'none', fontWeight: 'bold', cursor: 'pointer', width: '120px', transition: '0.3s', backgroundColor: item.is_active ? '#2ecc71' : '#e74c3c', color: 'white' }}>
+                  <button onClick={() => toggleMenuItemStatus(item.id, item.is_active)} style={{ padding: '10px 15px', borderRadius: '30px', border: 'none', fontWeight: 'bold', cursor: 'pointer', width: '110px', backgroundColor: item.is_active ? '#2ecc71' : '#e74c3c', color: 'white', fontSize: '0.95rem' }}>
                     {item.is_active ? '✅ Байгаа' : '❌ Дууссан'}
                   </button>
                 </div>
@@ -337,20 +384,20 @@ function AdminPage() {
           ) : (
             <div style={{ display: 'flex', gap: '20px', flexWrap: 'wrap' }}>
               <div style={{ flex: '1 1 300px', backgroundColor: 'white', padding: '30px', borderRadius: '12px', boxShadow: '0 4px 6px rgba(0,0,0,0.05)', textAlign: 'center', display: 'flex', flexDirection: 'column', justifyContent: 'center' }}>
-                <h3 style={{ margin: '0 0 10px 0', color: '#7f8c8d', fontSize: '1.2rem' }}>Өнөөдрийн нийт орлого</h3>
-                <h1 style={{ margin: 0, color: '#10b981', fontSize: '3rem' }}>{dailyTotal.toLocaleString()} ₮</h1>
-                <p style={{ color: '#95a5a6', fontSize: '0.9rem', marginTop: '15px' }}>*Зөвхөн төлбөр нь төлөгдсөн захиалгуудын нийлбэр</p>
+                <h3 style={{ margin: '0 0 10px 0', color: '#7f8c8d', fontSize: '1.3rem', fontWeight: '600' }}>Өнөөдрийн нийт орлого</h3>
+                <h1 style={{ margin: 0, color: '#10b981', fontSize: '3.5rem', fontWeight: '800' }}>{dailyTotal.toLocaleString()} ₮</h1>
+                <p style={{ color: '#95a5a6', fontSize: '0.95rem', marginTop: '15px' }}>*Зөвхөн төлбөр нь төлөгдсөн захиалгуудын нийлбэр</p>
               </div>
               <div style={{ flex: '2 1 400px', backgroundColor: 'white', padding: '30px', borderRadius: '12px', boxShadow: '0 4px 6px rgba(0,0,0,0.05)' }}>
-                <h3 style={{ margin: '0 0 20px 0', color: '#2c3e50', fontSize: '1.2rem', borderBottom: '2px solid #eee', paddingBottom: '10px' }}>🍽️ Зарагдсан хоолнууд</h3>
+                <h3 style={{ margin: '0 0 20px 0', color: '#2c3e50', fontSize: '1.3rem', borderBottom: '2px solid #eee', paddingBottom: '10px', fontWeight: '700' }}>🍽️ Зарагдсан хоолнууд</h3>
                 {soldItems.length === 0 ? (
                   <p style={{ color: '#7f8c8d', textAlign: 'center' }}>Одоогоор борлуулалт хийгдээгүй байна.</p>
                 ) : (
                   <ul style={{ listStyle: 'none', padding: 0, margin: 0 }}>
                     {soldItems.map(([name, quantity], idx) => (
-                      <li key={idx} style={{ display: 'flex', justifyContent: 'space-between', padding: '12px 0', borderBottom: '1px dashed #ecf0f1', fontSize: '1.1rem' }}>
-                        <span style={{ color: '#34495e', fontWeight: '500' }}>{name}</span>
-                        <strong style={{ color: '#e74c3c' }}>{quantity} ш</strong>
+                      <li key={idx} style={{ display: 'flex', justifyContent: 'space-between', padding: '14px 0', borderBottom: '1px dashed #ecf0f1', fontSize: '1.25rem' }}>
+                        <span style={{ color: '#34495e', fontWeight: '700' }}>{name}</span>
+                        <strong style={{ color: '#e74c3c', fontSize: '1.35rem', fontWeight: '800' }}>{quantity} ш</strong>
                       </li>
                     ))}
                   </ul>
