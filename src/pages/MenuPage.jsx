@@ -249,7 +249,7 @@ function MenuPage() {
   }
 
   return (
-    <div className="menu-container" style={{ paddingBottom: 'calc(100px + env(safe-area-inset-bottom, 20px))' }}>
+    <div className="menu-container">
       <h1>🍽️ Зогсоо Хайрхан</h1>
 
       <div>
@@ -290,56 +290,37 @@ function MenuPage() {
         ))}
       </div>
 
-      {/* 🛒 ДООД ТАЛЫН ХӨВДӨГ САГСНЫ ТОВЧЛУУР (МАШ НАЙДВАРТАЙ БАЙРЛАЛТАЙ БОЛГОСОН) */}
+      {/* 🛒 ДООД ТАЛЫН ХӨВДӨГ САТСНЫ ТОВЧЛУУР */}
       {cart.length > 0 && !isCartOpen && (
-        <div className="floating-cart-wrapper" style={{ bottom: 'calc(20px + env(safe-area-inset-bottom, 16px))', zIndex: 9999 }}>
-          <button 
-            className="floating-cart-btn" 
-            onClick={() => setIsCartOpen(true)}
-            style={{ backgroundColor: '#ffcc00', color: '#1e293b', fontWeight: '800', boxShadow: '0 8px 24px rgba(255, 204, 0, 0.4)' }}
-          >
+        <div className="floating-cart-wrapper">
+          <button className="floating-cart-btn" onClick={() => setIsCartOpen(true)}>
             <span>🛒 Сагсанд {totalItemsCount} ш</span>
             <span>{totalPrice.toLocaleString()} ₮</span>
           </button>
         </div>
       )}
 
-      {/* 🛍️ МИНИЙ САГС МОДАЛ ЦОНХ (ЭД ГАЗАР CSS СТИЛИЙГ СҮДДЭД ЗАССРАВ) */}
+      {/* 🛍️ МИНИЙ САГС МОДАЛ ЦОНХ */}
       {isCartOpen && (
-        <div className="cart-modal-overlay" style={{ zIndex: 10000 }} onClick={(e) => {
+        <div className="cart-modal-overlay" onClick={(e) => {
           if (e.target.className === 'cart-modal-overlay') setIsCartOpen(false);
         }}>
-          <div 
-            className="cart-modal-content" 
-            style={{ 
-              borderRadius: '24px 24px 0 0', 
-              boxSizing: 'border-box',
-              maxHeight: '85vh', // Дэлгэцийн 85%-иас хэтрэхгүй уян хатан байх
-              display: 'flex',
-              flexDirection: 'column',
-              // ✨ ШИНЭЧЛЭГДСЭН CSS: Утасны доод зурааснаас хүчээр томоор зай авч тусгаарласан хэсэг
-              paddingTop: '24px',
-              paddingLeft: '24px',
-              paddingRight: '24px',
-              paddingBottom: 'calc(35px + env(safe-area-inset-bottom, 20px))' 
-            }}
-          >
+          <div className="cart-modal-content">
             
-            {/* Сагсны толгой */}
+            {/* Толгой хэсэг */}
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '15px', flexShrink: 0 }}>
               <h2 style={{ margin: 0, fontSize: '1.5rem', color: '#0f172a', fontWeight: '800' }}>Таны сагс</h2>
               <button 
                 className="close-modal-btn" 
                 onClick={() => setIsCartOpen(false)}
-                style={{ background: '#f1f5f9', width: '36px', height: '36px', borderRadius: '50%', display: 'flex', justifyContent: 'center', alignItems: 'center', fontSize: '1rem', border: 'none', color: '#64748b', cursor: 'pointer' }}
               >
                 ✖
               </button>
             </div>
 
-            {/* Скролл хийгддэг хоолны жагсаалт (Товчлуурыг доошоо шахахгүйн тулд флекс суулгав) */}
-            <div style={{ flex: 1, overflowY: 'auto', marginBottom: '15px', paddingRight: '4px' }}>
-              <ul className="cart-items-list" style={{ padding: 0, margin: 0 }}>
+            {/* Скролл хийгддэг хоолны жагсаалт */}
+            <div style={{ flex: 1, overflowY: 'auto', marginBottom: '15px' }}>
+              <ul style={{ listStyle: 'none', padding: 0, margin: 0 }}>
                 {cart.map((item) => (
                   <li key={item.id} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '14px', fontSize: '1.2rem', paddingBottom: '10px', borderBottom: '1px solid #f8fafc' }}>
                     <span style={{ color: '#334155', fontWeight: '700' }}>{item.name}</span>
@@ -364,8 +345,8 @@ function MenuPage() {
               </ul>
             </div>
             
-            {/* Доод талын бөглөх форм болон товчлуур (Үргэлж дэлгэцэнд багтаж харагдана) */}
-            <div style={{ flexShrink: 0 }}>
+            {/* Доод талын бөглөх форм болон товчлуур */}
+            <div className="cart-summary" style={{ flexShrink: 0 }}>
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '12px', background: '#f8fafc', padding: '12px 15px', borderRadius: '12px' }}>
                 <span style={{ fontSize: '1.05rem', color: '#64748b', fontWeight: '600' }}>Нийт төлөх дүн:</span>
                 <strong style={{ fontSize: '1.5rem', color: '#0f172a', fontWeight: '900' }}>{totalPrice.toLocaleString()} ₮</strong>
@@ -376,36 +357,21 @@ function MenuPage() {
                 placeholder="Таны утасны дугаар (Заавал)" 
                 value={phone} 
                 onChange={(e) => setPhone(e.target.value)} 
-                style={{ width: '100%', padding: '14px', borderRadius: '12px', border: '1px solid #cbd5e1', fontSize: '1.1rem', marginBottom: '10px', boxSizing: 'border-box', outline: 'none' }}
               />
               
               <select 
                 value={orderType} 
                 onChange={(e) => setOrderType(e.target.value)}
-                style={{ width: '100%', padding: '14px', borderRadius: '12px', border: '1px solid #cbd5e1', fontSize: '1.1rem', marginBottom: '15px', boxSizing: 'border-box', outline: 'none', backgroundColor: '#fff' }}
               >
                 <option value="dine-in">🍽️ Сууж идэх</option>
                 <option value="pickup">🛍️ Аваад явах</option>
               </select>
               
-              {/* ⚡ ШАР ЗАХИАЛАХ ТОВЧЛУУР: УТАСНЫ СИСТЕМД ДАРАГДАХААР ДЭЭШЛҮҮЛСЭН */}
               <button 
                 className="order-btn" 
                 onClick={placeOrder} 
                 disabled={isSubmitting}
-                style={{ 
-                  width: '100%', 
-                  padding: '16px', 
-                  borderRadius: '14px', 
-                  border: 'none', 
-                  backgroundColor: '#ffcc00', 
-                  color: '#1e293b', 
-                  fontSize: '1.3rem', 
-                  fontWeight: '900', 
-                  cursor: 'pointer',
-                  boxShadow: '0 4px 14px rgba(255, 204, 0, 0.3)',
-                  display: 'block'
-                }}
+                style={{ backgroundColor: '#ffcc00', color: '#1e293b' }}
               >
                 {isSubmitting ? 'БАТАЛГААЖУУЛЖ БАЙНА...' : `${totalPrice.toLocaleString()} ₮ Захиалах`}
               </button>
