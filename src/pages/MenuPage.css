@@ -1,59 +1,49 @@
-/* ========================================================
-   🍽️ ЗОГСОО ХАЙРХАН - ЦЭСНИЙ СТИЛЬ (БҮРЭН ХУВИЛБАР)
-   ======================================================== */
-
-body {
-  margin: 0;
-  padding: 0;
-  background-color: #f8fafc;
-  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
-}
-
+/* Үндсэн контейнер болон суурь тохиргоо */
 .menu-container {
   max-width: 600px;
   margin: 0 auto;
-  padding: 20px;
-  background: #ffffff;
+  background-color: #ffffff;
   min-height: 100vh;
+  padding-bottom: 100px; /* Сагсны товчлуурт зориулсан доод зай */
   box-sizing: border-box;
-  /* Доод талын хөвдөг сагсанд хоолнууд халхлагдахгүй байх зай */
-  padding-bottom: calc(120px + env(safe-area-inset-bottom, 20px));
-}
-
-h1 {
-  text-align: center;
-  color: #0f172a;
-  font-size: 2rem;
-  font-weight: 800;
-  margin-bottom: 30px;
-}
-
-.group-title {
-  font-size: 1.4rem;
   color: #1e293b;
-  border-left: 5px solid #ffcc00;
-  padding-left: 10px;
-  margin-top: 30px;
-  margin-bottom: 15px;
-  font-weight: 700;
 }
 
-/* 🍔 ХООЛНЫ МӨР (LIST ITEM) - ТОПЧЛУУРЫГ ХАЖУУД НЬ БАРИХ ҮНДСЭН БҮТЭЦ */
+/* Ангиллын гарчиг */
+.group-title {
+  font-size: 1.3rem;
+  font-weight: 800;
+  color: #0f172a;
+  margin: 25px 15px 12px 15px;
+  letter-spacing: -0.3px;
+}
+
+/* 🍔 ХООЛНЫ КАРТ (image_a3ca01.png шиг цэвэрхэн) */
 .menu-item {
   display: flex;
   justify-content: space-between;
   align-items: center;
   padding: 16px;
-  background: #ffffff;
-  border: 1px solid #e2e8f0;
-  border-radius: 14px;
-  margin-bottom: 12px;
-  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.02);
+  margin: 0 15px 12px 15px;
+  background-color: #ffffff;
+  border-radius: 16px;
+  border: 1px solid #f1f5f9;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.02);
+  cursor: pointer;
+  transition: transform 0.2s, box-shadow 0.2s;
 }
 
+.menu-item:active {
+  transform: scale(0.98);
+  background-color: #f8fafc;
+}
+
+/* Хоолны мэдээлэл */
 .item-info {
   flex: 1;
   padding-right: 15px;
+  display: flex;
+  flex-direction: column;
 }
 
 .item-info h3 {
@@ -61,131 +51,59 @@ h1 {
   font-size: 1.15rem;
   color: #0f172a;
   font-weight: 700;
+  line-height: 1.4;
 }
 
 .item-price {
   margin: 0;
-  color: #ef4444;
-  font-weight: 700;
-  font-size: 1.1rem;
-}
-
-/* ➕ ➖ ТОПЧЛУУРУУДЫГ ХАЖУУ ХАЖУУД НЬ ЦЭГЦТЭЙ БАРИХ ХЭСЭГ */
-.controls {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-}
-
-.btn-add, .btn-remove {
-  width: 36px;
-  height: 36px;
-  border-radius: 50%;
-  border: none;
-  font-size: 1.4rem;
-  font-weight: 600;
-  cursor: pointer;
-  display: flex;
-  justify-content: center;
-  align-items: center;
-  transition: transform 0.1s;
-}
-
-.btn-add {
-  background-color: #ffcc00;
-  color: #1e293b;
-}
-
-.btn-remove {
-  background-color: #f1f5f9;
-  color: #64748b;
-  border: 1px solid #cbd5e1;
-}
-
-.btn-add:active, .btn-remove:active {
-  transform: scale(0.9);
-}
-
-/* ========================================================
-   🛒 ХӨВДӨГ САГС БОЛОН МОДАЛ ЦОНХНЫ ШИНЭЧЛЭГДСЭН СТИЛЬ
-   ======================================================== */
-
-/* Дэлгэцийн доор үргэлж хөвж явах ногоон/шар товчны гаднах хүрээ */
-.floating-cart-wrapper {
-  position: fixed !important;
-  bottom: 0 !important;
-  left: 0 !important;
-  width: 100% !important;
-  /* Утасны доод талын зураасны зайг автоматаар авна */
-  padding: 15px 20px calc(25px + env(safe-area-inset-bottom, 15px)) 20px !important;
-  background: linear-gradient(to top, rgba(255,255,255,1) 60%, rgba(255,255,255,0)) !important;
-  box-sizing: border-box !important;
-  display: flex;
-  justify-content: center;
-  z-index: 9999 !important;
-}
-
-.floating-cart-btn {
-  width: 100%;
-  max-width: 560px;
-  background-color: #ffcc00;
-  color: #1e293b;
-  border: none;
-  border-radius: 30px;
-  padding: 18px 24px;
-  font-size: 1.2rem;
+  font-size: 1.15rem;
   font-weight: 800;
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  box-shadow: 0 8px 24px rgba(255, 204, 0, 0.35);
-  cursor: pointer;
+  color: #1e293b;
 }
 
-/* Сагсны цонх нээгдэхэд арын дэлгэцийг хаах хар сүүдэр */
+/* 🔝 ДЭЭД ТАЛЫН ХӨВДӨГ АНГИЛЛЫН СЕКЦЭНД ЗОРИУЛСАН СКРОЛЛ */
+div::-webkit-scrollbar {
+  display: none; /* Скролл барыг нуух */
+}
+
+/* 🛍️ МОДАЛ ЦОНХНЫ СҮҮДЭРЛЭГЧ (OVERLAY) */
 .cart-modal-overlay {
-  position: fixed !important;
-  top: 0 !important;
-  left: 0 !important;
-  width: 100vw !important;
-  height: 100vh !important;
-  background: rgba(0, 0, 0, 0.5) !important;
-  z-index: 10000 !important;
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background-color: rgba(0, 0, 0, 0.5);
   display: flex;
+  align-items: flex-end; /* Доороос нь гаргаж ирнэ */
   justify-content: center;
-  align-items: flex-end;
+  z-index: 200;
+  animation: fadeIn 0.25s ease-out;
 }
 
-/* Доороос гарч ирдэг Сагсны цагаан хайрцаг */
+/* 🔎 ДӨӨРӨӨСӨӨ СӨГДӨЖ ГАРЧ ИРЭХ МОДАЛ ХАЙРЦАГ (BaeMin стил) */
 .cart-modal-content {
-  background: white;
+  background-color: #ffffff;
   width: 100%;
   max-width: 600px;
-  border-radius: 24px 24px 0 0;
-  box-sizing: border-box !important;
-  display: flex;
-  flex-direction: column;
   max-height: 85vh;
-  padding-top: 24px;
-  padding-left: 24px;
-  padding-right: 24px;
-  /* УТАСРУУ ОРОХОД ТОВЧЛУУР ДАРАГДАХААР ХҮЧЭЭР ДЭЭШЛҮҮЛЭХ ПАДДИНГ */
-  padding-bottom: calc(40px + env(safe-area-inset-bottom, 24px)) !important;
-  animation: slideUp 0.25s ease-out forwards;
+  overflow-y: auto;
+  position: relative;
+  box-shadow: 0 -8px 32px rgba(0, 0, 0, 0.15);
+  animation: slideUp 0.3s cubic-bezier(0.16, 1, 0.3, 1);
 }
 
-@keyframes slideUp {
-  from { transform: translateY(100%); }
-  to { transform: translateY(0); }
+/* Модал хаах товчлуур */
+.close-modal-btn {
+  cursor: pointer;
+  transition: background-color 0.2s;
 }
 
-.cart-items-list {
-  list-style: none;
-  padding: 0;
-  margin: 0;
+.close-modal-btn:active {
+  background-color: #e2e8f0;
 }
 
-/* Сагс доторх оролтын талбарууд */
+/* Оруулах талбарууд (Input & Select) */
 .cart-summary input, .cart-summary select {
   width: 100%;
   padding: 14px;
@@ -194,20 +112,36 @@ h1 {
   font-size: 1.1rem;
   margin-bottom: 12px;
   box-sizing: border-box;
-  outline: none;
-  background-color: #fff;
+  background-color: #ffffff;
   font-family: inherit;
+  color: #0f172a;
 }
 
-.order-btn {
-  width: 100%;
-  padding: 16px;
-  border-radius: 14px;
-  border: none;
-  backgroundColor: #ffcc00;
-  color: #1e293b;
-  font-size: 1.25rem;
-  font-weight: 900;
-  cursor: pointer;
-  box-shadow: 0 4px 14px rgba(255, 204, 0, 0.25);
+.cart-summary input:focus, .cart-summary select:focus {
+  border-color: #ffcc00;
+  background-color: #fffdf5;
+}
+
+/* Сагсны жагсаалт */
+.cart-items-list {
+  list-style: none;
+  overflow-y: auto;
+}
+
+/* Анимациуд */
+@keyframes fadeIn {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+@keyframes slideUp {
+  from { transform: translateY(100%); }
+  to { transform: translateY(0); }
+}
+
+/* Утасны дугаар оруулах хэсэгт сумнуудыг нуух */
+input[type=number]::-webkit-inner-spin-button, 
+input[type=number]::-webkit-outer-spin-button { 
+  -webkit-appearance: none; 
+  margin: 0; 
 }

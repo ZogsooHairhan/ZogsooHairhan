@@ -1,6 +1,6 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { supabase } from '../supabaseClient';
-import './MenuPage.css';
+import './MenuPage.css?v=1.0.1';
 
 function MenuPage() {
   const [menuItems, setMenuItems] = useState([]);
@@ -13,11 +13,18 @@ function MenuPage() {
   const [orderSuccess, setOrderSuccess] = useState(false);
   const [placedOrderId, setPlacedOrderId] = useState(''); 
   const [placedOrderTotal, setPlacedOrderTotal] = useState(0);
-  
   const [placedOrderType, setPlacedOrderType] = useState('dine-in');
   const [placedOrderPhone, setPlacedOrderPhone] = useState('');
 
+  // ✨ ЖИШЭЭ ШИГ: Идэвхтэй байгаа ангиллыг хянах төлөв
+  const [activeCategory, setActiveCategory] = useState('Бүгд');
+
+  // ✨ IMAGE_6 ШИГ: Хоолны дэлгэрэнгүйг харуулах модал төлөвүүд
+  const [selectedItem, setSelectedItem] = useState(null);
+  const [detailQuantity, setDetailQuantity] = useState(1);
+
   const [isCartOpen, setIsCartOpen] = useState(false);
+  const categoryRefs = useRef({});
 
   useEffect(() => {
     fetchMenu();
@@ -39,81 +46,68 @@ function MenuPage() {
     }
   };
 
-  const addToCart = (item) => {
+  // Ангилал руу шууд гүйлгэж очих (Scroll) функц
+  const handleCategoryClick = (category) => {
+    setActiveCategory(category);
+    if (category === 'Бүгд') {
+      window.scrollTo({ top: 0, behavior: 'smooth' });
+    } else {
+      const element = categoryRefs.current[category];
+      if (element) {
+        const offset = 140; // Дээд талын хөвдөг цэсний зайг тооцно
+        const bodyRect = document.body.getBoundingClientRect().top;
+        const elementRect = element.getBoundingClientRect().top;
+        const elementPosition = elementRect - bodyRect;
+        const offsetPosition = elementPosition - offset;
+
+        window.scrollTo({
+          top: offsetPosition,
+          behavior: 'smooth'
+        });
+      }
+    }
+  };
+
+  // Сагсанд нэмэх үндсэн функцүүд
+  const handleAddToWithQty = (item, qty) => {
     setCart((prevCart) => {
       const existingItem = prevCart.find((cartItem) => cartItem.id === item.id);
       if (existingItem) {
         return prevCart.map((cartItem) =>
-          cartItem.id === item.id ? { ...cartItem, quantity: (parseInt(cartItem.quantity) || 0) + 1 } : cartItem
+          cartItem.id === item.id ? { ...cartItem, quantity: (parseInt(cartItem.quantity) || 0) + qty } : cartItem
         );
       }
-      return [...prevCart, { ...item, quantity: 1 }];
+      return [...prevCart, { ...item, quantity: qty }];
     });
+    setSelectedItem(null); // Дэлгэрэнгүй цонхыг хаана
+    setDetailQuantity(1);
   };
 
-  const removeFromCart = (itemId) => {
+  const updateCartQuantity = (itemId, amount) => {
     setCart((prevCart) => {
-      const newCart = prevCart
-        .map((cartItem) =>
-          cartItem.id === itemId ? { ...cartItem, quantity: (parseInt(cartItem.quantity) || 0) - 1 } : cartItem
-        )
-        .filter((cartItem) => cartItem.quantity > 0); 
-      
-      if (newCart.length === 0) {
-        setIsCartOpen(false);
-      }
-      return newCart;
+      return prevCart.map((item) => {
+        if (item.id === itemId) {
+          const newQty = (parseInt(item.quantity) || 0) + amount;
+          return newQty > 0 ? { ...item, quantity: newQty } : null;
+        }
+        return item;
+      }).filter(Boolean);
     });
   };
 
-  const handleManualQuantity = (itemId, value) => {
-    setCart((prevCart) =>
-      prevCart.map((cartItem) => {
-        if (cartItem.id === itemId) {
-          return { ...cartItem, quantity: value === '' ? '' : parseInt(value, 10) };
-        }
-        return cartItem;
-      })
-    );
-  };
-
-  const handleInputBlur = (itemId, value) => {
-    const qty = parseInt(value, 10);
-    if (isNaN(qty) || qty <= 0) {
-      setCart((prev) => {
-        const newCart = prev.filter((c) => c.id !== itemId);
-        if (newCart.length === 0) setIsCartOpen(false);
-        return newCart;
-      });
-    }
-  };
-
-  const totalPrice = cart.reduce((sum, item) => {
-    const qty = parseInt(item.quantity, 10) || 0;
-    return sum + (item.price * qty);
-  }, 0);
-
-  const totalItemsCount = cart.reduce((sum, item) => sum + (parseInt(item.quantity, 10) || 0), 0);
+  const totalPrice = cart.reduce((sum, item) => sum + (item.price * (parseInt(item.quantity) || 0)), 0);
+  const totalItemsCount = cart.reduce((sum, item) => sum + (parseInt(item.quantity) || 0), 0);
 
   const placeOrder = async () => {
     const validCartItems = cart.filter(item => (parseInt(item.quantity, 10) || 0) > 0);
-
-    if (validCartItems.length === 0) {
-      alert("Таны сагс хоосон байна!");
-      return;
-    }
-
-    if (!phone.trim()) {
-      alert("Та утасны дугаараа оруулна уу.");
-      return;
-    }
+    if (validCartItems.length === 0) { alert("Сагс хоосон байна!"); return; }
+    if (!phone.trim()) { alert("Утасны дугаараа оруулна уу."); return; }
 
     if (orderType === 'dine-in') {
       const hasDrink = validCartItems.some(item => {
         const categoryName = (item.category || '').toLowerCase();
         return categoryName.includes('уух') || categoryName.includes('ундаа') || categoryName.includes('цай');
       });
-
       if (!hasDrink) {
         alert("⚠️ Сууж идэх тохиолдолд заавал дор хаяж нэг уух юм (ундаа, цай гм) сонгох шаардлагатай.");
         return; 
@@ -121,7 +115,6 @@ function MenuPage() {
     }
 
     setIsSubmitting(true);
-
     try {
       const currentTotal = totalPrice;
       const currentOrderType = orderType;
@@ -129,23 +122,14 @@ function MenuPage() {
 
       const { data: orderData, error: orderError } = await supabase
         .from('orders')
-        .insert([{
-            table_number: '1',                 
-            phone_number: currentPhone, 
-            total_amount: currentTotal,
-            order_type: currentOrderType,           
-            status: 'pending'
-        }])
+        .insert([{ table_number: '1', phone_number: currentPhone, total_amount: currentTotal, order_type: currentOrderType, status: 'pending' }])
         .select();
 
       if (orderError) throw orderError;
       const newOrder = orderData[0]; 
 
       const orderItemsData = validCartItems.map((item) => ({
-        order_id: newOrder.id,        
-        menu_item_id: item.id,        
-        quantity: parseInt(item.quantity, 10),
-        price: item.price
+        order_id: newOrder.id, menu_item_id: item.id, quantity: parseInt(item.quantity, 10), price: item.price
       }));
 
       const { error: itemsError } = await supabase
@@ -158,20 +142,15 @@ function MenuPage() {
       setPlacedOrderType(currentOrderType);
       setPlacedOrderPhone(currentPhone);
       setPlacedOrderId(newOrder.order_number); 
-
-      setCart([]); 
-      setPhone(''); 
-      setOrderType('dine-in'); 
-      setIsCartOpen(false); 
-      setOrderSuccess(true); 
-
+      setCart([]); setPhone(''); setOrderType('dine-in'); setIsCartOpen(false); setOrderSuccess(true); 
     } catch (err) {
-      console.error("Захиалга илгээхэд алдаа гарлаа:", err);
       alert("Алдаа гарлаа: " + err.message);
     } finally {
       setIsSubmitting(false);
     }
   };
+
+  const categories = ['Бүгд', ...new Set(menuItems.map(item => item.category || 'Бусад'))];
 
   const grouped = menuItems.reduce((acc, item) => {
     const cat = item.category || 'Бусад';
@@ -183,7 +162,6 @@ function MenuPage() {
   if (isLoading) return (
     <div className="menu-container" style={{ textAlign: 'center', padding: '50px 20px' }}>
         <h2>⏳ Цэс уншиж байна...</h2>
-        <p style={{ color: '#7f8c8d' }}>Түр хүлээнэ үү</p>
     </div>
   );
 
@@ -192,96 +170,106 @@ function MenuPage() {
       <div className="menu-container" style={{ padding: '35px 20px' }}>
         <div style={{ textAlign: 'center', marginBottom: '25px' }}>
           <div style={{ fontSize: '65px', marginBottom: '10px' }}>⏱️</div>
-          <h1 style={{ color: '#d97706', fontSize: '2.1rem', fontWeight: '800', margin: '0 0 5px 0' }}>
-            Төлбөр хүлээгдэж байна
-          </h1>
+          <h1 style={{ color: '#d97706', fontSize: '2.1rem', fontWeight: '800', margin: '0 0 5px 0' }}>Төлбөр хүлээгдэж байна</h1>
         </div>
-
         <div style={{ backgroundColor: '#fffbeb', padding: '20px', borderRadius: '16px', marginBottom: '20px', border: '2px dashed #f59e0b', textAlign: 'center' }}>
           <span style={{ fontSize: '1.1rem', color: '#b45309', fontWeight: '600' }}>Таны захиалгын дугаар</span><br/>
-          <strong style={{ fontSize: '4.5rem', color: '#b45309', display: 'block', margin: '5px 0', lineHeight: '1' }}>
-            #{placedOrderId}
-          </strong>
+          <strong style={{ fontSize: '4.5rem', color: '#b45309', display: 'block', margin: '5px 0', lineHeight: '1' }}>#{placedOrderId}</strong>
         </div>
-
         <div style={{ backgroundColor: '#f0fdf4', border: '2px solid #bbf7d0', padding: '20px', borderRadius: '16px', marginBottom: '20px', textAlign: 'center', fontSize: '1.4rem', color: '#16a34a', fontWeight: 'bold' }}>
           💵 Төлөх нийт дүн: <span style={{ fontSize: '1.9rem', color: '#15803d', display: 'block', marginTop: '5px' }}>{placedOrderTotal.toLocaleString()} ₮</span>
         </div>
-
         {placedOrderType === 'pickup' && (
-          <div style={{ backgroundColor: '#fef2f2', border: '1px solid #fecaca', color: '#dc2626', padding: '15px', borderRadius: '12px', marginBottom: '20px', fontSize: '1.05rem', fontWeight: '600', lineHeight: '1.4' }}>
+          <div style={{ backgroundColor: '#fef2f2', border: '1px solid #fecaca', color: '#dc2626', padding: '15px', borderRadius: '12px', marginBottom: '20px', fontSize: '1.05rem', fontWeight: '600' }}>
             🛍️ Аваад явах санамж: Сав баглаа боодлын үнээс хамаарч касс дээр нийт үнэ бага зэрэг нэмэгдэж болзошгүйг анхаарна уу.
           </div>
         )}
-
         <div style={{ background: '#f8fafc', padding: '20px', borderRadius: '16px', marginBottom: '20px', border: '1px solid #e2e8f0' }}>
-          <p style={{ margin: '0 0 8px 0', color: '#64748b', fontSize: '0.95rem', fontWeight: '500' }}>Төлбөр шилжүүлэх данс:</p>
-          <strong style={{ display: 'block', fontSize: '1.25rem', color: '#0f172a', marginBottom: '6px', letterSpacing: '0.5px' }}>
-            Хаан банк: <span style={{ color: '#2563eb' }}>MN340005005819257247</span>
-          </strong>
-          <strong style={{ display: 'block', fontSize: '1.1rem', color: '#334155' }}>
-            Хүлээн авагч: ӨЛЗИЙТОГТОХ СЭРЖМАА
-          </strong>
+          <p style={{ margin: '0 0 8px 0', color: '#64748b' }}>Төлбөр шилжүүлэх данс:</p>
+          <strong style={{ display: 'block', fontSize: '1.25rem', color: '#0f172a', marginBottom: '6px' }}>Хаан банк: <span style={{ color: '#2563eb' }}>MN340005005819257247</span></strong>
+          <strong style={{ display: 'block', fontSize: '1.1rem', color: '#334155' }}>Хүлээн авагч: ӨЛЗИЙТОГТОХ СЭРЖМАА</strong>
         </div>
-
         <div style={{ backgroundColor: '#eff6ff', border: '1px solid #bfdbfe', padding: '18px', borderRadius: '16px', marginBottom: '25px' }}>
-          <span style={{ display: 'block', color: '#1e40af', fontWeight: '700', fontSize: '1.1rem', marginBottom: '8px' }}>
-            ✍️ Гүйлгээний утга:
-          </span>
-          <p style={{ margin: '0', color: '#1e3a8a', fontSize: '1.15rem', lineHeight: '1.5' }}>
-            Гүйлгээний утга дээр өөрийн <strong style={{ color: '#dc2626' }}>утасны дугаар</strong> болон <strong style={{ color: '#dc2626' }}>захиалгын номерыг</strong> заавал хамт оруулна уу.
-          </p>
-          <div style={{ marginTop: '10px', background: '#ffffff', padding: '10px', borderRadius: '8px', border: '1px dashed #93c5fd', fontSize: '1.05rem', color: '#475569' }}>
-            💡 Жишээ нь: <strong style={{ color: '#0f172a' }}>{placedOrderPhone} #{placedOrderId}</strong>
-          </div>
+          <span style={{ display: 'block', color: '#1e40af', fontWeight: '700', fontSize: '1.1rem', marginBottom: '8px' }}>✍️ Гүйлгээний утга:</span>
+          <p style={{ margin: '0', color: '#1e3a8a', fontSize: '1.15rem' }}>Гүйлгээний утга дээр өөрийн <strong>утасны дугаар</strong> болон <strong>захиалгын номерыг</strong> заавал хамт оруулна уу.</p>
+          <div style={{ marginTop: '10px', background: '#ffffff', padding: '10px', borderRadius: '8px', border: '1px dashed #93c5fd', fontSize: '1.05rem', fontWeight: '700' }}>💡 Жишээ нь: {placedOrderPhone} #{placedOrderId}</div>
         </div>
-
         <div style={{ borderTop: '2px solid #f1f5f9', paddingTop: '20px', textAlign: 'center' }}>
-          <p style={{ color: '#ef4444', fontSize: '1.25rem', fontWeight: '800', margin: '0 0 15px 0', lineHeight: '1.5' }}>
-            ⚠️ Тооцоогоо хийж <strong style={{ textDecoration: 'underline' }}>кассанд баталгаажуулахгүй бол</strong> захиалга хийгдэж эхлэхгүйг анхаарна уу!
-          </p>
-          <p style={{ color: '#475569', fontSize: '1.25rem', fontWeight: '700', margin: '20px 0 0 0', fontStyle: 'italic', letterSpacing: '0.3px' }}>
-            🌹 Манайхаар үйлчлүүлсэн танд баярлалаа! 🌹
-          </p>
+          <p style={{ color: '#ef4444', fontSize: '1.25rem', fontWeight: '800', margin: '0 0 15px 0' }}>⚠️ Тооцоогоо хийж кассанд баталгаажуулахгүй бол захиалга хийгдэж эхлэхгүйг анхаарна уу!</p>
+          <p style={{ color: '#475569', fontSize: '1.25rem', fontWeight: '700', fontStyle: 'italic' }}>🌹 Манайхаар үйлчлүүлсэн танд баярлалаа! 🌹</p>
         </div>
       </div>
     );
   }
 
   return (
-    <div className="menu-container">
-      <h1>🍽️ Зогсоо Хайрхан</h1>
+    <div className="menu-container" style={{ paddingTop: '110px' }}>
+      
+      {/* 🔝 ХӨВДӨГ ТОЛГОЙ БОЛОН АНГИЛЛЫН СЕКЦ (IMAGE_7 ШИГ) */}
+      <div style={{ position: 'fixed', top: 0, left: 0, right: 0, backgroundColor: '#ffffff', zIndex: 100, boxShadow: '0 2px 10px rgba(0,0,0,0.05)', padding: '10px 0' }}>
+        <h1 style={{ textAlign: 'center', margin: '0 0 10px 0', fontSize: '1.5rem', color: '#0f172a', fontWeight: '900' }}>🍽️ Зогсоо Хайрхан</h1>
+        
+        {/* Хэвтээ тэнхлэгээр гүйдэг ангиллууд */}
+        <div style={{ display: 'flex', gap: '10px', overflowX: 'auto', padding: '0 15px', scrollbarWidth: 'none', WebkitOverflowScrolling: 'touch' }}>
+          {categories.map((cat) => (
+            <button
+              key={cat}
+              onClick={() => handleCategoryClick(cat)}
+              style={{
+                padding: '8px 16px',
+                borderRadius: '20px',
+                border: 'none',
+                fontSize: '0.95rem',
+                fontWeight: '700',
+                whiteSpace: 'nowrap',
+                cursor: 'pointer',
+                backgroundColor: activeCategory === cat ? '#1e293b' : '#f1f5f9',
+                color: activeCategory === cat ? '#ffffff' : '#475569',
+                transition: '0.2s'
+              }}
+            >
+              {cat}
+            </button>
+          ))}
+        </div>
+      </div>
 
+      {/* 🍔 ХООЛНЫ ЖАГСААЛТ (IMAGE_7 ШИГ ЦЭВЭРХЭН ДИЗАЙН) */}
       <div>
         {Object.entries(grouped).map(([cat, items]) => (
-          <div key={cat}>
-            <h2 className="group-title">{cat}</h2>
+          <div key={cat} ref={el => categoryRefs.current[cat] = el}>
+            <h2 className="group-title" style={{ fontSize: '1.3rem', margin: '20px 15px 10px 15px', color: '#0f172a', fontWeight: '800' }}>{cat}</h2>
             {items.map((item) => {
               const cartItem = cart.find((c) => c.id === item.id);
               const quantity = cartItem ? cartItem.quantity : 0;
-              const isAdded = cartItem !== undefined;
 
               return (
-                <div key={item.id} className="menu-item">
-                  <div className="item-info">
-                    <h3>{item.name}</h3>
-                    <p className="item-price">{item.price.toLocaleString()} ₮</p>
+                <div 
+                  key={item.id} 
+                  className="menu-item"
+                  onClick={() => {
+                    setSelectedItem(item);
+                    setDetailQuantity(1);
+                  }}
+                  style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '15px', margin: '0 15px 12px 15px', backgroundColor: '#ffffff', borderRadius: '16px', border: '1px solid #f1f5f9', cursor: 'pointer', boxShadow: '0 2px 4px rgba(0,0,0,0.01)' }}
+                >
+                  <div className="item-info" style={{ flex: 1, paddingRight: '15px' }}>
+                    <h3 style={{ margin: '0 0 6px 0', fontSize: '1.2rem', color: '#0f172a', fontWeight: '700' }}>{item.name}</h3>
+                    <p className="item-price" style={{ margin: 0, fontSize: '1.15rem', fontWeight: '800', color: '#1e293b' }}>{item.price.toLocaleString()} ₮</p>
+                    {quantity > 0 && (
+                      <span style={{ display: 'inline-block', marginTop: '8px', backgroundColor: '#fff7ed', color: '#c2410c', padding: '2px 8px', borderRadius: '6px', fontSize: '0.85rem', fontWeight: '700' }}>
+                        Сагсанд {quantity} ш байна
+                      </span>
+                    )}
                   </div>
-                  <div className="controls">
-                    {isAdded && (
-                      <button className="btn-remove" onClick={() => removeFromCart(item.id)}>-</button>
-                    )}
-                    {isAdded && (
-                      <input 
-                        type="number"
-                        min="1"
-                        value={quantity}
-                        onChange={(e) => handleManualQuantity(item.id, e.target.value)}
-                        onBlur={(e) => handleInputBlur(item.id, e.target.value)}
-                        style={{ width: '50px', textAlign: 'center', fontSize: '1.3rem', fontWeight: '700', border: '2px solid #cbd5e1', borderRadius: '8px', padding: '4px', color: '#111827', backgroundColor: '#fff', outline: 'none' }}
-                      />
-                    )}
-                    <button className="btn-add" onClick={() => addToCart(item)}>+</button>
+                  
+                  {/* Баруун талын хоолны зураг (Image_7 шиг) */}
+                  <div style={{ position: 'relative', width: '85px', height: '85px', borderRadius: '12px', overflow: 'hidden', backgroundColor: '#f1f5f9' }}>
+                    <img 
+                      src={item.image_url || 'https://images.unsplash.com/photo-1546069901-ba9599a7e63c?auto=format&fit=crop&w=150&q=80'} 
+                      alt={item.name}
+                      style={{ width: '100%', height: '100%', objectFit: 'cover' }}
+                    />
                   </div>
                 </div>
               );
@@ -290,93 +278,108 @@ function MenuPage() {
         ))}
       </div>
 
-      {/* 🛒 ДООД ТАЛЫН ХӨВДӨГ САТСНЫ ТОВЧЛУУР */}
+      {/* 🛒 ЖАНБАГУНИ (ЖАГСААЛТ ХАРАХ ТОГТМОЛ ШАР ТОВЧЛУУР - IMAGE_7 ШИГ) */}
       {cart.length > 0 && !isCartOpen && (
-        <div className="floating-cart-wrapper">
-          <button className="floating-cart-btn" onClick={() => setIsCartOpen(true)}>
-            <span>🛒 Сагсанд {totalItemsCount} ш</span>
-            <span>{totalPrice.toLocaleString()} ₮</span>
+        <div style={{ position: 'fixed', bottom: '20px', left: '15px', right: '15px', zIndex: 90 }}>
+          <button 
+            onClick={() => setIsCartOpen(true)}
+            style={{ width: '100%', padding: '16px', borderRadius: '14px', border: 'none', backgroundColor: '#ffcc00', color: '#1e293b', fontSize: '1.25rem', fontWeight: '900', display: 'flex', justifyContent: 'space-between', alignItems: 'center', boxShadow: '0 8px 24px rgba(255, 204, 0, 0.35)', cursor: 'pointer' }}
+          >
+            <span style={{ background: '#1e293b', color: '#fff', padding: '3px 10px', borderRadius: '20px', fontSize: '0.95rem' }}>{totalItemsCount}</span>
+            <span>{totalPrice.toLocaleString()} ₮ • Сагс үзэх</span>
+            <span>🛒</span>
           </button>
+        </div>
+      )}
+
+      {/* 🔎 IMAGE_6 ШИГ: ХООЛНЫ ДЭЛГЭРЭНГҮЙ СУУРЬ ТОО СОНГОХ МОДАЛ ЦОНХ */}
+      {selectedItem && (
+        <div className="cart-modal-overlay" onClick={(e) => { if (e.target.className === 'cart-modal-overlay') setSelectedItem(null); }}>
+          <div className="cart-modal-content" style={{ borderRadius: '24px 24px 0 0', padding: 0, overflow: 'hidden' }}>
+            
+            {/* Буцах дугуй товчлуур */}
+            <button onClick={() => setSelectedItem(null)} style={{ position: 'absolute', top: '15px', left: '15px', zIndex: 10, width: '36px', height: '36px', borderRadius: '50%', border: 'none', backgroundColor: 'rgba(255,255,255,0.9)', fontSize: '1.2rem', display: 'flex', justifyContent: 'center', alignItems: 'center', cursor: 'pointer', boxShadow: '0 2px 8px rgba(0,0,0,0.1)' }}>
+              ⟨
+            </button>
+
+            {/* Том зураг */}
+            <div style={{ width: '100%', height: '240px', backgroundColor: '#f1f5f9' }}>
+              <img 
+                src={selectedItem.image_url || 'https://images.unsplash.com/photo-1546069901-ba9599a7e63c?auto=format&fit=crop&w=500&q=80'} 
+                alt={selectedItem.name} 
+                style={{ width: '100%', height: '100%', objectFit: 'cover' }}
+              />
+            </div>
+
+            {/* Хоолны мэдээлэл */}
+            <div style={{ padding: '20px' }}>
+              <h2 style={{ margin: '0 0 5px 0', fontSize: '1.6rem', color: '#0f172a', fontWeight: '800' }}>{selectedItem.name}</h2>
+              <div style={{ fontSize: '1.5rem', fontWeight: '900', color: '#1e293b', borderBottom: '2px solid #0f172a', paddingBottom: '15px', marginBottom: '20px' }}>
+                {selectedItem.price.toLocaleString()} ₮
+              </div>
+
+              {/* Суурь тоо сонгох хэсэг (Image_6 шиг) */}
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '25px' }}>
+                <span style={{ fontSize: '1.2rem', fontWeight: '700', color: '#475569' }}>Суурь тоо:</span>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '15px', border: '1px solid #cbd5e1', borderRadius: '25px', padding: '4px 12px', background: '#f8fafc' }}>
+                  <button onClick={() => setDetailQuantity(prev => Math.max(1, prev - 1))} style={{ border: 'none', background: 'transparent', fontSize: '1.5rem', fontWeight: 'bold', width: '30px', cursor: 'pointer' }}>-</button>
+                  <strong style={{ fontSize: '1.3rem', width: '30px', textAlign: 'center' }}>{detailQuantity}</strong>
+                  <button onClick={() => setDetailQuantity(prev => prev + 1)} style={{ border: 'none', background: 'transparent', fontSize: '1.5rem', fontWeight: 'bold', width: '30px', cursor: 'pointer' }}>+</button>
+                </div>
+              </div>
+
+              {/* ⚡ ШАР ТОД ТОВЧЛУУР: САТСАНД ХИЙХ (IMAGE_6 ШИГ) */}
+              <button 
+                onClick={() => handleAddToWithQty(selectedItem, detailQuantity)}
+                style={{ width: '100%', padding: '16px', borderRadius: '14px', border: 'none', backgroundColor: '#ffcc00', color: '#1e293b', fontSize: '1.25rem', fontWeight: '900', cursor: 'pointer', boxShadow: '0 4px 12px rgba(255, 204, 0, 0.3)' }}
+              >
+                {(selectedItem.price * detailQuantity).toLocaleString()} ₮ Сагсанд хийх
+              </button>
+            </div>
+
+          </div>
         </div>
       )}
 
       {/* 🛍️ МИНИЙ САГС МОДАЛ ЦОНХ */}
       {isCartOpen && (
-        <div className="cart-modal-overlay" onClick={(e) => {
-          if (e.target.className === 'cart-modal-overlay') setIsCartOpen(false);
-        }}>
-          <div className="cart-modal-content">
+        <div className="cart-modal-overlay" onClick={(e) => { if (e.target.className === 'cart-modal-overlay') setIsCartOpen(false); }}>
+          <div className="cart-modal-content" style={{ borderRadius: '24px 24px 0 0', padding: '24px' }}>
             
-            {/* Толгой хэсэг */}
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '15px', flexShrink: 0 }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px' }}>
               <h2 style={{ margin: 0, fontSize: '1.5rem', color: '#0f172a', fontWeight: '800' }}>Таны сагс</h2>
-              <button 
-                className="close-modal-btn" 
-                onClick={() => setIsCartOpen(false)}
-              >
-                ✖
-              </button>
+              <button className="close-modal-btn" onClick={() => setIsCartOpen(false)} style={{ background: '#f1f5f9', width: '36px', height: '36px', borderRadius: '50%', border: 'none' }}>✖</button>
             </div>
 
-            {/* Скролл хийгддэг хоолны жагсаалт */}
-            <div style={{ flex: 1, overflowY: 'auto', marginBottom: '15px' }}>
-              <ul style={{ listStyle: 'none', padding: 0, margin: 0 }}>
+            <div className="cart-summary" style={{ margin: 0, padding: 0, border: 'none', background: 'transparent' }}>
+              <ul className="cart-items-list" style={{ maxHeight: '200px', overflowY: 'auto', padding: 0, margin: '0 0 20px 0', borderBottom: '1px solid #f1f5f9' }}>
                 {cart.map((item) => (
-                  <li key={item.id} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '14px', fontSize: '1.2rem', paddingBottom: '10px', borderBottom: '1px solid #f8fafc' }}>
+                  <li key={item.id} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '14px', fontSize: '1.15rem' }}>
                     <span style={{ color: '#334155', fontWeight: '700' }}>{item.name}</span>
-                    
                     <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-                      <button 
-                        onClick={() => removeFromCart(item.id)}
-                        style={{ border: '1px solid #cbd5e1', background: '#fff', borderRadius: '50%', width: '32px', height: '32px', display: 'flex', justifyContent: 'center', alignItems: 'center', fontWeight: 'bold', fontSize: '1.2rem', cursor: 'pointer' }}
-                      >
-                        -
-                      </button>
-                      <strong style={{ color: '#0f172a', minWidth: '25px', textAlign: 'center', fontSize: '1.25rem' }}>{item.quantity} ш</strong>
-                      <button 
-                        onClick={() => addToCart(item)}
-                        style={{ border: '1px solid #cbd5e1', background: '#fff', borderRadius: '50%', width: '32px', height: '32px', display: 'flex', justifyContent: 'center', alignItems: 'center', fontWeight: 'bold', fontSize: '1.2rem', cursor: 'pointer' }}
-                      >
-                        +
-                      </button>
+                      <button onClick={() => updateCartQuantity(item.id, -1)} style={{ border: '1px solid #cbd5e1', background: '#fff', borderRadius: '50%', width: '28px', height: '28px', fontWeight: 'bold', cursor: 'pointer' }}>-</button>
+                      <strong style={{ minWidth: '20px', textAlign: 'center' }}>{item.quantity}</strong>
+                      <button onClick={() => updateCartQuantity(item.id, 1)} style={{ border: '1px solid #cbd5e1', background: '#fff', borderRadius: '50%', width: '28px', height: '28px', fontWeight: 'bold', cursor: 'pointer' }}>+</button>
                     </div>
                   </li>
                 ))}
               </ul>
-            </div>
-            
-            {/* Доод талын бөглөх форм болон товчлуур */}
-            <div className="cart-summary" style={{ flexShrink: 0 }}>
-              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '12px', background: '#f8fafc', padding: '12px 15px', borderRadius: '12px' }}>
-                <span style={{ fontSize: '1.05rem', color: '#64748b', fontWeight: '600' }}>Нийт төлөх дүн:</span>
+              
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px', background: '#f8fafc', padding: '15px', borderRadius: '14px' }}>
+                <span style={{ color: '#64748b', fontWeight: '600' }}>Нийт төлөх дүн:</span>
                 <strong style={{ fontSize: '1.5rem', color: '#0f172a', fontWeight: '900' }}>{totalPrice.toLocaleString()} ₮</strong>
               </div>
               
-              <input 
-                type="number" 
-                placeholder="Таны утасны дугаар (Заавал)" 
-                value={phone} 
-                onChange={(e) => setPhone(e.target.value)} 
-              />
-              
-              <select 
-                value={orderType} 
-                onChange={(e) => setOrderType(e.target.value)}
-              >
+              <input type="number" placeholder="Таны утасны дугаар (Заавал)" value={phone} onChange={(e) => setPhone(e.target.value)} style={{ width: '100%', padding: '14px', borderRadius: '12px', border: '1px solid #cbd5e1', fontSize: '1.1rem', marginBottom: '12px', boxSizing: 'border-box' }} />
+              <select value={orderType} onChange={(e) => setOrderType(e.target.value)} style={{ width: '100%', padding: '14px', borderRadius: '12px', border: '1px solid #cbd5e1', fontSize: '1.1rem', marginBottom: '20px', boxSizing: 'border-box', backgroundColor: '#fff' }}>
                 <option value="dine-in">🍽️ Сууж идэх</option>
                 <option value="pickup">🛍️ Аваад явах</option>
               </select>
               
-              <button 
-                className="order-btn" 
-                onClick={placeOrder} 
-                disabled={isSubmitting}
-                style={{ backgroundColor: '#ffcc00', color: '#1e293b' }}
-              >
+              <button className="order-btn" onClick={placeOrder} disabled={isSubmitting} style={{ width: '100%', padding: '16px', borderRadius: '14px', border: 'none', backgroundColor: '#ffcc00', color: '#1e293b', fontSize: '1.25rem', fontWeight: '900', cursor: 'pointer', boxShadow: '0 4px 12px rgba(255, 204, 0, 0.2)' }}>
                 {isSubmitting ? 'БАТАЛГААЖУУЛЖ БАЙНА...' : `${totalPrice.toLocaleString()} ₮ Захиалах`}
               </button>
             </div>
-            
           </div>
         </div>
       )}
