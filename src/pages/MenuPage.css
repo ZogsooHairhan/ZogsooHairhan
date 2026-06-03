@@ -315,3 +315,244 @@ h1 {
 .menu-container {
   padding-bottom: 100px; 
 }
+/* 🏷️ Дээд талын уян хатан ангиллын дизайн */
+.category-scroll-container {
+  display: flex;
+  gap: 10px;
+  overflow-x: auto;
+  padding: 10px 15px;
+  background-color: #fff;
+  position: sticky;
+  top: 0;
+  z-index: 99;
+  scrollbar-width: none; /* Firefox */
+}
+.category-scroll-container::-webkit-scrollbar {
+  display: none; /* Chrome/Safari */
+}
+.category-tag-btn {
+  background-color: #f1f5f9;
+  border: none;
+  padding: 8px 16px;
+  border-radius: 20px;
+  font-size: 0.95rem;
+  font-weight: 600;
+  color: #475569;
+  white-space: nowrap;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+.category-tag-btn.active {
+  background-color: #1e293b;
+  color: #fff;
+}
+
+/* 🍔 Хоолны шинэ жагсаалтын дизайн (image_2 шиг) */
+.modern-menu-item {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  background-color: #fff;
+  padding: 15px;
+  border-radius: 12px;
+  margin-bottom: 12px;
+  border: 1px solid #f1f5f9;
+  cursor: pointer;
+  box-shadow: 0 2px 4px rgba(0,0,0,0.01);
+}
+.modern-item-info h3 {
+  margin: 0 0 5px 0;
+  font-size: 1.15rem;
+  color: #0f172a;
+  font-weight: 700;
+}
+.modern-item-price {
+  margin: 0 0 5px 0;
+  font-size: 1.1rem;
+  color: #1e293b;
+  font-weight: 800;
+}
+.modern-item-cat {
+  font-size: 0.8rem;
+  background-color: #f1f5f9;
+  color: #64748b;
+  padding: 2px 8px;
+  border-radius: 4px;
+  font-weight: 500;
+}
+.modern-item-image-wrapper {
+  position: relative;
+  width: 85px;
+  height: 85px;
+  flex-shrink: 0;
+}
+.modern-item-img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  border-radius: 10px;
+}
+.modern-item-no-img {
+  width: 100%;
+  height: 100%;
+  background-color: #f8fafc;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  font-size: 2rem;
+  border-radius: 10px;
+}
+.modern-item-badge {
+  position: absolute;
+  top: -5px;
+  left: -5px;
+  background-color: #ef4444;
+  color: white;
+  font-size: 0.8rem;
+  font-weight: bold;
+  padding: 2px 7px;
+  border-radius: 50%;
+}
+
+/* 🛒 Шар өнгийн доод сагс (image_2 шиг) */
+.modern-floating-cart-wrapper {
+  position: fixed;
+  bottom: 20px;
+  left: 0;
+  width: 100%;
+  padding: 0 20px;
+  box-sizing: border-box;
+  z-index: 999;
+}
+.modern-floating-cart-btn {
+  width: 100%;
+  background-color: #facc15; /* Тод шар өнгө */
+  color: #0f172a;
+  border: none;
+  padding: 16px;
+  border-radius: 12px;
+  font-size: 1.1rem;
+  font-weight: 800;
+  cursor: pointer;
+  box-shadow: 0 10px 15px -3px rgba(250, 204, 21, 0.3);
+}
+
+/* 🔍 Хоолны дэлгэрэнгүй цонх (image_3 шиг) */
+.detail-modal-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100vw;
+  height: 100vh;
+  background-color: rgba(0,0,0,0.5);
+  display: flex;
+  justify-content: center;
+  align-items: flex-end; /* Утсан дээр доороос гарч ирнэ */
+  z-index: 9999;
+}
+.detail-modal-content {
+  background-color: white;
+  width: 100%;
+  max-width: 500px;
+  border-top-left-radius: 24px;
+  border-top-right-radius: 24px;
+  overflow: hidden;
+  position: relative;
+  animation: slideUp 0.3s ease-out;
+}
+@keyframes slideUp {
+  from { transform: translateY(100%); }
+  to { transform: translateY(0); }
+}
+.detail-close-btn {
+  position: absolute;
+  top: 15px;
+  left: 15px;
+  background: rgba(255,255,255,0.8);
+  border: none;
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  font-size: 1.2rem;
+  cursor: pointer;
+  z-index: 10;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+}
+.detail-image-box {
+  width: 100%;
+  height: 250px;
+  background-color: #f1f5f9;
+}
+.detail-image-box img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+.detail-no-image {
+  height: 100%;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  font-size: 4rem;
+}
+.detail-info-box {
+  padding: 20px;
+}
+.detail-info-box h2 {
+  margin: 0 0 8px 0;
+  font-size: 1.5rem;
+  color: #0f172a;
+}
+.detail-price {
+  font-size: 1.3rem;
+  font-weight: 800;
+  color: #1e293b;
+  margin-bottom: 20px;
+}
+.detail-qty-section {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  border-top: 1px solid #f1f5f9;
+  padding-top: 15px;
+  margin-bottom: 25px;
+}
+.detail-qty-section span {
+  font-size: 1.1rem;
+  font-weight: 600;
+  color: #475569;
+}
+.detail-qty-controls {
+  display: flex;
+  align-items: center;
+  gap: 15px;
+  border: 1px solid #cbd5e1;
+  padding: 5px 15px;
+  border-radius: 20px;
+}
+.detail-qty-controls button {
+  background: none;
+  border: none;
+  font-size: 1.4rem;
+  cursor: pointer;
+  color: #334155;
+  padding: 0 5px;
+}
+.detail-qty-controls span {
+  font-size: 1.2rem;
+  font-weight: 700;
+  color: #0f172a;
+}
+.detail-add-btn {
+  width: 100%;
+  background-color: #facc15;
+  border: none;
+  padding: 16px;
+  border-radius: 12px;
+  font-size: 1.1rem;
+  font-weight: 800;
+  color: #0f172a;
+  cursor: pointer;
+}

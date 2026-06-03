@@ -3,7 +3,7 @@ import { supabase } from '../supabaseClient';
 
 function AdminPage() {
   // ==============================================
-  // 🔒 ЖИНХЭНЭ SUPABASE AUTH (НЭВТРЭХ ХЭСЭГ)
+  // 🔒 SUPABASE AUTH (НЭВТРЭХ ХЭСЭГ)
   // ==============================================
   const [isAuthenticated, setIsAuthenticated] = useState(false);
   const [email, setEmail] = useState('');
@@ -54,7 +54,10 @@ function AdminPage() {
   const [isLoadingOrders, setIsLoadingOrders] = useState(true);
   const [menuItems, setMenuItems] = useState([]);
   const [isLoadingMenu, setIsLoadingMenu] = useState(false);
+  
+  // Тайлангийн төлөвүүд
   const [dailyTotal, setDailyTotal] = useState(0);
+  const [cancelledTotal, setCancelledTotal] = useState(0); // 📋 ШИНЭ: Цуцлагдсан захиалгын тоо
   const [soldItems, setSoldItems] = useState([]);
   const [isLoadingReport, setIsLoadingReport] = useState(false);
 
@@ -139,37 +142,47 @@ function AdminPage() {
     }
   };
 
-  // --- 3. ӨДРИЙН ТАЙЛАНГИЙН ХЭСЭГ ---
+  // --- 3. ӨДРИЙН ТАЙЛАНГИЙН ХЭСЭГ (ШИНЭЧЛЭГДСЭН) ---
   const fetchDailyReport = async () => {
     setIsLoadingReport(true);
     try {
       const startOfToday = new Date();
       startOfToday.setHours(0, 0, 0, 0);
 
+      // Баазаас цуцлагдсан захиалгыг давхар татаж авна
       const { data, error } = await supabase
         .from('orders')
         .select(`
           total_amount,
+          status,
           order_items ( quantity, menu_items (name) )
         `)
         .gte('created_at', startOfToday.toISOString()) 
-        .in('status', ['cooking', 'completed']); 
+        .in('status', ['cooking', 'completed', 'cancelled']); 
 
       if (error) throw error;
 
       let totalIncome = 0;
+      let cancelledCount = 0;
       const itemsCount = {};
 
       data.forEach(order => {
-        totalIncome += order.total_amount || 0; 
-        
-        order.order_items.forEach(item => {
-          const name = item.menu_items?.name || 'Устгагдсан хоол';
-          itemsCount[name] = (itemsCount[name] || 0) + item.quantity; 
-        });
+        if (order.status === 'cancelled') {
+          // Хэрэв цуцлагдсан бол зөвхөн тоог нь нэмнэ (Орлого, хоолны тоонд бодохгүй)
+          cancelledCount++;
+        } else {
+          // Идэвхтэй борлуулалтын орлого болон хоолыг тоолно
+          totalIncome += order.total_amount || 0; 
+          
+          order.order_items.forEach(item => {
+            const name = item.menu_items?.name || 'Устгагдсан хоол';
+            itemsCount[name] = (itemsCount[name] || 0) + item.quantity; 
+          });
+        }
       });
 
       setDailyTotal(totalIncome);
+      setCancelledTotal(cancelledCount);
       setSoldItems(Object.entries(itemsCount).sort((a, b) => b[1] - a[1])); 
 
     } catch (err) {
@@ -221,13 +234,10 @@ function AdminPage() {
     );
   }
 
-  // ==============================================
-  // ҮНДСЭН УДИРДЛАГЫН ДЭЛГЭЦ 
-  // ==============================================
   return (
     <div style={{ padding: '20px', fontFamily: 'sans-serif', backgroundColor: '#f5f6fa', minHeight: '100vh', boxSizing: 'border-box' }}>
       
-      {/* ТОЛГОЙ БОЛОН TAB СОЛИХ ХЭСЭГ (Утсан дээр автоматаар доошоо цуврах уян хатан бүтэцтэй) */}
+      {/* ТОЛГОЙ ХЭСЭГ */}
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderBottom: '2px solid #bdc3c7', paddingBottom: '15px', marginBottom: '20px', flexWrap: 'wrap', gap: '15px' }}>
         <h1 style={{ color: '#2c3e50', margin: 0, fontSize: 'clamp(1.5rem, 4vw, 2.3rem)' }}>👨‍🍳 Удирдлагын дэлгэц</h1>
         
@@ -255,8 +265,6 @@ function AdminPage() {
           ) : orders.length === 0 ? (
             <h3 style={{ textAlign: 'center', color: '#7f8c8d', marginTop: '50px' }}>Одоогоор идэвхтэй захиалга байхгүй байна.</h3>
           ) : (
-            
-            /* 🖥️ РЕСПОНСИВ ГРИД: Утсан дээр 1 багана, компьютер/таблет дээр томорч 3-4 багана болно */
             <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(clamp(320px, 28vw, 500px), 1fr))', gap: '25px' }}>
               {orders.map((order) => (
                 <div key={order.id} style={{ 
@@ -272,37 +280,21 @@ function AdminPage() {
                   <div>
                     <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', borderBottom: '2px solid #f1f2f6', paddingBottom: '12px', marginBottom: '15px' }}>
                       <div>
-                        {/* Захиалгын дугаар - ТОМООР */}
-                        <strong style={{ fontSize: '1.7rem', color: '#1e293b', block: 'true' }}>Захиалга #{order.order_number}</strong>
-                        
+                        <strong style={{ fontSize: '1.7rem', color: '#1e293b' }}>Захиалга #{order.order_number}</strong>
                         <div style={{ color: '#64748b', fontSize: '1.05rem', marginTop: '6px', fontWeight: '600' }}>
                           🕒 {new Date(order.created_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })} 
                           {order.phone_number && ` • 📱 Утас: ${order.phone_number}`}
                         </div>
                       </div>
-                      
-                      {/* СТАТУС БЭДЖ */}
                       <span style={{ padding: '6px 12px', backgroundColor: order.status === 'pending' ? '#fee2e2' : '#fef3c7', color: order.status === 'pending' ? '#dc2626' : '#d97706', borderRadius: '6px', fontSize: '0.9rem', fontWeight: '800', whiteSpace: 'nowrap' }}>
                         {order.status === 'pending' ? 'ТӨЛБӨР ХҮЛЭЭХ' : 'ХИЙЖ БАЙНА'}
                       </span>
                     </div>
 
-                    {/* ✨ ШИНЭ: Аваад явах уу, Сууж идэх үү гэдэг сонголт - ХҮН БҮРТ ХАРАГДАХААР МАШ ТОМООР */}
-                    <div style={{
-                      backgroundColor: order.order_type === 'dine-in' ? '#eff6ff' : '#fff7ed',
-                      color: order.order_type === 'dine-in' ? '#1d4ed8' : '#c2410c',
-                      border: order.order_type === 'dine-in' ? '1px solid #bfdbfe' : '1px solid #ffedd5',
-                      padding: '10px 15px',
-                      borderRadius: '8px',
-                      fontSize: '1.4rem',
-                      fontWeight: '800',
-                      textAlign: 'center',
-                      marginBottom: '15px'
-                    }}>
+                    <div style={{ backgroundColor: order.order_type === 'dine-in' ? '#eff6ff' : '#fff7ed', color: order.order_type === 'dine-in' ? '#1d4ed8' : '#c2410c', border: order.order_type === 'dine-in' ? '1px solid #bfdbfe' : '1px solid #ffedd5', padding: '10px 15px', borderRadius: '8px', fontSize: '1.4rem', fontWeight: '800', textAlign: 'center', marginBottom: '15px' }}>
                       {order.order_type === 'dine-in' ? '🍽️ СУУЖ ИДЭХ' : '🛍️ АВААД ЯВАХ'}
                     </div>
 
-                    {/* ✨ ШИНЭ: Хоолны нэрсүүд - ХОЛЫН ЗАЙНААС Ч ТӨГС ХАРАГДАХААР МАШ ТОМООР */}
                     <div style={{ minHeight: '100px', marginBottom: '20px' }}>
                       {order.order_items && order.order_items.map((item, idx) => (
                         <div key={idx} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '10px', fontSize: '1.45rem', paddingBottom: '8px', borderBottom: '1px dashed #e2e8f0' }}>
@@ -317,7 +309,6 @@ function AdminPage() {
                     </div>
                   </div>
 
-                  {/* ДООД ХЭСЭГ: ҮНЭ БОЛОН ҮЙЛДЛИЙН ТОВЧНУУД */}
                   <div style={{ paddingTop: '15px', borderTop: '2px dashed #e2e8f0', display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '10px' }}>
                     <strong style={{ fontSize: '1.6rem', color: '#0f172a', fontWeight: '800' }}>{order.total_amount?.toLocaleString()} ₮</strong>
                     
@@ -376,18 +367,34 @@ function AdminPage() {
         </div>
       )}
 
-      {/* ТАБ 3: ӨДРИЙН ТАЙЛАН */}
+      {/* ТАБ 3: ӨДРИЙН ТАЙЛАН (ШИНЭ СТАТИСТИКТЭЙ БОЛСОН ХЭСЭГ) */}
       {activeTab === 'report' && (
         <div>
           {isLoadingReport ? (
             <h2 style={{ textAlign: 'center', marginTop: '50px' }}>Тайлан нэгтгэж байна...</h2>
           ) : (
             <div style={{ display: 'flex', gap: '20px', flexWrap: 'wrap' }}>
-              <div style={{ flex: '1 1 300px', backgroundColor: 'white', padding: '30px', borderRadius: '12px', boxShadow: '0 4px 6px rgba(0,0,0,0.05)', textAlign: 'center', display: 'flex', flexDirection: 'column', justifyContent: 'center' }}>
-                <h3 style={{ margin: '0 0 10px 0', color: '#7f8c8d', fontSize: '1.3rem', fontWeight: '600' }}>Өнөөдрийн нийт орлого</h3>
-                <h1 style={{ margin: 0, color: '#10b981', fontSize: '3.5rem', fontWeight: '800' }}>{dailyTotal.toLocaleString()} ₮</h1>
-                <p style={{ color: '#95a5a6', fontSize: '0.95rem', marginTop: '15px' }}>*Зөвхөн төлбөр нь төлөгдсөн захиалгуудын нийлбэр</p>
+              
+              {/* ЗҮҮН ТАЛЫН БЛОК: ОРЛОГО БОЛОН ЦУЦЛАЛТ */}
+              <div style={{ flex: '1 1 300px', display: 'flex', flexDirection: 'column', gap: '20px' }}>
+                
+                {/* 💰 Нийт орлого хайрцаг */}
+                <div style={{ backgroundColor: 'white', padding: '30px', borderRadius: '12px', boxShadow: '0 4px 6px rgba(0,0,0,0.05)', textAlign: 'center' }}>
+                  <h3 style={{ margin: '0 0 10px 0', color: '#7f8c8d', fontSize: '1.2rem', fontWeight: '600' }}>Өнөөдрийн нийт орлого</h3>
+                  <h1 style={{ margin: 0, color: '#10b981', fontSize: '3.2rem', fontWeight: '800' }}>{dailyTotal.toLocaleString()} ₮</h1>
+                  <p style={{ color: '#95a5a6', fontSize: '0.9rem', marginTop: '12px' }}>*Зөвхөн төлбөр нь төлөгдсөн захиалгуудын нийлбэр</p>
+                </div>
+
+                {/* ❌ Цуцлагдсан захиалга хайрцаг - ШИНЭ */}
+                <div style={{ backgroundColor: 'white', padding: '20px', borderRadius: '12px', boxShadow: '0 4px 6px rgba(0,0,0,0.05)', textAlign: 'center', borderLeft: '6px solid #ef4444' }}>
+                  <h3 style={{ margin: '0 0 5px 0', color: '#64748b', fontSize: '1.1rem', fontWeight: '600' }}>Өнөөдөр цуцлагдсан захиалга</h3>
+                  <h2 style={{ margin: 0, color: '#ef4444', fontSize: '2.5rem', fontWeight: '800' }}>{cancelledTotal} <span style={{ fontSize: '1.3rem', fontWeight: '600' }}>ш</span></h2>
+                  <p style={{ color: '#94a3b8', fontSize: '0.85rem', margin: '8px 0 0 0' }}>*Систем дээр кассчин 'Цуцлах' товч дарсан түүх</p>
+                </div>
+
               </div>
+
+              {/* БАРУУН ТАЛЫН БЛОК: ЗАРАГДСАН ХООЛНУУД */}
               <div style={{ flex: '2 1 400px', backgroundColor: 'white', padding: '30px', borderRadius: '12px', boxShadow: '0 4px 6px rgba(0,0,0,0.05)' }}>
                 <h3 style={{ margin: '0 0 20px 0', color: '#2c3e50', fontSize: '1.3rem', borderBottom: '2px solid #eee', paddingBottom: '10px', fontWeight: '700' }}>🍽️ Зарагдсан хоолнууд</h3>
                 {soldItems.length === 0 ? (
@@ -403,6 +410,7 @@ function AdminPage() {
                   </ul>
                 )}
               </div>
+
             </div>
           )}
         </div>
