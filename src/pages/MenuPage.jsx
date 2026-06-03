@@ -18,7 +18,6 @@ function MenuPage() {
 
   const [isCartOpen, setIsCartOpen] = useState(false);
   
-  // ✨ ШИНЭ ТӨЛӨВҮҮД: Идэвхтэй ангилал болон Сонгосон хоолны дэлгэрэнгүй цонх
   const [activeCategory, setActiveCategory] = useState('Бүгд');
   const [selectedItem, setSelectedItem] = useState(null);
   const [detailQuantity, setDetailQuantity] = useState(1);
@@ -43,34 +42,50 @@ function MenuPage() {
     }
   };
 
-  // Ангиллуудыг ялган авах (Дээд талын цэсэнд зориулж)
   const categories = ['Бүгд', ...new Set(menuItems.map(item => item.category || 'Бусад'))];
 
-  // Сагсанд олноор нь нэмэх функц (Дэлгэрэнгүй цонхноос)
   const handleAddToWithQty = (item, qty) => {
+    const addedQty = parseInt(qty, 10) || 1;
     setCart((prevCart) => {
       const existingItem = prevCart.find((cartItem) => cartItem.id === item.id);
       if (existingItem) {
         return prevCart.map((cartItem) =>
-          cartItem.id === item.id ? { ...cartItem, quantity: (parseInt(cartItem.quantity) || 0) + qty } : cartItem
+          cartItem.id === item.id 
+            ? { ...cartItem, quantity: (parseInt(cartItem.quantity, 10) || 0) + addedQty } 
+            : cartItem
         );
       }
-      return [...prevCart, { ...item, quantity: qty }];
+      return [...prevCart, { ...item, quantity: addedQty }];
     });
-    setSelectedItem(null); // Цонхыг хаах
-    setDetailQuantity(1); // Тоог устгах
+    setSelectedItem(null);
+    setDetailQuantity(1);
   };
 
   const removeFromCart = (itemId) => {
     setCart((prevCart) => {
       const newCart = prevCart
-        .map((cartItem) =>
-          cartItem.id === itemId ? { ...cartItem, quantity: (parseInt(cartItem.quantity) || 0) - 1 } : cartItem
-        )
+        .map((cartItem) => {
+          if (cartItem.id === itemId) {
+            const currentQty = parseInt(cartItem.quantity, 10) || 0;
+            return { ...cartItem, quantity: currentQty - 1 };
+          }
+          return cartItem;
+        })
         .filter((cartItem) => cartItem.quantity > 0); 
+      
       if (newCart.length === 0) setIsCartOpen(false);
       return newCart;
     });
+  };
+
+  const addToCartOne = (itemId) => {
+    setCart((prevCart) =>
+      prevCart.map((cartItem) =>
+        cartItem.id === itemId
+          ? { ...cartItem, quantity: (parseInt(cartItem.quantity, 10) || 0) + 1 }
+          : cartItem
+      )
+    );
   };
 
   const totalPrice = cart.reduce((sum, item) => sum + (item.price * (parseInt(item.quantity, 10) || 0)), 0);
@@ -125,7 +140,6 @@ function MenuPage() {
     }
   };
 
-  // Ангиллаар хоолыг шүүж харуулах
   const filteredItems = activeCategory === 'Бүгд' 
     ? menuItems 
     : menuItems.filter(item => item.category === activeCategory);
@@ -167,10 +181,10 @@ function MenuPage() {
   }
 
   return (
-    <div className="menu-container" style={{ padding: '0 0 80px 0' }}>
-      <h1 style={{ textAlign: 'center', padding: '20px 0 10px 0', margin: 0, fontSize: '1.8rem' }}>🍽️ Зогсоо Хайрхан</h1>
+    <div className="menu-container">
+      <h1>🍽️ Зогсоо Хайрхан</h1>
 
-      {/* 🏷️ ШИНЭ: Дээд талын хөвдөг ангиллууд (image_2 шиг) */}
+      {/* Ангиллын хэсэг */}
       <div className="category-scroll-container">
         {categories.map(cat => (
           <button 
@@ -183,8 +197,8 @@ function MenuPage() {
         ))}
       </div>
 
-      {/* 🍔 ШИНЭ: Хоолны жагсаалт (Баруун талдаа зурагтай - image_2 шиг) */}
-      <div style={{ padding: '0 15px' }}>
+      {/* Хоолны жагсаалт */}
+      <div style={{ padding: '0 16px' }}>
         {filteredItems.map((item) => {
           const cartItem = cart.find((c) => c.id === item.id);
           return (
@@ -207,16 +221,16 @@ function MenuPage() {
         })}
       </div>
 
-      {/* 🛒 ДООД ТАЛЫН ХӨВДӨГ ШАР СAГС (image_2 шиг) */}
+      {/* ХӨВДӨГ ШАР СAГСНЫ ТОВЧЛУУР */}
       {cart.length > 0 && !isCartOpen && (
         <div className="modern-floating-cart-wrapper">
           <button className="modern-floating-cart-btn" onClick={() => setIsCartOpen(true)}>
-            <span>{totalPrice.toLocaleString()} ₮ • Сагс үзэх ({totalItemsCount})</span>
+            {totalPrice.toLocaleString()} ₮ • Сагс үзэх ({totalItemsCount})
           </button>
         </div>
       )}
 
-      {/* 🔍 ШИНЭ: ХООЛНЫ ДЭЛГЭРЭНГҮЙ ЦОНХ (image_3 шиг Modal) */}
+      {/* ХООЛНЫ ДЭЛГЭРЭНГҮЙ ЦОНХ */}
       {selectedItem && (
         <div className="detail-modal-overlay" onClick={(e) => { if(e.target.className === 'detail-modal-overlay') setSelectedItem(null); }}>
           <div className="detail-modal-content">
@@ -235,7 +249,7 @@ function MenuPage() {
               <p className="detail-price">{selectedItem.price.toLocaleString()} ₮</p>
               
               <div className="detail-qty-section">
-                <span>Суурь тоо:</span>
+                <span>Тоо ширхэг:</span>
                 <div className="detail-qty-controls">
                   <button onClick={() => setDetailQuantity(prev => Math.max(1, prev - 1))}>-</button>
                   <span>{detailQuantity}</span>
@@ -251,38 +265,54 @@ function MenuPage() {
         </div>
       )}
 
-      {/* САГСНЫ МОДАЛ ЦОНХ */}
+      {/* ✨ ШИНЭЧЛЭГДСЭН: ТӨГС ЗАГВАРТАЙ САГСНЫ ЦОНХ (BaeMin Style Bottom Sheet) */}
       {isCartOpen && (
         <div className="cart-modal-overlay" onClick={(e) => { if (e.target.className === 'cart-modal-overlay') setIsCartOpen(false); }}>
           <div className="cart-modal-content">
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px', borderBottom: '2px solid #f1f5f9', paddingBottom: '15px' }}>
-              <h2 style={{ margin: 0, fontSize: '1.5rem' }}>Таны сагс</h2>
-              <button className="close-modal-btn" onClick={() => setIsCartOpen(false)}>✖</button>
-            </div>
-            <div className="cart-summary" style={{ margin: 0, padding: 0, border: 'none', background: 'transparent' }}>
-              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '15px' }}>
-                <h2 style={{ margin: 0, flex: 1, fontSize: '1.2rem' }}>Нийт дүн: <span style={{ color: '#e63946' }}>{totalPrice.toLocaleString()} ₮</span></h2>
-                <button onClick={() => { setCart([]); setIsCartOpen(false); }} style={{ backgroundColor: '#fee2e2', color: '#ef4444', border: 'none', padding: '8px 12px', borderRadius: '8px', fontWeight: '600', cursor: 'pointer' }}>🗑 Хоослох</button>
+            <div className="cart-modal-inner">
+              
+              {/* Цонхны толгой хэсэг */}
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px', borderBottom: '2px solid #f1f5f9', paddingBottom: '15px' }}>
+                <h2 style={{ margin: 0, fontSize: '1.4rem', fontWeight: '800', color: '#0f172a' }}>Таны сагс</h2>
+                <button className="close-modal-btn" onClick={() => setIsCartOpen(false)}>✖</button>
               </div>
-              <ul className="cart-items-list" style={{ maxHeight: '200px', overflowY: 'auto', marginBottom: '15px', padding: 0, listStyle: 'none' }}>
+              
+              {/* Нийт дүн болон хоослох товч */}
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '15px' }}>
+                <h3 style={{ margin: 0, fontSize: '1.2rem', fontWeight: '800', color: '#0f172a' }}>
+                  Нийт дүн: <span style={{ color: '#e11d48' }}>{totalPrice.toLocaleString()} ₮</span>
+                </h3>
+                <button onClick={() => { setCart([]); setIsCartOpen(false); }} style={{ backgroundColor: '#fee2e2', color: '#ef4444', border: 'none', padding: '8px 14px', borderRadius: '20px', fontWeight: '700', fontSize: '0.85rem', cursor: 'pointer' }}>
+                  🗑 Хоослох
+                </button>
+              </div>
+              
+              {/* Сагсан дахь хоолны уян хатан жагсаалт */}
+              <div className="cart-items-list-wrapper">
                 {cart.map((item) => (
-                  <li key={item.id} style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '10px', fontSize: '1.1rem' }}>
-                    <span>{item.name}</span>
-                    <div>
-                      <button onClick={() => removeFromCart(item.id)} style={{ padding: '2px 8px', marginRight: '8px', cursor: 'pointer' }}>-</button>
-                      <strong>{item.quantity} ш</strong>
+                  <div key={item.id} className="cart-item-row">
+                    <span className="cart-item-name">{item.name}</span>
+                    <div className="cart-item-controls">
+                      <button className="cart-qty-btn" onClick={() => removeFromCart(item.id)}>-</button>
+                      <span className="cart-item-qty-text">{item.quantity} ш</span>
+                      <button className="cart-qty-btn" onClick={() => addToCartOne(item.id)}>+</button>
                     </div>
-                  </li>
+                  </div>
                 ))}
-              </ul>
+              </div>
+              
+              {/* Оролтын талбарууд */}
               <input type="number" placeholder="Таны утасны дугаар (Заавал)" value={phone} onChange={(e) => setPhone(e.target.value)} />
               <select value={orderType} onChange={(e) => setOrderType(e.target.value)}>
-                <option value="dine-in">Сууж идэх</option>
-                <option value="pickup">Аваад явах</option>
+                <option value="dine-in">🍽️ Сууж идэх</option>
+                <option value="pickup">🛍️ Аваад явах</option>
               </select>
-              <button className="order-btn" onClick={placeOrder} disabled={isSubmitting}>
+              
+              {/* Тод шар өнгийн ЗАХИАЛАХ товчлуур */}
+              <button className="modern-order-submit-btn" onClick={placeOrder} disabled={isSubmitting}>
                 {isSubmitting ? 'БАТАЛГААЖУУЛЖ БАЙНА...' : 'ЗАХИАЛАХ'}
               </button>
+              
             </div>
           </div>
         </div>

@@ -9,12 +9,12 @@ body {
 
 .menu-container {
   width: 100%;
-  max-width: 540px; /* Компьютер дээр хэт томрохоос сэргийлнэ */
+  max-width: 540px;
   margin: 0 auto;
   background-color: #ffffff;
   min-height: 100vh;
   box-sizing: border-box;
-  padding-bottom: 100px; /* Доод талын шар сагсанд зай үлдээх */
+  padding-bottom: 120px; /* Доод талын шар сагсанд хангалттай зай үлдээх */
   position: relative;
 }
 
@@ -28,7 +28,7 @@ body {
   margin: 0;
 }
 
-/* 🏷️ ДЭЭД ТАЛЫН ХӨВДӨГ АНГИЛЛУУД (Утсан дээр бүтэн харагдаж, хуруугаар гүйнэ) */
+/* 🏷️ ДЭЭД ТАЛЫН ХӨВДӨГ АНГИЛЛУУД */
 .category-scroll-container {
   display: flex;
   gap: 8px;
@@ -39,11 +39,11 @@ body {
   top: 0;
   z-index: 99;
   border-bottom: 1px solid #f1f5f9;
-  scrollbar-width: none; /* Firefox-д гүйлгэх зураасыг нуух */
+  scrollbar-width: none;
 }
 
 .category-scroll-container::-webkit-scrollbar {
-  display: none; /* Chrome, Safari-д гүйлгэх зураасыг нуух */
+  display: none;
 }
 
 .category-tag-btn {
@@ -64,7 +64,7 @@ body {
   color: #ffffff;
 }
 
-/* 🍔 ХООЛНЫ КАРТУУД (Утасны дэлгэцэнд 100% таарна) */
+/* 🍔 ХООЛНЫ КАРТУУД (BaeMin Style) */
 .modern-menu-item {
   display: flex;
   justify-content: space-between;
@@ -76,12 +76,12 @@ body {
   border: 1px solid #e2e8f0;
   cursor: pointer;
   box-sizing: border-box;
-  gap: 15px; /* Текст зураг хоёрыг мөргөлдүүлэхгүй */
+  gap: 15px;
 }
 
 .modern-item-info {
-  flex: 1; /* Текстийн хэсэг үлдсэн зайг бүрэн авна */
-  min-width: 0; /* Текст урт байвал доошоо шилжинэ, хажуу тийш цухуйхгүй */
+  flex: 1;
+  min-width: 0;
 }
 
 .modern-item-info h3 {
@@ -114,7 +114,7 @@ body {
   position: relative;
   width: 80px;
   height: 80px;
-  flex-shrink: 0; /* Зургийг хавчиж жижигсгэхгүй */
+  flex-shrink: 0;
 }
 
 .modern-item-img {
@@ -149,7 +149,7 @@ body {
   border: 1.5px solid #ffffff;
 }
 
-/* 🛒 ДООД ТАЛЫН ШАР СAГС */
+/* 🛒 ДЭЛГЭЦИЙН ДООД ТАЛЫН ХӨВДӨГ ШАР СAГСНЫ ХҮРЭЭ */
 .modern-floating-cart-wrapper {
   position: fixed;
   bottom: 0;
@@ -157,50 +157,61 @@ body {
   transform: translateX(-50%);
   width: 100%;
   max-width: 540px;
-  padding: 16px;
+  padding: 16px 16px 24px 16px; /* Доод талын Safe area-ийн зай авсан */
   box-sizing: border-box;
-  background: linear-gradient(to top, rgba(255,255,255,1) 70%, rgba(255,255,255,0) 100%);
+  background: linear-gradient(to top, rgba(255,255,255,1) 80%, rgba(255,255,255,0) 100%);
   z-index: 999;
 }
 
 .modern-floating-cart-btn {
   width: 100%;
-  background-color: #facc15;
+  background-color: #facc15; /* Тод шар өнгө */
   color: #0f172a;
   border: none;
   padding: 16px;
   border-radius: 12px;
-  font-size: 1.05rem;
+  font-size: 1.1rem;
   font-weight: 800;
   cursor: pointer;
-  box-shadow: 0 10px 15px -3px rgba(250, 204, 21, 0.4);
+  box-shadow: 0 10px 20px rgba(250, 204, 21, 0.3);
+  box-sizing: border-box;
+  display: block;
 }
 
-/* 🔍 ДЭЛГЭРЭНГҮЙ ЦОНХОД ЗОРИУЛСАН МОДАЛ (ДООРООС ГАРЧ ИРНЭ) */
-.detail-modal-overlay {
+/* 🔍 ХООЛНЫ ДЭЛГЭРЭНГҮЙ БОЛОН САГСНЫ ЦОНХНЫ АР талын СҮҮДЭР */
+.detail-modal-overlay, .cart-modal-overlay {
   position: fixed;
   top: 0;
   left: 0;
   width: 100vw;
   height: 100vh;
-  background-color: rgba(0, 0, 0, 0.6);
+  background-color: rgba(0, 0, 0, 0.5);
   display: flex;
   justify-content: center;
-  align-items: flex-end;
+  align-items: flex-end; /* Доороос дээш гарч ирнэ */
   z-index: 10000;
 }
 
-.detail-modal-content {
+/* 📦 ЦОНХНЫ ҮНДСЭН ХАЙРЦАГ (Bottom Sheet - 100% Утасны дэлгэцэнд таарна) */
+.detail-modal-content, .cart-modal-content {
   background-color: #ffffff;
   width: 100%;
   max-width: 540px;
   border-top-left-radius: 24px;
   border-top-right-radius: 24px;
-  overflow: hidden;
+  overflow-y: auto;
+  max-height: 90vh; /* Хэт өндөр болж дээшээ гарахгүй */
   position: relative;
   box-sizing: border-box;
+  animation: slideUp 0.25s ease-out forwards;
 }
 
+@keyframes slideUp {
+  from { transform: translateY(100%); }
+  to { transform: translateY(0); }
+}
+
+/* ХААХ ТОВЧЛУУРУУД */
 .detail-close-btn {
   position: absolute;
   top: 16px;
@@ -216,13 +227,28 @@ body {
   display: flex;
   justify-content: center;
   align-items: center;
-  box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+  box-shadow: 0 2px 8px rgba(0,0,0,0.15);
 }
 
+.close-modal-btn {
+  background: #f1f5f9;
+  border: none;
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  font-size: 1rem;
+  cursor: pointer;
+  color: #64748b;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+}
+
+/* ДЭЛГЭРЭНГҮЙ ХЭСГИЙН ЗУРАГ */
 .detail-image-box {
   width: 100%;
-  height: 65vw; /* Утасны өргөнөөс хамаарч өндөр нь автоматаар таарна */
-  max-height: 320px;
+  height: 65vw;
+  max-height: 280px;
   background-color: #f1f5f9;
 }
 
@@ -232,16 +258,8 @@ body {
   object-fit: cover;
 }
 
-.detail-no-image {
-  height: 100%;
-  display: flex;
-  justify-content: center;
-  align-items: center;
-  font-size: 4rem;
-}
-
 .detail-info-box {
-  padding: 20px 16px;
+  padding: 20px 16px 30px 16px;
   box-sizing: border-box;
 }
 
@@ -253,12 +271,13 @@ body {
 }
 
 .detail-price {
-  font-size: 1.25rem;
+  font-size: 1.3rem;
   font-weight: 800;
   color: #0f172a;
   margin-bottom: 20px;
 }
 
+/* ТОО СЕКЦҮҮД */
 .detail-qty-section {
   display: flex;
   justify-content: space-between;
@@ -292,12 +311,7 @@ body {
   font-weight: 600;
 }
 
-.detail-qty-controls span {
-  font-size: 1.15rem;
-  font-weight: 700;
-  color: #0f172a;
-}
-
+/* 🛠️ ЗАСВАРЛАГДАН ТӨГС БАГТСАН: САГСАНД ХИЙХ ТОВЧЛУУР */
 .detail-add-btn {
   width: 100%;
   background-color: #facc15;
@@ -308,61 +322,102 @@ body {
   font-weight: 800;
   color: #0f172a;
   cursor: pointer;
+  box-sizing: border-box;
+  display: block;
 }
 
-/* 🛒 САГСНЫ МОДАЛ ЦОНХ */
-.cart-modal-overlay {
-  position: fixed;
-  top: 0;
-  left: 0;
-  width: 100vw;
-  height: 100vh;
-  background-color: rgba(0, 0, 0, 0.6);
-  display: flex;
-  justify-content: center;
-  align-items: flex-end;
-  z-index: 10000;
-}
-
-.cart-modal-content {
-  background-color: #ffffff;
-  width: 100%;
-  max-width: 540px;
-  border-top-left-radius: 24px;
-  border-top-right-radius: 24px;
-  padding: 20px 16px;
+/* 🛒 САГСНЫ ДЭЛГЭРЭНГҮЙ ЦОНХНЫ ДИЗАЙН (ИЖИЛ ШАР ХЭЛБЭРТЭЙ, ЦЭВЭРХЭН) */
+.cart-modal-inner {
+  padding: 20px 16px 30px 16px;
   box-sizing: border-box;
 }
 
-.cart-modal-content input, .cart-modal-content select {
+.cart-modal-inner input, .cart-modal-inner select {
   width: 100%;
   padding: 14px;
   font-size: 1rem;
-  border-radius: 10px;
-  border: 1px solid #cbd5e1;
+  border-radius: 12px;
+  border: 1px solid #e2e8f0;
   margin-bottom: 12px;
   box-sizing: border-box;
   outline: none;
   background-color: #f8fafc;
+  font-weight: 600;
+  color: #0f172a;
 }
 
-.close-modal-btn {
-  background: none;
-  border: none;
-  font-size: 1.2rem;
+.cart-modal-inner input::placeholder {
+  color: #94a3b8;
+}
+
+/* САГСАН ДЭХ ХООЛНЫ ЖАГСААЛТ */
+.cart-items-list-wrapper {
+  max-height: 220px;
+  overflow-y: auto;
+  margin-bottom: 20px;
+  padding: 0;
+  list-style: none;
+}
+
+.cart-item-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 12px 0;
+  border-bottom: 1px solid #f1f5f9;
+}
+
+.cart-item-name {
+  font-size: 1.05rem;
+  font-weight: 700;
+  color: #0f172a;
+  flex: 1;
+  min-width: 0;
+  word-wrap: break-word;
+}
+
+.cart-item-controls {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.cart-qty-btn {
+  background-color: #f1f5f9;
+  border: 1px solid #e2e8f0;
+  width: 32px;
+  height: 32px;
+  border-radius: 8px;
+  font-size: 1.1rem;
+  font-weight: bold;
   cursor: pointer;
-  color: #64748b;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  color: #0f172a;
 }
 
-.order-btn {
+.cart-item-qty-text {
+  min-width: 25px;
+  text-align: center;
+  font-size: 1.1rem;
+  font-weight: 700;
+  color: #0f172a;
+}
+
+/* 🛠️ ЗАСВАРЛАГДСАН: УТСАН ДЭЭР 100% БАГТАХ ШАР ӨНГИЙН ЗАХИАЛАХ ТОВЧ */
+.modern-order-submit-btn {
   width: 100%;
-  background-color: #10b981;
-  color: white;
+  background-color: #facc15; /* Ижил тод шар өнгө */
+  color: #0f172a;
   border: none;
   padding: 16px;
   border-radius: 12px;
   font-size: 1.1rem;
   font-weight: 800;
   cursor: pointer;
-  margin-top: 8px;
+  box-sizing: border-box;
+  display: block;
+  box-shadow: 0 4px 12px rgba(250, 204, 21, 0.2);
+  margin-top: 10px;
 }
