@@ -137,8 +137,8 @@ function KitchenPage() {
                 <div style={{ display: 'flex', justifyContent: 'space-between', borderBottom: '2px solid #f1f5f9', paddingBottom: '15px', marginBottom: '15px' }}>
                   <div>
                     <h2 style={{ margin: 0, fontSize: '2.2rem', color: '#1e293b' }}>
-                      #{order.order_number || order.id.slice(-4).toUpperCase()}
-                    </h2>
+  #{order.order_number || String(order.id).slice(-4).toUpperCase()}
+</h2>
                     <span style={{ color: '#64748b', fontSize: '1.1rem', fontWeight: 'bold' }}>
                       🕒 {new Date(order.created_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
                     </span>
