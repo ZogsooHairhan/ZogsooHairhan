@@ -16,13 +16,13 @@ function MenuPage() {
   const [placedOrderType, setPlacedOrderType] = useState('dine-in');
   const [placedOrderPhone, setPlacedOrderPhone] = useState('');
   
-  // ШИНЭЭР НЭМЭГДСЭН: Захиалсан хоолнуудын жагсаалтыг хадгалах
+  // Захиалсан хоолнуудын жагсаалтыг хадгалах
   const [placedItems, setPlacedItems] = useState([]);
 
-  // ✨ ЖИШЭЭ ШИГ: Идэвхтэй байгаа ангиллыг хянах төлөв
+  // Идэвхтэй байгаа ангиллыг хянах төлөв
   const [activeCategory, setActiveCategory] = useState('Бүгд');
 
-  // ✨ IMAGE_6 ШИГ: Хоолны дэлгэрэнгүйг харуулах модал төлөвүүд
+  // Хоолны дэлгэрэнгүйг харуулах модал төлөвүүд
   const [selectedItem, setSelectedItem] = useState(null);
   const [detailQuantity, setDetailQuantity] = useState(1);
 
@@ -146,7 +146,7 @@ function MenuPage() {
       setPlacedOrderTotal(currentTotal); 
       setPlacedOrderType(currentOrderType);
       setPlacedOrderPhone(currentPhone);
-      setPlacedOrderId(newOrder.id); // Хэрэв танд order_number гэж байвал newOrder.order_number-оор солиорой
+      setPlacedOrderId(newOrder.id); 
       
       // Сагсаа цэвэрлэж хуудсаа солих
       setCart([]); setPhone(''); setOrderType('dine-in'); setIsCartOpen(false); setOrderSuccess(true); 
@@ -178,27 +178,28 @@ function MenuPage() {
   if (orderSuccess) {
     return (
       <div style={{ backgroundColor: '#f8fafc', minHeight: '100vh', display: 'flex', flexDirection: 'column', alignItems: 'center', padding: '40px 20px' }}>
-        <div style={{ backgroundColor: '#ffffff', width: '100%', maxWidth: '450px', borderRadius: '24px', padding: '30px', boxShadow: '0 10px 30px rgba(0,0,0,0.08)' }}>
+        <div style={{ backgroundColor: '#ffffff', width: '100%', maxWidth: '450px', borderRadius: '24px', padding: '40px 30px', boxShadow: '0 4px 20px rgba(0,0,0,0.04)' }}>
           
+          {/* Толгой хэсэг (Өнгөгүй, энгийн) */}
           <div style={{ textAlign: 'center', marginBottom: '30px' }}>
-            <div style={{ fontSize: '60px', marginBottom: '10px' }}>⏳</div>
-            <h1 style={{ color: '#d97706', fontSize: '1.8rem', fontWeight: '800', margin: '0' }}>Төлбөр хүлээгдэж байна</h1>
+            <div style={{ fontSize: '45px', marginBottom: '10px' }}>⏳</div>
+            <h1 style={{ color: '#0f172a', fontSize: '1.5rem', fontWeight: '800', margin: '0' }}>Төлбөр хүлээгдэж байна</h1>
           </div>
 
-          {/* Захиалгын дугаар */}
-          <div style={{ border: '2px dashed #f59e0b', backgroundColor: '#fffbeb', borderRadius: '16px', padding: '20px', textAlign: 'center', marginBottom: '25px' }}>
-            <span style={{ fontSize: '1.1rem', color: '#b45309', fontWeight: '600' }}>Таны захиалгын дугаар</span>
-            <div style={{ fontSize: '4.5rem', color: '#b45309', fontWeight: '900', lineHeight: '1', marginTop: '5px' }}>#{placedOrderId}</div>
+          {/* Захиалгын дугаар (Зөвхөн энэ л хамгийн тод байна) */}
+          <div style={{ textAlign: 'center', marginBottom: '40px' }}>
+            <span style={{ fontSize: '1rem', color: '#64748b', fontWeight: '500', textTransform: 'uppercase', letterSpacing: '1px' }}>Захиалгын дугаар</span>
+            <div style={{ fontSize: '5.5rem', color: '#0f172a', fontWeight: '900', lineHeight: '1', marginTop: '10px' }}>#{placedOrderId}</div>
           </div>
 
-          {/* Захиалсан хоолны жагсаалт */}
-          <div style={{ marginBottom: '25px' }}>
+          {/* Захиалсан хоолны жагсаалт (Энгийн саарал зураастай) */}
+          <div style={{ marginBottom: '20px' }}>
             {placedItems.map((item, index) => (
-              <div key={index} style={{ display: 'flex', justifyContent: 'space-between', padding: '10px 0', borderBottom: '1px solid #f1f5f9', color: '#334155', fontSize: '1.1rem', fontWeight: '500' }}>
+              <div key={index} style={{ display: 'flex', justifyContent: 'space-between', padding: '12px 0', borderBottom: '1px solid #f1f5f9', color: '#475569', fontSize: '1.05rem' }}>
                 <span>
-                  {item.name} <span style={{ color: '#94a3b8', fontWeight: '700', marginLeft: '5px' }}>x {item.quantity}</span>
+                  {item.name} <span style={{ color: '#94a3b8', fontWeight: '600', marginLeft: '8px' }}>x {item.quantity}</span>
                 </span>
-                <span style={{ fontWeight: '700', color: '#0f172a' }}>
+                <span style={{ fontWeight: '600', color: '#0f172a' }}>
                   {(item.price * item.quantity).toLocaleString()} ₮
                 </span>
               </div>
@@ -206,22 +207,17 @@ function MenuPage() {
           </div>
 
           {/* Нийт дүн */}
-          <div style={{ backgroundColor: '#f0fdf4', padding: '15px 20px', borderRadius: '16px', display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '25px' }}>
-            <span style={{ color: '#16a34a', fontSize: '1.2rem', fontWeight: '700' }}>Төлөх дүн:</span>
-            <span style={{ color: '#15803d', fontSize: '1.8rem', fontWeight: '900' }}>{placedOrderTotal.toLocaleString()} ₮</span>
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', paddingTop: '10px', marginBottom: '35px' }}>
+            <span style={{ color: '#475569', fontSize: '1.1rem', fontWeight: '600' }}>Нийт дүн:</span>
+            <span style={{ color: '#0f172a', fontSize: '1.6rem', fontWeight: '800' }}>{placedOrderTotal.toLocaleString()} ₮</span>
           </div>
 
-          <div style={{ textAlign: 'center', marginBottom: '20px' }}>
-             <p style={{ color: '#ef4444', fontSize: '1.1rem', fontWeight: '700', margin: '0' }}>⚠️ Кассанд тооцоогоо хийснээр таны захиалга баталгаажна.</p>
+          {/* Санамж (Цэвэрхэн саарал хайрцагт) */}
+          <div style={{ backgroundColor: '#f1f5f9', padding: '16px', borderRadius: '12px', textAlign: 'center' }}>
+             <p style={{ color: '#475569', fontSize: '0.95rem', fontWeight: '500', margin: '0', lineHeight: '1.5' }}>
+               Кассанд тооцоогоо хийснээр таны захиалга баталгаажна.
+             </p>
           </div>
-
-          {/* Баталгаажуулах товч - Дарахад хуудас шинэчлэгдэж дараагийн хүн ашиглахад бэлэн болно */}
-          <button 
-            onClick={() => window.location.reload()}
-            style={{ width: '100%', padding: '18px', backgroundColor: '#f59e0b', color: 'white', border: 'none', borderRadius: '16px', fontSize: '1.3rem', fontWeight: '800', cursor: 'pointer', boxShadow: '0 4px 15px rgba(245, 158, 11, 0.4)' }}
-          >
-            Кассанд баталгаажуулах
-          </button>
 
         </div>
       </div>
@@ -252,7 +248,7 @@ function MenuPage() {
                 fontWeight: '700',
                 whiteSpace: 'nowrap',
                 cursor: 'pointer',
-                backgroundColor: activeCategory === cat ? '#1e293b' : '#f1f5f9',
+                backgroundColor: activeCategory === cat ? '#0f172a' : '#f1f5f9',
                 color: activeCategory === cat ? '#ffffff' : '#475569',
                 transition: '0.2s'
               }}
@@ -284,9 +280,9 @@ function MenuPage() {
                 >
                   <div className="item-info" style={{ flex: 1, paddingRight: '15px' }}>
                     <h3 style={{ margin: '0 0 6px 0', fontSize: '1.2rem', color: '#0f172a', fontWeight: '700' }}>{item.name}</h3>
-                    <p className="item-price" style={{ margin: 0, fontSize: '1.15rem', fontWeight: '800', color: '#1e293b' }}>{item.price.toLocaleString()} ₮</p>
+                    <p className="item-price" style={{ margin: 0, fontSize: '1.15rem', fontWeight: '800', color: '#0f172a' }}>{item.price.toLocaleString()} ₮</p>
                     {quantity > 0 && (
-                      <span style={{ display: 'inline-block', marginTop: '8px', backgroundColor: '#fff7ed', color: '#c2410c', padding: '2px 8px', borderRadius: '6px', fontSize: '0.85rem', fontWeight: '700' }}>
+                      <span style={{ display: 'inline-block', marginTop: '8px', backgroundColor: '#f1f5f9', color: '#475569', padding: '2px 8px', borderRadius: '6px', fontSize: '0.85rem', fontWeight: '700' }}>
                         Сагсанд {quantity} ш байна
                       </span>
                     )}
@@ -307,14 +303,14 @@ function MenuPage() {
         ))}
       </div>
 
-      {/* 🛒 ЖАНБАГУНИ (ЖАГСААЛТ ХАРАХ ТОГТМОЛ ШАР ТОВЧЛУУР) */}
+      {/* 🛒 ЖАНБАГУНИ (ЖАГСААЛТ ХАРАХ ТОГТМОЛ ХАР ТОД ТОВЧЛУУР) */}
       {cart.length > 0 && !isCartOpen && (
         <div style={{ position: 'fixed', bottom: '20px', left: '15px', right: '15px', zIndex: 90 }}>
           <button 
             onClick={() => setIsCartOpen(true)}
-            style={{ width: '100%', padding: '16px', borderRadius: '14px', border: 'none', backgroundColor: '#ffcc00', color: '#1e293b', fontSize: '1.25rem', fontWeight: '900', display: 'flex', justifyContent: 'space-between', alignItems: 'center', boxShadow: '0 8px 24px rgba(255, 204, 0, 0.35)', cursor: 'pointer' }}
+            style={{ width: '100%', padding: '16px', borderRadius: '14px', border: 'none', backgroundColor: '#0f172a', color: '#ffffff', fontSize: '1.25rem', fontWeight: '900', display: 'flex', justifyContent: 'space-between', alignItems: 'center', boxShadow: '0 8px 24px rgba(15, 23, 42, 0.35)', cursor: 'pointer' }}
           >
-            <span style={{ background: '#1e293b', color: '#fff', padding: '3px 10px', borderRadius: '20px', fontSize: '0.95rem' }}>{totalItemsCount}</span>
+            <span style={{ background: '#ffffff', color: '#0f172a', padding: '3px 10px', borderRadius: '20px', fontSize: '0.95rem' }}>{totalItemsCount}</span>
             <span>{totalPrice.toLocaleString()} ₮ • Сагс үзэх</span>
             <span>🛒</span>
           </button>
@@ -343,7 +339,7 @@ function MenuPage() {
             {/* Хоолны мэдээлэл */}
             <div style={{ padding: '20px' }}>
               <h2 style={{ margin: '0 0 5px 0', fontSize: '1.6rem', color: '#0f172a', fontWeight: '800' }}>{selectedItem.name}</h2>
-              <div style={{ fontSize: '1.5rem', fontWeight: '900', color: '#1e293b', borderBottom: '2px solid #0f172a', paddingBottom: '15px', marginBottom: '20px' }}>
+              <div style={{ fontSize: '1.5rem', fontWeight: '900', color: '#0f172a', borderBottom: '2px solid #e2e8f0', paddingBottom: '15px', marginBottom: '20px' }}>
                 {selectedItem.price.toLocaleString()} ₮
               </div>
 
@@ -357,10 +353,10 @@ function MenuPage() {
                 </div>
               </div>
 
-              {/* ⚡ ШАР ТОД ТОВЧЛУУР: САТСАНД ХИЙХ */}
+              {/* ⚡ ХАР ТОД ТОВЧЛУУР: САТСАНД ХИЙХ */}
               <button 
                 onClick={() => handleAddToWithQty(selectedItem, detailQuantity)}
-                style={{ width: '100%', padding: '16px', borderRadius: '14px', border: 'none', backgroundColor: '#ffcc00', color: '#1e293b', fontSize: '1.25rem', fontWeight: '900', cursor: 'pointer', boxShadow: '0 4px 12px rgba(255, 204, 0, 0.3)' }}
+                style={{ width: '100%', padding: '16px', borderRadius: '14px', border: 'none', backgroundColor: '#0f172a', color: '#ffffff', fontSize: '1.25rem', fontWeight: '900', cursor: 'pointer', boxShadow: '0 4px 12px rgba(15, 23, 42, 0.3)' }}
               >
                 {(selectedItem.price * detailQuantity).toLocaleString()} ₮ Сагсанд хийх
               </button>
@@ -405,7 +401,7 @@ function MenuPage() {
                 <option value="pickup">🛍️ Аваад явах</option>
               </select>
               
-              <button className="order-btn" onClick={placeOrder} disabled={isSubmitting} style={{ width: '100%', padding: '16px', borderRadius: '14px', border: 'none', backgroundColor: '#ffcc00', color: '#1e293b', fontSize: '1.25rem', fontWeight: '900', cursor: 'pointer', boxShadow: '0 4px 12px rgba(255, 204, 0, 0.2)' }}>
+              <button className="order-btn" onClick={placeOrder} disabled={isSubmitting} style={{ width: '100%', padding: '16px', borderRadius: '14px', border: 'none', backgroundColor: '#0f172a', color: '#ffffff', fontSize: '1.25rem', fontWeight: '900', cursor: 'pointer', boxShadow: '0 4px 12px rgba(15, 23, 42, 0.2)' }}>
                 {isSubmitting ? 'БАТАЛГААЖУУЛЖ БАЙНА...' : `${totalPrice.toLocaleString()} ₮ Захиалах`}
               </button>
             </div>
