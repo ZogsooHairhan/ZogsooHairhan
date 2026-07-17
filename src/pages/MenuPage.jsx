@@ -15,6 +15,9 @@ function MenuPage() {
   const [placedOrderTotal, setPlacedOrderTotal] = useState(0);
   const [placedOrderType, setPlacedOrderType] = useState('dine-in');
   const [placedOrderPhone, setPlacedOrderPhone] = useState('');
+  
+  // ШИНЭЭР НЭМЭГДСЭН: Захиалсан хоолнуудын жагсаалтыг хадгалах
+  const [placedItems, setPlacedItems] = useState([]);
 
   // ✨ ЖИШЭЭ ШИГ: Идэвхтэй байгаа ангиллыг хянах төлөв
   const [activeCategory, setActiveCategory] = useState('Бүгд');
@@ -138,10 +141,14 @@ function MenuPage() {
 
       if (itemsError) throw itemsError;
 
+      // Амжилттай болсны дараах өгөгдлүүдээ хадгалах
+      setPlacedItems([...validCartItems]); 
       setPlacedOrderTotal(currentTotal); 
       setPlacedOrderType(currentOrderType);
       setPlacedOrderPhone(currentPhone);
-      setPlacedOrderId(newOrder.order_number); 
+      setPlacedOrderId(newOrder.id); // Хэрэв танд order_number гэж байвал newOrder.order_number-оор солиорой
+      
+      // Сагсаа цэвэрлэж хуудсаа солих
       setCart([]); setPhone(''); setOrderType('dine-in'); setIsCartOpen(false); setOrderSuccess(true); 
     } catch (err) {
       alert("Алдаа гарлаа: " + err.message);
@@ -165,47 +172,69 @@ function MenuPage() {
     </div>
   );
 
+  // ---------------------------------------------------------
+  // ШИНЭЧЛЭГДСЭН МАШ ЦЭВЭРХЭН "ЗАХИАЛГА АМЖИЛТТАЙ" ХУУДАС
+  // ---------------------------------------------------------
   if (orderSuccess) {
     return (
-      <div className="menu-container" style={{ padding: '35px 20px' }}>
-        <div style={{ textAlign: 'center', marginBottom: '25px' }}>
-          <div style={{ fontSize: '65px', marginBottom: '10px' }}>⏱️</div>
-          <h1 style={{ color: '#d97706', fontSize: '2.1rem', fontWeight: '800', margin: '0 0 5px 0' }}>Төлбөр хүлээгдэж байна</h1>
-        </div>
-        <div style={{ backgroundColor: '#fffbeb', padding: '20px', borderRadius: '16px', marginBottom: '20px', border: '2px dashed #f59e0b', textAlign: 'center' }}>
-          <span style={{ fontSize: '1.1rem', color: '#b45309', fontWeight: '600' }}>Таны захиалгын дугаар</span><br/>
-          <strong style={{ fontSize: '4.5rem', color: '#b45309', display: 'block', margin: '5px 0', lineHeight: '1' }}>#{placedOrderId}</strong>
-        </div>
-        <div style={{ backgroundColor: '#f0fdf4', border: '2px solid #bbf7d0', padding: '20px', borderRadius: '16px', marginBottom: '20px', textAlign: 'center', fontSize: '1.4rem', color: '#16a34a', fontWeight: 'bold' }}>
-          💵 Төлөх нийт дүн: <span style={{ fontSize: '1.9rem', color: '#15803d', display: 'block', marginTop: '5px' }}>{placedOrderTotal.toLocaleString()} ₮</span>
-        </div>
-        {placedOrderType === 'pickup' && (
-          <div style={{ backgroundColor: '#fef2f2', border: '1px solid #fecaca', color: '#dc2626', padding: '15px', borderRadius: '12px', marginBottom: '20px', fontSize: '1.05rem', fontWeight: '600' }}>
-            🛍️ Аваад явах санамж: Сав баглаа боодлын үнээс хамаарч касс дээр нийт үнэ бага зэрэг нэмэгдэж болзошгүйг анхаарна уу.
+      <div style={{ backgroundColor: '#f8fafc', minHeight: '100vh', display: 'flex', flexDirection: 'column', alignItems: 'center', padding: '40px 20px' }}>
+        <div style={{ backgroundColor: '#ffffff', width: '100%', maxWidth: '450px', borderRadius: '24px', padding: '30px', boxShadow: '0 10px 30px rgba(0,0,0,0.08)' }}>
+          
+          <div style={{ textAlign: 'center', marginBottom: '30px' }}>
+            <div style={{ fontSize: '60px', marginBottom: '10px' }}>⏳</div>
+            <h1 style={{ color: '#d97706', fontSize: '1.8rem', fontWeight: '800', margin: '0' }}>Төлбөр хүлээгдэж байна</h1>
           </div>
-        )}
-        <div style={{ background: '#f8fafc', padding: '20px', borderRadius: '16px', marginBottom: '20px', border: '1px solid #e2e8f0' }}>
-          <p style={{ margin: '0 0 8px 0', color: '#64748b' }}>Төлбөр шилжүүлэх данс:</p>
-          <strong style={{ display: 'block', fontSize: '1.25rem', color: '#0f172a', marginBottom: '6px' }}>Хаан банк: <span style={{ color: '#2563eb' }}>MN340005005819257247</span></strong>
-          <strong style={{ display: 'block', fontSize: '1.1rem', color: '#334155' }}>Хүлээн авагч: ӨЛЗИЙТОГТОХ СЭРЖМАА</strong>
-        </div>
-        <div style={{ backgroundColor: '#eff6ff', border: '1px solid #bfdbfe', padding: '18px', borderRadius: '16px', marginBottom: '25px' }}>
-          <span style={{ display: 'block', color: '#1e40af', fontWeight: '700', fontSize: '1.1rem', marginBottom: '8px' }}>✍️ Гүйлгээний утга:</span>
-          <p style={{ margin: '0', color: '#1e3a8a', fontSize: '1.15rem' }}>Гүйлгээний утга дээр өөрийн <strong>утасны дугаар</strong> болон <strong>захиалгын номерыг</strong> заавал хамт оруулна уу.</p>
-          <div style={{ marginTop: '10px', background: '#ffffff', padding: '10px', borderRadius: '8px', border: '1px dashed #93c5fd', fontSize: '1.05rem', fontWeight: '700' }}>💡 Жишээ нь: {placedOrderPhone} #{placedOrderId}</div>
-        </div>
-        <div style={{ borderTop: '2px solid #f1f5f9', paddingTop: '20px', textAlign: 'center' }}>
-          <p style={{ color: '#ef4444', fontSize: '1.25rem', fontWeight: '800', margin: '0 0 15px 0' }}>⚠️ Тооцоогоо хийж кассанд баталгаажуулахгүй бол захиалга хийгдэж эхлэхгүйг анхаарна уу!</p>
-          <p style={{ color: '#475569', fontSize: '1.25rem', fontWeight: '700', fontStyle: 'italic' }}>🌹 Манайхаар үйлчлүүлсэн танд баярлалаа! 🌹</p>
+
+          {/* Захиалгын дугаар */}
+          <div style={{ border: '2px dashed #f59e0b', backgroundColor: '#fffbeb', borderRadius: '16px', padding: '20px', textAlign: 'center', marginBottom: '25px' }}>
+            <span style={{ fontSize: '1.1rem', color: '#b45309', fontWeight: '600' }}>Таны захиалгын дугаар</span>
+            <div style={{ fontSize: '4.5rem', color: '#b45309', fontWeight: '900', lineHeight: '1', marginTop: '5px' }}>#{placedOrderId}</div>
+          </div>
+
+          {/* Захиалсан хоолны жагсаалт */}
+          <div style={{ marginBottom: '25px' }}>
+            {placedItems.map((item, index) => (
+              <div key={index} style={{ display: 'flex', justifyContent: 'space-between', padding: '10px 0', borderBottom: '1px solid #f1f5f9', color: '#334155', fontSize: '1.1rem', fontWeight: '500' }}>
+                <span>
+                  {item.name} <span style={{ color: '#94a3b8', fontWeight: '700', marginLeft: '5px' }}>x {item.quantity}</span>
+                </span>
+                <span style={{ fontWeight: '700', color: '#0f172a' }}>
+                  {(item.price * item.quantity).toLocaleString()} ₮
+                </span>
+              </div>
+            ))}
+          </div>
+
+          {/* Нийт дүн */}
+          <div style={{ backgroundColor: '#f0fdf4', padding: '15px 20px', borderRadius: '16px', display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '25px' }}>
+            <span style={{ color: '#16a34a', fontSize: '1.2rem', fontWeight: '700' }}>Төлөх дүн:</span>
+            <span style={{ color: '#15803d', fontSize: '1.8rem', fontWeight: '900' }}>{placedOrderTotal.toLocaleString()} ₮</span>
+          </div>
+
+          <div style={{ textAlign: 'center', marginBottom: '20px' }}>
+             <p style={{ color: '#ef4444', fontSize: '1.1rem', fontWeight: '700', margin: '0' }}>⚠️ Кассанд тооцоогоо хийснээр таны захиалга баталгаажна.</p>
+          </div>
+
+          {/* Баталгаажуулах товч - Дарахад хуудас шинэчлэгдэж дараагийн хүн ашиглахад бэлэн болно */}
+          <button 
+            onClick={() => window.location.reload()}
+            style={{ width: '100%', padding: '18px', backgroundColor: '#f59e0b', color: 'white', border: 'none', borderRadius: '16px', fontSize: '1.3rem', fontWeight: '800', cursor: 'pointer', boxShadow: '0 4px 15px rgba(245, 158, 11, 0.4)' }}
+          >
+            Кассанд баталгаажуулах
+          </button>
+
         </div>
       </div>
     );
   }
 
+  // ---------------------------------------------------------
+  // ҮНДСЭН ЦЭСНИЙ ХЭСЭГ 
+  // ---------------------------------------------------------
   return (
     <div className="menu-container" style={{ paddingTop: '110px' }}>
       
-      {/* 🔝 ХӨВДӨГ ТОЛГОЙ БОЛОН АНГИЛЛЫН СЕКЦ (IMAGE_7 ШИГ) */}
+      {/* 🔝 ХӨВДӨГ ТОЛГОЙ БОЛОН АНГИЛЛЫН СЕКЦ */}
       <div style={{ position: 'fixed', top: 0, left: 0, right: 0, backgroundColor: '#ffffff', zIndex: 100, boxShadow: '0 2px 10px rgba(0,0,0,0.05)', padding: '10px 0' }}>
         <h1 style={{ textAlign: 'center', margin: '0 0 10px 0', fontSize: '1.5rem', color: '#0f172a', fontWeight: '900' }}>🍽️ Зогсоо Хайрхан</h1>
         
@@ -234,7 +263,7 @@ function MenuPage() {
         </div>
       </div>
 
-      {/* 🍔 ХООЛНЫ ЖАГСААЛТ (IMAGE_7 ШИГ ЦЭВЭРХЭН ДИЗАЙН) */}
+      {/* 🍔 ХООЛНЫ ЖАГСААЛТ */}
       <div>
         {Object.entries(grouped).map(([cat, items]) => (
           <div key={cat} ref={el => categoryRefs.current[cat] = el}>
@@ -263,7 +292,7 @@ function MenuPage() {
                     )}
                   </div>
                   
-                  {/* Баруун талын хоолны зураг (Image_7 шиг) */}
+                  {/* Баруун талын хоолны зураг */}
                   <div style={{ position: 'relative', width: '85px', height: '85px', borderRadius: '12px', overflow: 'hidden', backgroundColor: '#f1f5f9' }}>
                     <img 
                       src={item.image_url || 'https://images.unsplash.com/photo-1546069901-ba9599a7e63c?auto=format&fit=crop&w=150&q=80'} 
@@ -278,7 +307,7 @@ function MenuPage() {
         ))}
       </div>
 
-      {/* 🛒 ЖАНБАГУНИ (ЖАГСААЛТ ХАРАХ ТОГТМОЛ ШАР ТОВЧЛУУР - IMAGE_7 ШИГ) */}
+      {/* 🛒 ЖАНБАГУНИ (ЖАГСААЛТ ХАРАХ ТОГТМОЛ ШАР ТОВЧЛУУР) */}
       {cart.length > 0 && !isCartOpen && (
         <div style={{ position: 'fixed', bottom: '20px', left: '15px', right: '15px', zIndex: 90 }}>
           <button 
@@ -292,7 +321,7 @@ function MenuPage() {
         </div>
       )}
 
-      {/* 🔎 IMAGE_6 ШИГ: ХООЛНЫ ДЭЛГЭРЭНГҮЙ СУУРЬ ТОО СОНГОХ МОДАЛ ЦОНХ */}
+      {/* 🔎 ХООЛНЫ ДЭЛГЭРЭНГҮЙ СУУРЬ ТОО СОНГОХ МОДАЛ ЦОНХ */}
       {selectedItem && (
         <div className="cart-modal-overlay" onClick={(e) => { if (e.target.className === 'cart-modal-overlay') setSelectedItem(null); }}>
           <div className="cart-modal-content" style={{ borderRadius: '24px 24px 0 0', padding: 0, overflow: 'hidden' }}>
@@ -318,7 +347,7 @@ function MenuPage() {
                 {selectedItem.price.toLocaleString()} ₮
               </div>
 
-              {/* Суурь тоо сонгох хэсэг (Image_6 шиг) */}
+              {/* Суурь тоо сонгох хэсэг */}
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '25px' }}>
                 <span style={{ fontSize: '1.2rem', fontWeight: '700', color: '#475569' }}>Суурь тоо:</span>
                 <div style={{ display: 'flex', alignItems: 'center', gap: '15px', border: '1px solid #cbd5e1', borderRadius: '25px', padding: '4px 12px', background: '#f8fafc' }}>
@@ -328,7 +357,7 @@ function MenuPage() {
                 </div>
               </div>
 
-              {/* ⚡ ШАР ТОД ТОВЧЛУУР: САТСАНД ХИЙХ (IMAGE_6 ШИГ) */}
+              {/* ⚡ ШАР ТОД ТОВЧЛУУР: САТСАНД ХИЙХ */}
               <button 
                 onClick={() => handleAddToWithQty(selectedItem, detailQuantity)}
                 style={{ width: '100%', padding: '16px', borderRadius: '14px', border: 'none', backgroundColor: '#ffcc00', color: '#1e293b', fontSize: '1.25rem', fontWeight: '900', cursor: 'pointer', boxShadow: '0 4px 12px rgba(255, 204, 0, 0.3)' }}
