@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { supabase } from '../supabaseClient';
 
 function KitchenPage() {
@@ -13,16 +13,38 @@ function KitchenPage() {
   const [orders, setOrders] = useState([]);
   const [isLoadingOrders, setIsLoadingOrders] = useState(true);
 
+  // Дуу тоглуулах хувьсагч (Ref-ээр хадгалах нь илүү найдвартай)
+  const audioRef = useRef(null);
+
   useEffect(() => {
+    // Дууг урьдчилан бэлдэх (Эхлээд хоосон үүсгэж тавина)
+    // Хэрвээ та өөрийн гэсэн ding.mp3-тэй бол '/ding.mp3' гэж солиорой.
+    audioRef.current = new Audio('https://cdn.pixabay.com/download/audio/2021/08/04/audio_0625c1539c.mp3');
+
     checkUser();
     const { data: authListener } = supabase.auth.onAuthStateChange((event, session) => {
       setIsAuthenticated(!!session);
     });
 
-    // Realtime захиалга хүлээн авах
+    // 🔔 1. Дуу тоглуулах функц (Алдаа заахгүй байхаар catch хийсэн)
+    const playNotificationSound = () => {
+      if (audioRef.current) {
+        audioRef.current.play().catch(err => {
+          console.warn("Хөтөч дууг хаалаа (Autoplay Policy):", err);
+        });
+      }
+    };
+
+    // 🔄 2. Realtime захиалга хүлээн авах
     const channel = supabase
       .channel('realtime_kitchen')
-      .on('postgres_changes', { event: '*', schema: 'public', table: 'orders' }, () => {
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'orders' }, (payload) => {
+        
+        // ✨ Хэрэв Админ "Төлбөр авсан" гэж дараад төлөв 'cooking' болсон бол дуугарна
+        if (payload.eventType === 'UPDATE' && payload.new.status === 'cooking' && payload.old.status !== 'cooking') {
+          playNotificationSound();
+        }
+
         fetchOrders();
       })
       .subscribe();
@@ -42,8 +64,25 @@ function KitchenPage() {
   const handleLogin = async (e) => {
     e.preventDefault();
     setIsLoggingIn(true);
+    
     const { error } = await supabase.auth.signInWithPassword({ email, password });
-    if (error) alert("❌ Нэвтрэх алдаа гарлаа!");
+    
+    if (error) {
+      alert("❌ Нэвтрэх алдаа гарлаа!");
+    } else {
+      // 💡 ГОЛ АРГА: Нэвтрэх товчийг дарах яг энэ үед хэрэглэгч click хийсэн байх тул 
+      // дууг нэг удаа чимээгүйхэн дуугаргаж хөтчийн хамгаалалтыг нээнэ.
+      if (audioRef.current) {
+        audioRef.current.volume = 0; // Эхний удаад чимээгүй
+        audioRef.current.play().catch(() => {}); // Алдаа гарвал тоохгүй
+        
+        // Дараагийн удаа дуугарахад хэвийн чанга дуугарахын тулд буцаагаад 100% болгоно
+        setTimeout(() => {
+          if(audioRef.current) audioRef.current.volume = 1;
+        }, 500);
+      }
+    }
+    
     setIsLoggingIn(false);
   };
 
@@ -59,8 +98,8 @@ function KitchenPage() {
       const { data, error } = await supabase
         .from('orders')
         .select(`*, order_items (quantity, menu_items (name))`)
-        .eq('status', 'cooking') // ЗӨВХӨН хийгдэж байгаа (кассаас шилжиж ирсэн) захиалгыг харуулна
-        .order('created_at', { ascending: true }); // Хамгийн түрүүнд орж ирснийг эхэнд харуулна
+        .eq('status', 'cooking') // ЗӨВХӨН хийгдэж байгаа
+        .order('created_at', { ascending: true }); 
 
       if (error) throw error;
       setOrders(data);
@@ -105,9 +144,21 @@ function KitchenPage() {
       {/* Толгой хэсэг */}
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderBottom: '3px solid #cbd5e1', paddingBottom: '15px', marginBottom: '25px' }}>
         <h1 style={{ color: '#0f172a', margin: 0, fontSize: '2.5rem' }}>👨‍🍳 Гал тогооны дэлгэц</h1>
-        <button onClick={handleLogout} style={{ padding: '12px 20px', fontSize: '1rem', fontWeight: 'bold', backgroundColor: '#ef4444', color: 'white', border: 'none', borderRadius: '8px', cursor: 'pointer' }}>
-          🚪 Гарах
-        </button>
+        
+        <div style={{display: 'flex', gap: '15px', alignItems: 'center'}}>
+           {/* Тогооч дууг гараар турших / зөвшөөрөл өгөх товч (Сонголттой) */}
+           <button 
+             onClick={() => { if(audioRef.current) audioRef.current.play() }} 
+             style={{ padding: '12px', fontSize: '1.2rem', backgroundColor: '#e2e8f0', color: '#0f172a', border: 'none', borderRadius: '50%', cursor: 'pointer', display: 'flex', justifyContent: 'center', alignItems: 'center' }}
+             title="Дуу шалгах"
+           >
+             🔔
+           </button>
+           
+           <button onClick={handleLogout} style={{ padding: '12px 20px', fontSize: '1rem', fontWeight: 'bold', backgroundColor: '#ef4444', color: 'white', border: 'none', borderRadius: '8px', cursor: 'pointer' }}>
+             🚪 Гарах
+           </button>
+        </div>
       </div>
 
       {/* Захиалгуудын жагсаалт */}
@@ -120,7 +171,7 @@ function KitchenPage() {
         </div>
       ) : (
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(350px, 1fr))', gap: '25px' }}>
-          {orders.map((order, index) => (
+          {orders.map((order) => (
             <div key={order.id} style={{ 
               backgroundColor: 'white', 
               padding: '25px', 
@@ -136,9 +187,10 @@ function KitchenPage() {
               <div>
                 <div style={{ display: 'flex', justifyContent: 'space-between', borderBottom: '2px solid #f1f5f9', paddingBottom: '15px', marginBottom: '15px' }}>
                   <div>
+                    {/* ЭНД АЛДААГ ЗАССАН: String() нэмсэн */}
                     <h2 style={{ margin: 0, fontSize: '2.2rem', color: '#1e293b' }}>
-  #{order.order_number || String(order.id).slice(-4).toUpperCase()}
-</h2>
+                      #{order.order_number || String(order.id).slice(-4).toUpperCase()}
+                    </h2>
                     <span style={{ color: '#64748b', fontSize: '1.1rem', fontWeight: 'bold' }}>
                       🕒 {new Date(order.created_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
                     </span>
