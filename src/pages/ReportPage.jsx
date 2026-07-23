@@ -2,9 +2,6 @@ import React, { useState, useEffect } from 'react';
 import { supabase } from '../supabaseClient';
 
 function ReportPage() {
-  // ==============================================
-  // 🔒 AUTH (НЭВТРЭХ ХЭСЭГ)
-  // ==============================================
   const [isAuthenticated, setIsAuthenticated] = useState(false);
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
@@ -38,6 +35,7 @@ function ReportPage() {
   // ==============================================
   // 📊 ТАЙЛАНГИЙН ТӨЛӨВҮҮД
   // ==============================================
+  // ШИНЭ: 'last_month' гэсэн сонголт нэмэгдсэн
   const [reportFilter, setReportFilter] = useState('today');
   const [isReportLoading, setIsReportLoading] = useState(false);
   const [reportData, setReportData] = useState({ 
@@ -48,7 +46,6 @@ function ReportPage() {
     compareText: '', 
     comparePercent: 0, 
     diffAmount: 0,
-    // ✨ ШИНЭ: Төлбөрийн задаргаа
     paymentBreakdown: { cash: 0, card: 0, transfer: 0, qpay: 0 }
   });
   
@@ -79,15 +76,22 @@ function ReportPage() {
         const { data: closureData } = await supabase.from('shift_closures').select('*').eq('closure_date', getTodayString());
         if (closureData && closureData.length > 0) setShiftClosureData(closureData[0]);
         else setShiftClosureData(null);
-      } else {
+      } else if (filter === 'month') {
+        // ЭНЭ САР
         startDate = new Date(now.getFullYear(), now.getMonth(), 1);
         endDate = new Date(now.getFullYear(), now.getMonth() + 1, 0, 23, 59, 59, 999);
         prevStartDate = new Date(now.getFullYear(), now.getMonth() - 1, 1);
         prevEndDate = new Date(now.getFullYear(), now.getMonth(), 0, 23, 59, 59, 999);
         setShiftClosureData(null);
+      } else if (filter === 'last_month') {
+        // ✨ ШИНЭ: ӨНГӨРСӨН САР
+        startDate = new Date(now.getFullYear(), now.getMonth() - 1, 1);
+        endDate = new Date(now.getFullYear(), now.getMonth(), 0, 23, 59, 59, 999);
+        prevStartDate = new Date(now.getFullYear(), now.getMonth() - 2, 1);
+        prevEndDate = new Date(now.getFullYear(), now.getMonth() - 1, 0, 23, 59, 59, 999);
+        setShiftClosureData(null);
       }
 
-      // ✨ ШИНЭ: payment_method баганыг давхар татаж авна
       const { data: currentData } = await supabase.from('orders').select(`total_amount, status, payment_method, order_items (quantity, price, menu_items (name))`).gte('created_at', startDate.toISOString()).lte('created_at', endDate.toISOString()).in('status', ['completed', 'cancelled']);
       const { data: prevData } = await supabase.from('orders').select('total_amount').gte('created_at', prevStartDate.toISOString()).lte('created_at', prevEndDate.toISOString()).eq('status', 'completed');
 
@@ -101,13 +105,9 @@ function ReportPage() {
           total += order.total_amount || 0;
           count++;
           
-          // ✨ Төлбөрийн хэлбэрээр нь ялгаж нэмэх (Хэрэв хуучин захиалга байвал автоматаар cash гэж үзнэ)
           const method = order.payment_method || 'cash';
-          if (payments[method] !== undefined) {
-            payments[method] += (order.total_amount || 0);
-          } else {
-            payments['cash'] += (order.total_amount || 0);
-          }
+          if (payments[method] !== undefined) payments[method] += (order.total_amount || 0);
+          else payments['cash'] += (order.total_amount || 0);
 
           order.order_items?.forEach(item => {
             const name = item.menu_items?.name || 'Устгагдсан хоол';
@@ -122,15 +122,19 @@ function ReportPage() {
       const diff = total - prevTotal;
       const percent = prevTotal === 0 ? (total > 0 ? 100 : 0) : ((diff / prevTotal) * 100);
 
+      let compareTxt = 'Өмнөх сартай харьцуулахад';
+      if (filter === 'today') compareTxt = 'Өчигдөртэй харьцуулахад';
+      if (filter === 'last_month') compareTxt = 'Түүний өмнөх сартай харьцуулахад';
+
       setReportData({ 
         totalAmount: total, 
         orderCount: count, 
         cancelledCount: cancelled, 
         topItems: Object.entries(itemMap).sort((a, b) => b[1].qty - a[1].qty), 
-        compareText: filter === 'today' ? 'Өчигдөртэй харьцуулахад' : 'Өмнөх сартай харьцуулахад', 
+        compareText: compareTxt, 
         comparePercent: percent.toFixed(1), 
         diffAmount: diff,
-        paymentBreakdown: payments // ✨ Задаргааг хадгалах
+        paymentBreakdown: payments 
       });
     } catch (err) {
       console.error(err);
@@ -140,7 +144,51 @@ function ReportPage() {
   };
 
   // ==============================================
-  // 🔒 НЭВТРЭХ ХЭСГИЙН ДЭЛГЭЦ
+  // 📥 ШИНЭ: ТАЙЛАНГ EXCEL (CSV) ФАЙЛ БОЛГОЖ ТАТАХ
+  // ==============================================
+  const exportToCSV = () => {
+    // \uFEFF нь Excel дээр Монгол үсэг (Кирил) асуудалгүй уншигдах зориулалттай UTF-8 BOM тэмдэгт
+    let csvContent = "\uFEFF"; 
+    
+    let filterName = "Өнөөдөр";
+    if(reportFilter === 'month') filterName = "Энэ сар";
+    if(reportFilter === 'last_month') filterName = "Өнгөрсөн сар";
+
+    // 1. Ерөнхий мэдээлэл
+    csvContent += `Тайлангийн хугацаа:,${filterName}\n`;
+    csvContent += `Нийт орлого:,${reportData.totalAmount} ₮\n`;
+    csvContent += `Захиалгын тоо:,${reportData.orderCount} ш\n`;
+    csvContent += `Цуцлагдсан захиалга:,${reportData.cancelledCount} ш\n\n`;
+
+    // 2. Төлбөрийн задаргаа
+    csvContent += "--- ТӨЛБӨРИЙН ЗАДАРГАА ---\n";
+    csvContent += `Бэлэн мөнгө:,${reportData.paymentBreakdown.cash} ₮\n`;
+    csvContent += `Картаар:,${reportData.paymentBreakdown.card} ₮\n`;
+    csvContent += `Дансаар:,${reportData.paymentBreakdown.transfer} ₮\n`;
+    csvContent += `QPay:,${reportData.paymentBreakdown.qpay} ₮\n\n`;
+
+    // 3. Борлуулагдсан хоолнууд
+    csvContent += "--- БОРЛУУЛАГДСАН ХООЛ ---\n";
+    csvContent += "Хоолны нэр,Ширхэг,Нийт үнэ\n";
+    
+    reportData.topItems.forEach(item => {
+      // Хоолны нэрэнд таслал байвал алдаа гарах тул хашилтанд хийнэ
+      csvContent += `"${item[0]}",${item[1].qty},${item[1].revenue}\n`;
+    });
+
+    // Файл үүсгэж татаж авах үйлдэл
+    const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+    const link = document.createElement("a");
+    const url = URL.createObjectURL(blob);
+    link.setAttribute("href", url);
+    link.setAttribute("download", `Tailan_${filterName}_${getTodayString()}.csv`);
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+  };
+
+  // ==============================================
+  // 🔒 НЭВТРЭХ ДЭЛГЭЦ
   // ==============================================
   if (!isAuthenticated) {
     return (
@@ -167,6 +215,12 @@ function ReportPage() {
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderBottom: '3px solid #e2e8f0', paddingBottom: '15px', marginBottom: '25px', flexWrap: 'wrap', gap: '15px' }}>
         <h1 style={{ color: '#0f172a', margin: 0, fontSize: 'clamp(1.6rem, 4vw, 2.3rem)' }}>📈 Санхүүгийн Тайлан</h1>
         <div style={{ display: 'flex', gap: '10px' }}>
+          
+          {/* ✨ ШИНЭ: Файл татах товч */}
+          <button onClick={exportToCSV} style={{ padding: '12px 20px', fontSize: '1rem', fontWeight: 'bold', border: 'none', borderRadius: '8px', cursor: 'pointer', backgroundColor: '#10b981', color: 'white', boxShadow: '0 4px 10px rgba(16, 185, 129, 0.3)' }}>
+            📥 Файл татах
+          </button>
+
           <button onClick={() => window.location.href = '/admin'} style={{ padding: '12px 20px', fontSize: '1rem', fontWeight: 'bold', border: '1px solid #cbd5e1', borderRadius: '8px', cursor: 'pointer', backgroundColor: 'white', color: '#475569' }}>
             ⬅️ Админ руу буцах
           </button>
@@ -175,9 +229,11 @@ function ReportPage() {
       </div>
 
       <div style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
-        <div style={{ display: 'flex', gap: '10px', backgroundColor: 'white', padding: '10px', borderRadius: '12px', width: 'fit-content' }}>
+        <div style={{ display: 'flex', gap: '10px', backgroundColor: 'white', padding: '10px', borderRadius: '12px', width: 'fit-content', flexWrap: 'wrap' }}>
           <button onClick={() => setReportFilter('today')} style={{ padding: '10px 20px', borderRadius: '8px', border: 'none', fontWeight: 'bold', cursor: 'pointer', backgroundColor: reportFilter === 'today' ? '#0f172a' : 'transparent', color: reportFilter === 'today' ? 'white' : '#64748b' }}>📅 Өнөөдөр</button>
           <button onClick={() => setReportFilter('month')} style={{ padding: '10px 20px', borderRadius: '8px', border: 'none', fontWeight: 'bold', cursor: 'pointer', backgroundColor: reportFilter === 'month' ? '#0f172a' : 'transparent', color: reportFilter === 'month' ? 'white' : '#64748b' }}>📆 Энэ сар</button>
+          {/* ✨ ШИНЭ: Өнгөрсөн сар товч */}
+          <button onClick={() => setReportFilter('last_month')} style={{ padding: '10px 20px', borderRadius: '8px', border: 'none', fontWeight: 'bold', cursor: 'pointer', backgroundColor: reportFilter === 'last_month' ? '#0f172a' : 'transparent', color: reportFilter === 'last_month' ? 'white' : '#64748b' }}>⏪ Өнгөрсөн сар</button>
         </div>
 
         {reportFilter === 'today' && shiftClosureData && (
@@ -201,14 +257,13 @@ function ReportPage() {
         ) : (
           <div style={{ display: 'flex', gap: '20px', flexWrap: 'wrap' }}>
             
-            {/* ЗҮҮН БЛОК: Орлого болон Задаргаа */}
             <div style={{ flex: '1 1 300px', display: 'flex', flexDirection: 'column', gap: '20px' }}>
-              
               <div style={{ backgroundColor: 'white', padding: '30px', borderRadius: '16px', boxShadow: '0 4px 20px rgba(0,0,0,0.03)' }}>
-                <h3 style={{ margin: '0 0 10px 0', color: '#64748b', fontSize: '1.2rem' }}>{reportFilter === 'today' ? 'Өнөөдрийн НИЙТ орлого' : 'Энэ сарын НИЙТ орлого'}</h3>
+                <h3 style={{ margin: '0 0 10px 0', color: '#64748b', fontSize: '1.2rem' }}>
+                  {reportFilter === 'today' ? 'Өнөөдрийн НИЙТ орлого' : (reportFilter === 'month' ? 'Энэ сарын НИЙТ орлого' : 'Өнгөрсөн сарын НИЙТ орлого')}
+                </h3>
                 <h1 style={{ margin: 0, color: '#0f172a', fontSize: '3rem', fontWeight: '900' }}>{reportData.totalAmount.toLocaleString()} ₮</h1>
                 
-                {/* ✨ Төлбөрийн хэлбэрийн задаргаа */}
                 <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(130px, 1fr))', gap: '10px', marginTop: '25px' }}>
                   <div style={{ backgroundColor: '#f1f5f9', padding: '12px', borderRadius: '10px', borderLeft: '4px solid #10b981' }}>
                     <div style={{ fontSize: '0.85rem', color: '#64748b', fontWeight: 'bold', marginBottom: '4px' }}>💵 Бэлэн мөнгө</div>
@@ -241,7 +296,6 @@ function ReportPage() {
               </div>
             </div>
 
-            {/* БАРУУН БЛОК: Борлуулагдсан хоол */}
             <div style={{ flex: '2 1 450px', backgroundColor: 'white', padding: '30px', borderRadius: '16px', boxShadow: '0 4px 20px rgba(0,0,0,0.03)' }}>
               <h3 style={{ margin: '0 0 20px 0', color: '#0f172a', fontSize: '1.4rem', borderBottom: '2px solid #f1f5f9', paddingBottom: '15px', fontWeight: '800' }}>🍽️ Борлуулагдсан хоол</h3>
               {reportData.topItems.length === 0 ? <p style={{ color: '#64748b', textAlign: 'center' }}>Одоогоор борлуулалт алга байна.</p> : (
