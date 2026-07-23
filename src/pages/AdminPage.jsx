@@ -38,14 +38,17 @@ function AdminPage() {
   const [menuItems, setMenuItems] = useState([]);
   const [isLoadingMenu, setIsLoadingMenu] = useState(false);
 
+  // 💳 ТӨЛБӨРИЙН ТӨРӨЛ СОНГОХ ЦОНХНЫ ТӨЛӨВҮҮД
+  const [isPaymentModalOpen, setIsPaymentModalOpen] = useState(false);
+  const [paymentOrderId, setPaymentOrderId] = useState(null);
+
   // 🔐 КАСС ХААЛТЫН ТӨЛӨВҮҮД
   const [isShiftModalOpen, setIsShiftModalOpen] = useState(false);
-  const [expectedCash, setExpectedCash] = useState(0);
+  const [expectedCash, setExpectedCash] = useState(0); // Зөвхөн бэлэн мөнгөний нийлбэр
   const [actualCash, setActualCash] = useState('');
   const [isCalculating, setIsCalculating] = useState(false);
-  const [isShiftClosed, setIsShiftClosed] = useState(false); // Өнөөдөр хаагдсан эсэх
+  const [isShiftClosed, setIsShiftClosed] = useState(false);
 
-  // Өнөөдрийн огноог олох функц
   const getTodayString = () => {
     const tzOffset = (new Date()).getTimezoneOffset() * 60000;
     return new Date(Date.now() - tzOffset).toISOString().slice(0, 10);
@@ -64,7 +67,6 @@ function AdminPage() {
     }
   }, [isAuthenticated]);
 
-  // Өнөөдөр касс хаагдсан эсэхийг шалгах
   const checkShiftStatus = async () => {
     try {
       const { data, error } = await supabase.from('shift_closures').select('*').eq('closure_date', getTodayString());
@@ -86,14 +88,27 @@ function AdminPage() {
     }
   };
 
-  const updateOrderStatus = async (orderId, newStatus) => {
+  // Төлөв болон Төлбөрийн төрлийг шинэчлэх
+  const updateOrderStatus = async (orderId, newStatus, paymentMethod = null) => {
     try {
-      const { error } = await supabase.from('orders').update({ status: newStatus }).eq('id', orderId);
+      let updateData = { status: newStatus };
+      if (paymentMethod) {
+        updateData.payment_method = paymentMethod;
+      }
+      const { error } = await supabase.from('orders').update(updateData).eq('id', orderId);
       if (error) throw error;
+      
+      setIsPaymentModalOpen(false);
+      setPaymentOrderId(null);
       fetchOrders(); 
     } catch (err) {
       alert("Алдаа гарлаа: " + err.message);
     }
+  };
+
+  const openPaymentModal = (orderId) => {
+    setPaymentOrderId(orderId);
+    setIsPaymentModalOpen(true);
   };
 
   useEffect(() => {
@@ -122,16 +137,28 @@ function AdminPage() {
   };
 
   const openShiftModal = async () => {
-    if (isShiftClosed) return; // Хэрэв хаагдсан бол нээхгүй
+    if (isShiftClosed) return; 
     setIsShiftModalOpen(true);
     setIsCalculating(true);
     try {
       const startOfToday = new Date();
       startOfToday.setHours(0, 0, 0, 0);
-      const { data, error } = await supabase.from('orders').select('total_amount').gte('created_at', startOfToday.toISOString()).eq('status', 'completed');
+      
+      // Өнөөдөр хийгдэж байгаа болон дууссан захиалгуудыг татаж авах
+      const { data, error } = await supabase
+        .from('orders')
+        .select('total_amount, payment_method')
+        .gte('created_at', startOfToday.toISOString())
+        .in('status', ['cooking', 'completed']);
+        
       if (error) throw error;
-      const total = data.reduce((sum, order) => sum + (order.total_amount || 0), 0);
-      setExpectedCash(total);
+      
+      // ЗӨВХӨН БЭЛЭН МӨНГӨӨР хийгдсэн гүйлгээнүүдийг нэмэх
+      const cashTotal = data
+        .filter(order => order.payment_method === 'cash')
+        .reduce((sum, order) => sum + (order.total_amount || 0), 0);
+        
+      setExpectedCash(cashTotal);
     } catch (err) {
       console.error('Орлого татахад алдаа:', err);
     } finally {
@@ -139,8 +166,10 @@ function AdminPage() {
     }
   };
 
-  // Касс хаалтын мэдээллийг санд хадгалах
   const confirmShiftClose = async () => {
+    // Хэрэв мөнгө таарахгүй бол үйлдэл хийгдэхгүй
+    if (Number(actualCash) !== expectedCash) return;
+    
     if (!window.confirm('Кассыг хааж, ээлжийг дуусгахдаа итгэлтэй байна уу?')) return;
     
     try {
@@ -185,7 +214,6 @@ function AdminPage() {
           <button onClick={() => setActiveTab('orders')} style={{ padding: '12px 20px', fontSize: '1rem', fontWeight: 'bold', border: 'none', borderRadius: '8px', cursor: 'pointer', backgroundColor: activeTab === 'orders' ? '#3b82f6' : '#e2e8f0', color: activeTab === 'orders' ? 'white' : '#475569' }}>📋 Захиалгууд</button>
           <button onClick={() => setActiveTab('menu')} style={{ padding: '12px 20px', fontSize: '1rem', fontWeight: 'bold', border: 'none', borderRadius: '8px', cursor: 'pointer', backgroundColor: activeTab === 'menu' ? '#3b82f6' : '#e2e8f0', color: activeTab === 'menu' ? 'white' : '#475569' }}>🍔 Цэс удирдах</button>
           
-          {/* Хэрвээ хаагдсан бол товч ногоон болж идэвхгүй болно */}
           <button onClick={openShiftModal} disabled={isShiftClosed} style={{ padding: '12px 20px', fontSize: '1rem', fontWeight: 'bold', border: isShiftClosed ? 'none' : '2px solid #0f172a', borderRadius: '8px', cursor: isShiftClosed ? 'not-allowed' : 'pointer', backgroundColor: isShiftClosed ? '#10b981' : 'white', color: isShiftClosed ? 'white' : '#0f172a' }}>
             {isShiftClosed ? '✅ Өнөөдөр хаагдсан' : '🔐 Касс хаах'}
           </button>
@@ -222,11 +250,11 @@ function AdminPage() {
               <div style={{ paddingTop: '15px', borderTop: '2px dashed #e2e8f0', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                 <strong style={{ fontSize: '1.7rem' }}>{order.total_amount?.toLocaleString()} ₮</strong>
                 <div style={{ display: 'flex', gap: '8px' }}>
-                  <button onClick={() => updateOrderStatus(order.id, 'cancelled')} style={{ padding: '10px', backgroundColor: '#fee2e2', color: '#ef4444', border: 'none', borderRadius: '8px', fontWeight: 'bold' }}>❌ Цуцлах</button>
+                  <button onClick={() => updateOrderStatus(order.id, 'cancelled')} style={{ padding: '10px', backgroundColor: '#fee2e2', color: '#ef4444', border: 'none', borderRadius: '8px', fontWeight: 'bold', cursor: 'pointer' }}>❌ Цуцлах</button>
                   {order.status === 'pending' ? (
-                    <button onClick={() => updateOrderStatus(order.id, 'cooking')} style={{ padding: '10px', backgroundColor: '#3b82f6', color: 'white', border: 'none', borderRadius: '8px', fontWeight: 'bold' }}>💰 Төлбөр авсан</button>
+                    <button onClick={() => openPaymentModal(order.id)} style={{ padding: '10px 18px', backgroundColor: '#3b82f6', color: 'white', border: 'none', borderRadius: '8px', fontWeight: 'bold', cursor: 'pointer' }}>💰 Төлбөр авах</button>
                   ) : (
-                    <button onClick={() => updateOrderStatus(order.id, 'completed')} style={{ padding: '10px', backgroundColor: '#10b981', color: 'white', border: 'none', borderRadius: '8px', fontWeight: 'bold' }}>✔️ Хоол бэлэн</button>
+                    <button onClick={() => updateOrderStatus(order.id, 'completed')} style={{ padding: '10px 18px', backgroundColor: '#10b981', color: 'white', border: 'none', borderRadius: '8px', fontWeight: 'bold', cursor: 'pointer' }}>✔️ Хоол бэлэн</button>
                   )}
                 </div>
               </div>
@@ -240,7 +268,7 @@ function AdminPage() {
           {menuItems.map((item) => (
             <div key={item.id} style={{ display: 'flex', justifyContent: 'space-between', padding: '15px', border: '1px solid #e2e8f0', borderRadius: '12px', backgroundColor: 'white' }}>
               <div><h3 style={{ margin: '0 0 5px 0' }}>{item.name}</h3><span>{item.price.toLocaleString()} ₮</span></div>
-              <button onClick={() => toggleMenuItemStatus(item.id, item.is_active)} style={{ padding: '10px', borderRadius: '8px', backgroundColor: item.is_active ? '#10b981' : '#ef4444', color: 'white', border: 'none' }}>
+              <button onClick={() => toggleMenuItemStatus(item.id, item.is_active)} style={{ padding: '10px', borderRadius: '8px', backgroundColor: item.is_active ? '#10b981' : '#ef4444', color: 'white', border: 'none', cursor: 'pointer' }}>
                 {item.is_active ? '✅ Байгаа' : '❌ Дууссан'}
               </button>
             </div>
@@ -248,30 +276,59 @@ function AdminPage() {
         </div>
       )}
 
+      {/* 💳 ТӨЛБӨРИЙН ТӨРӨЛ СОНГОХ ЦОНХ */}
+      {isPaymentModalOpen && (
+        <div style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, backgroundColor: 'rgba(15, 23, 42, 0.75)', display: 'flex', justifyContent: 'center', alignItems: 'center', zIndex: 1000, padding: '20px' }}>
+          <div style={{ backgroundColor: 'white', padding: '30px', borderRadius: '20px', width: '100%', maxWidth: '380px', boxShadow: '0 25px 50px -12px rgba(0, 0, 0, 0.25)' }}>
+            <h2 style={{ textAlign: 'center', margin: '0 0 20px 0', color: '#0f172a' }}>Төлбөрийн төрөл</h2>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
+              <button onClick={() => updateOrderStatus(paymentOrderId, 'cooking', 'cash')} style={{ padding: '16px', borderRadius: '12px', border: 'none', backgroundColor: '#10b981', color: 'white', fontSize: '1.2rem', fontWeight: 'bold', cursor: 'pointer' }}>💵 Бэлэн мөнгө</button>
+              <button onClick={() => updateOrderStatus(paymentOrderId, 'cooking', 'card')} style={{ padding: '16px', borderRadius: '12px', border: 'none', backgroundColor: '#3b82f6', color: 'white', fontSize: '1.2rem', fontWeight: 'bold', cursor: 'pointer' }}>💳 Картаар</button>
+              <button onClick={() => updateOrderStatus(paymentOrderId, 'cooking', 'transfer')} style={{ padding: '16px', borderRadius: '12px', border: 'none', backgroundColor: '#8b5cf6', color: 'white', fontSize: '1.2rem', fontWeight: 'bold', cursor: 'pointer' }}>🏦 Дансаар</button>
+              <button onClick={() => updateOrderStatus(paymentOrderId, 'cooking', 'qpay')} style={{ padding: '16px', borderRadius: '12px', border: 'none', backgroundColor: '#f59e0b', color: 'white', fontSize: '1.2rem', fontWeight: 'bold', cursor: 'pointer' }}>📱 QPay</button>
+              <button onClick={() => { setIsPaymentModalOpen(false); setPaymentOrderId(null); }} style={{ padding: '16px', borderRadius: '12px', border: 'none', backgroundColor: '#e2e8f0', color: '#475569', fontSize: '1.1rem', fontWeight: 'bold', cursor: 'pointer', marginTop: '10px' }}>Буцах</button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* 🔐 КАСС ХААЛТЫН ЦОНХ */}
       {isShiftModalOpen && (
         <div style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, backgroundColor: 'rgba(15, 23, 42, 0.75)', display: 'flex', justifyContent: 'center', alignItems: 'center', zIndex: 1000, padding: '20px' }}>
           <div style={{ backgroundColor: 'white', padding: '30px', borderRadius: '20px', width: '100%', maxWidth: '420px' }}>
-            <h2 style={{ textAlign: 'center' }}>🔐 Касс хаалт</h2>
-            {isCalculating ? <p>Тооцоолж байна...</p> : (
+            <h2 style={{ textAlign: 'center', margin: '0 0 20px 0' }}>🔐 Касс хаалт</h2>
+            {isCalculating ? <p style={{ textAlign: 'center' }}>Тооцоолж байна...</p> : (
               <>
-                <div style={{ backgroundColor: '#f8fafc', padding: '20px', borderRadius: '16px', marginBottom: '20px', textAlign: 'center' }}>
-                  <span>Систем дэх өнөөдрийн борлуулалт</span>
-                  <div style={{ fontSize: '2.5rem', fontWeight: '900' }}>{expectedCash.toLocaleString()} ₮</div>
+                <div style={{ backgroundColor: '#f8fafc', padding: '20px', borderRadius: '16px', marginBottom: '20px', textAlign: 'center', border: '1px solid #e2e8f0' }}>
+                  <span style={{ color: '#475569', fontWeight: 'bold' }}>Өнөөдрийн БЭЛЭН МӨНГӨНИЙ орлого:</span>
+                  <div style={{ fontSize: '2.5rem', fontWeight: '900', color: '#0f172a', marginTop: '10px' }}>{expectedCash.toLocaleString()} ₮</div>
                 </div>
-                <label>Кассанд байгаа бэлэн мөнгө:</label>
-                <input type="number" value={actualCash} onChange={(e) => setActualCash(e.target.value)} style={{ width: '100%', padding: '16px', borderRadius: '12px', border: '2px solid #cbd5e1', fontSize: '1.3rem', marginBottom: '20px' }} />
+                
+                <label style={{ display: 'block', marginBottom: '10px', fontWeight: 'bold' }}>Кассанд тоолсон бэлэн мөнгө:</label>
+                <input type="number" value={actualCash} onChange={(e) => setActualCash(e.target.value)} placeholder="0 ₮" style={{ width: '100%', padding: '16px', borderRadius: '12px', border: '2px solid #cbd5e1', fontSize: '1.3rem', marginBottom: '20px', boxSizing: 'border-box' }} />
                 
                 {actualCash !== '' && (
                   <div style={{ padding: '16px', borderRadius: '12px', marginBottom: '25px', backgroundColor: (Number(actualCash) === expectedCash) ? '#dcfce7' : ((Number(actualCash) < expectedCash) ? '#fee2e2' : '#fef9c3'), color: (Number(actualCash) === expectedCash) ? '#16a34a' : ((Number(actualCash) < expectedCash) ? '#dc2626' : '#ca8a04') }}>
-                    {Number(actualCash) === expectedCash && <strong>✅ Тооцоо яг нийлж байна!</strong>}
-                    {Number(actualCash) < expectedCash && <strong>⚠️ {(expectedCash - Number(actualCash)).toLocaleString()} ₮ дутаж байна!</strong>}
-                    {Number(actualCash) > expectedCash && <strong>⚠️ {(Number(actualCash) - expectedCash).toLocaleString()} ₮ илүү байна.</strong>}
+                    {Number(actualCash) === expectedCash && <strong style={{ fontSize: '1.1rem' }}>✅ Тооцоо яг нийлж байна!</strong>}
+                    {Number(actualCash) < expectedCash && <strong style={{ fontSize: '1.1rem' }}>⚠️ {(expectedCash - Number(actualCash)).toLocaleString()} ₮ дутаж байна!</strong>}
+                    {Number(actualCash) > expectedCash && <strong style={{ fontSize: '1.1rem' }}>⚠️ {(Number(actualCash) - expectedCash).toLocaleString()} ₮ илүү байна.</strong>}
                   </div>
                 )}
                 
                 <div style={{ display: 'flex', gap: '12px' }}>
-                  <button onClick={() => setIsShiftModalOpen(false)} style={{ flex: 1, padding: '16px', borderRadius: '12px', border: 'none', backgroundColor: '#e2e8f0', cursor: 'pointer' }}>Буцах</button>
-                  <button onClick={confirmShiftClose} style={{ flex: 1, padding: '16px', borderRadius: '12px', border: 'none', backgroundColor: '#0f172a', color: 'white', cursor: 'pointer' }}>Хаах батлах</button>
+                  <button onClick={() => setIsShiftModalOpen(false)} style={{ flex: 1, padding: '16px', borderRadius: '12px', border: 'none', backgroundColor: '#e2e8f0', fontWeight: 'bold', cursor: 'pointer' }}>Буцах</button>
+                  <button 
+                    onClick={confirmShiftClose} 
+                    disabled={Number(actualCash) !== expectedCash || actualCash === ''}
+                    style={{ 
+                      flex: 1, padding: '16px', borderRadius: '12px', border: 'none', 
+                      backgroundColor: (Number(actualCash) === expectedCash && actualCash !== '') ? '#10b981' : '#94a3b8', 
+                      color: 'white', fontWeight: 'bold', 
+                      cursor: (Number(actualCash) === expectedCash && actualCash !== '') ? 'pointer' : 'not-allowed'
+                    }}
+                  >
+                    Хаах батлах
+                  </button>
                 </div>
               </>
             )}
