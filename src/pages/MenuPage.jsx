@@ -1,221 +1,469 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { supabase } from '../supabaseClient';
+import './MenuPage.css?v=1.0.1';
 
-function AdminPage() {
-  const [isAuthenticated, setIsAuthenticated] = useState(false);
-  const [email, setEmail] = useState('');
-  const [password, setPassword] = useState('');
-  const [isLoggingIn, setIsLoggingIn] = useState(false);
+function MenuPage() {
+  const [menuItems, setMenuItems] = useState([]);
+  const [cart, setCart] = useState([]);
+  const [phone, setPhone] = useState('');
+  const [orderType, setOrderType] = useState('dine-in'); 
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [isLoading, setIsLoading] = useState(true);
+  
+  const [orderSuccess, setOrderSuccess] = useState(false);
+  const [placedOrderId, setPlacedOrderId] = useState(''); 
+  const [placedOrderTotal, setPlacedOrderTotal] = useState(0);
+  const [placedOrderType, setPlacedOrderType] = useState('dine-in');
+  const [placedOrderPhone, setPlacedOrderPhone] = useState('');
+  const [placedItems, setPlacedItems] = useState([]);
+
+  // ✨ ШИНЭ: Бодит цагийн төлөв хянах хувьсагчууд
+  const [realtimeStatus, setRealtimeStatus] = useState('pending');
+  const [placedOrderInternalId, setPlacedOrderInternalId] = useState(null);
+
+  const [activeCategory, setActiveCategory] = useState('Бүгд');
+  const [selectedItem, setSelectedItem] = useState(null);
+  const [detailQuantity, setDetailQuantity] = useState(1);
+  const [isCartOpen, setIsCartOpen] = useState(false);
+  const categoryRefs = useRef({});
 
   useEffect(() => {
-    checkUser();
-    const { data: authListener } = supabase.auth.onAuthStateChange((event, session) => {
-      setIsAuthenticated(!!session);
-    });
-    return () => authListener.subscription.unsubscribe();
+    fetchMenu();
   }, []);
 
-  const checkUser = async () => {
-    const { data: { session } } = await supabase.auth.getSession();
-    setIsAuthenticated(!!session);
-  };
-
-  const handleLogin = async (e) => {
-    e.preventDefault();
-    setIsLoggingIn(true);
-    const { error } = await supabase.auth.signInWithPassword({ email, password });
-    if (error) alert("❌ Нэвтрэх алдаа: И-мэйл эсвэл нууц үг буруу байна.");
-    setIsLoggingIn(false);
-  };
-
-  const handleLogout = async () => {
-    await supabase.auth.signOut();
-    setIsAuthenticated(false);
-    setEmail(''); setPassword('');
-  };
-
-  const [activeTab, setActiveTab] = useState('orders'); 
-  const [orders, setOrders] = useState([]);
-  const [isLoadingOrders, setIsLoadingOrders] = useState(true);
-  const [menuItems, setMenuItems] = useState([]);
-  const [isLoadingMenu, setIsLoadingMenu] = useState(false);
-
+  // ✨ ШИНЭ: Захиалгын төлөв өөрчлөгдөхийг (Төлбөр төлөгдсөн, Хоол бэлэн болсон) бодит цагт чагнах
   useEffect(() => {
-    if (isAuthenticated) {
-      fetchOrders();
+    if (orderSuccess && placedOrderInternalId) {
       const channel = supabase
-        .channel('realtime_admin_orders')
-        .on('postgres_changes', { event: '*', schema: 'public', table: 'orders' }, () => {
-          fetchOrders(); 
-        }).subscribe();
-      return () => supabase.removeChannel(channel);
-    }
-  }, [isAuthenticated]);
+        .channel('user_order_status')
+        .on('postgres_changes', {
+          event: 'UPDATE',
+          schema: 'public',
+          table: 'orders',
+          filter: `id=eq.${placedOrderInternalId}` // Зөвхөн энэ хүний захиалгыг чагнана
+        }, (payload) => {
+          if (payload.new && payload.new.status) {
+            setRealtimeStatus(payload.new.status);
+          }
+        })
+        .subscribe();
 
-  const fetchOrders = async () => {
+      return () => {
+        supabase.removeChannel(channel);
+      };
+    }
+  }, [orderSuccess, placedOrderInternalId]);
+
+  const fetchMenu = async () => {
     try {
       const { data, error } = await supabase
-        .from('orders')
-        .select(`*, order_items (quantity, price, menu_items (name))`)
-        .in('status', ['pending', 'cooking']) 
-        .order('created_at', { ascending: false });
-      if (error) throw error;
-      setOrders(data);
-    } catch (err) {
-      console.error("Захиалга татахад алдаа:", err.message);
-    } finally {
-      setIsLoadingOrders(false);
-    }
-  };
+        .from('menu_items')
+        .select('*')
+        .eq('is_active', true); 
 
-  const updateOrderStatus = async (orderId, newStatus) => {
-    try {
-      const { error } = await supabase.from('orders').update({ status: newStatus }).eq('id', orderId);
-      if (error) throw error;
-      fetchOrders(); 
-    } catch (err) {
-      alert("Алдаа гарлаа: " + err.message);
-    }
-  };
-
-  useEffect(() => {
-    if (isAuthenticated && activeTab === 'menu' && menuItems.length === 0) fetchMenuItems();
-  }, [activeTab, isAuthenticated]);
-
-  const fetchMenuItems = async () => {
-    setIsLoadingMenu(true);
-    try {
-      const { data, error } = await supabase.from('menu_items').select('*').order('name'); 
       if (error) throw error;
       setMenuItems(data);
     } catch (err) {
-      console.error("Цэс татахад алдаа:", err.message);
+      console.error("Цэс татахад алдаа гарлаа:", err.message);
     } finally {
-      setIsLoadingMenu(false);
+      setIsLoading(false);
     }
   };
 
-  const toggleMenuItemStatus = async (id, currentStatus) => {
-    setMenuItems(menuItems.map(item => item.id === id ? { ...item, is_active: !currentStatus } : item));
-    try {
-      const { error } = await supabase.from('menu_items').update({ is_active: !currentStatus }).eq('id', id);
-      if (error) {
-        setMenuItems(menuItems.map(item => item.id === id ? { ...item, is_active: currentStatus } : item));
-        throw error;
+  const handleCategoryClick = (category) => {
+    setActiveCategory(category);
+    if (category === 'Бүгд') {
+      window.scrollTo({ top: 0, behavior: 'smooth' });
+    } else {
+      const element = categoryRefs.current[category];
+      if (element) {
+        const offset = 140; 
+        const bodyRect = document.body.getBoundingClientRect().top;
+        const elementRect = element.getBoundingClientRect().top;
+        const elementPosition = elementRect - bodyRect;
+        const offsetPosition = elementPosition - offset;
+
+        window.scrollTo({
+          top: offsetPosition,
+          behavior: 'smooth'
+        });
       }
-    } catch (err) {
-      alert("Төлөв өөрчлөхөд алдаа гарлаа: " + err.message);
     }
   };
 
-  if (!isAuthenticated) {
+  const handleAddToWithQty = (item, qty) => {
+    setCart((prevCart) => {
+      const existingItem = prevCart.find((cartItem) => cartItem.id === item.id);
+      if (existingItem) {
+        return prevCart.map((cartItem) =>
+          cartItem.id === item.id ? { ...cartItem, quantity: (parseInt(cartItem.quantity) || 0) + qty } : cartItem
+        );
+      }
+      return [...prevCart, { ...item, quantity: qty }];
+    });
+    setSelectedItem(null); 
+    setDetailQuantity(1);
+  };
+
+  const updateCartQuantity = (itemId, amount) => {
+    setCart((prevCart) => {
+      return prevCart.map((item) => {
+        if (item.id === itemId) {
+          const newQty = (parseInt(item.quantity) || 0) + amount;
+          return newQty > 0 ? { ...item, quantity: newQty } : null;
+        }
+        return item;
+      }).filter(Boolean);
+    });
+  };
+
+  const totalPrice = cart.reduce((sum, item) => sum + (item.price * (parseInt(item.quantity) || 0)), 0);
+  const totalItemsCount = cart.reduce((sum, item) => sum + (parseInt(item.quantity) || 0), 0);
+
+  const placeOrder = async () => {
+    const validCartItems = cart.filter(item => (parseInt(item.quantity, 10) || 0) > 0);
+    if (validCartItems.length === 0) { alert("Сагс хоосон байна!"); return; }
+    if (!phone.trim()) { alert("Утасны дугаараа оруулна уу."); return; }
+
+    if (orderType === 'dine-in') {
+      const hasDrink = validCartItems.some(item => {
+        const categoryName = (item.category || '').toLowerCase();
+        return categoryName.includes('уух') || categoryName.includes('ундаа') || categoryName.includes('цай');
+      });
+      if (!hasDrink) {
+        alert("⚠️ Сууж идэх тохиолдолд заавал дор хаяж нэг уух юм (ундаа, цай гм) сонгох шаардлагатай.");
+        return; 
+      }
+    }
+
+    setIsSubmitting(true);
+    try {
+      const currentTotal = totalPrice;
+      const currentOrderType = orderType;
+      const currentPhone = phone;
+
+      const { data: orderData, error: orderError } = await supabase
+        .from('orders')
+        .insert([{ table_number: '1', phone_number: currentPhone, total_amount: currentTotal, order_type: currentOrderType, status: 'pending' }])
+        .select();
+
+      if (orderError) throw orderError;
+      const newOrder = orderData[0]; 
+
+      const orderItemsData = validCartItems.map((item) => ({
+        order_id: newOrder.id, menu_item_id: item.id, quantity: parseInt(item.quantity, 10), price: item.price
+      }));
+
+      const { error: itemsError } = await supabase
+        .from('order_items')
+        .insert(orderItemsData);
+
+      if (itemsError) throw itemsError;
+
+      setPlacedItems([...validCartItems]); 
+      setPlacedOrderTotal(currentTotal); 
+      setPlacedOrderType(currentOrderType);
+      setPlacedOrderPhone(currentPhone);
+      
+      // ✨ ШИНЭ: Захиалгын дугаар болон Realtime ID-г хадгалах
+      setPlacedOrderId(newOrder.order_number || String(newOrder.id).slice(-4).toUpperCase()); 
+      setPlacedOrderInternalId(newOrder.id);
+      setRealtimeStatus('pending');
+
+      setCart([]); setPhone(''); setOrderType('dine-in'); setIsCartOpen(false); setOrderSuccess(true); 
+    } catch (err) {
+      alert("Алдаа гарлаа: " + err.message);
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+
+  const categories = ['Бүгд', ...new Set(menuItems.map(item => item.category || 'Бусад'))];
+
+  const grouped = menuItems.reduce((acc, item) => {
+    const cat = item.category || 'Бусад';
+    if (!acc[cat]) acc[cat] = [];
+    acc[cat].push(item);
+    return acc;
+  }, {});
+
+  if (isLoading) return (
+    <div className="menu-container" style={{ textAlign: 'center', padding: '50px 20px' }}>
+        <h2>⏳ Цэс уншиж байна...</h2>
+    </div>
+  );
+
+  // ---------------------------------------------------------
+  // ✨ ШИНЭЧЛЭГДСЭН МАШ ЦЭВЭРХЭН "ЗАХИАЛГА АМЖИЛТТАЙ" ХУУДАС (REALTIME)
+  // ---------------------------------------------------------
+  if (orderSuccess) {
     return (
-      <div style={{ display: 'flex', height: '100vh', justifyContent: 'center', alignItems: 'center', backgroundColor: '#f1f5f9', fontFamily: 'sans-serif' }}>
-        <form onSubmit={handleLogin} style={{ backgroundColor: 'white', padding: '40px', borderRadius: '16px', boxShadow: '0 10px 30px rgba(0,0,0,0.08)', textAlign: 'center', width: '340px' }}>
-          <div style={{ fontSize: '50px', marginBottom: '15px' }}>🔐</div>
-          <h2 style={{ marginBottom: '10px', color: '#0f172a' }}>Админ нэвтрэх</h2>
-          <input type="email" placeholder="И-мэйл хаяг" value={email} onChange={(e) => setEmail(e.target.value)} style={{ width: '100%', padding: '14px', fontSize: '1rem', borderRadius: '8px', border: '1px solid #cbd5e1', marginBottom: '15px', boxSizing: 'border-box' }} required />
-          <input type="password" placeholder="Нууц үг" value={password} onChange={(e) => setPassword(e.target.value)} style={{ width: '100%', padding: '14px', fontSize: '1rem', borderRadius: '8px', border: '1px solid #cbd5e1', marginBottom: '25px', boxSizing: 'border-box' }} required />
-          <button type="submit" disabled={isLoggingIn} style={{ width: '100%', padding: '15px', fontSize: '1.1rem', backgroundColor: isLoggingIn ? '#94a3b8' : '#10b981', color: 'white', border: 'none', borderRadius: '8px', cursor: 'pointer', fontWeight: 'bold' }}>
-            {isLoggingIn ? 'Шалгаж байна...' : 'Нэвтрэх'}
-          </button>
-        </form>
+      <div style={{ backgroundColor: '#f8fafc', minHeight: '100vh', display: 'flex', flexDirection: 'column', alignItems: 'center', padding: '40px 20px' }}>
+        <div style={{ backgroundColor: '#ffffff', width: '100%', maxWidth: '450px', borderRadius: '24px', padding: '40px 30px', boxShadow: '0 4px 20px rgba(0,0,0,0.04)' }}>
+          
+          {/* ТӨЛӨВӨӨС ШАЛТГААЛЖ ТОЛГОЙ ХЭСЭГ ӨӨРЧЛӨГДӨНӨ */}
+          <div style={{ textAlign: 'center', marginBottom: '30px' }}>
+            {realtimeStatus === 'pending' && (
+              <>
+                <div style={{ fontSize: '45px', marginBottom: '10px' }}>⏳</div>
+                <h1 style={{ color: '#0f172a', fontSize: '1.5rem', fontWeight: '800', margin: '0' }}>Төлбөр хүлээгдэж байна</h1>
+              </>
+            )}
+            {realtimeStatus === 'cooking' && (
+              <>
+                <div style={{ fontSize: '45px', marginBottom: '10px' }}>👨‍🍳</div>
+                <h1 style={{ color: '#f59e0b', fontSize: '1.5rem', fontWeight: '800', margin: '0' }}>Хоол хийгдэж байна</h1>
+                <p style={{ color: '#64748b', fontSize: '1.1rem', marginTop: '10px', fontWeight: '600' }}>Ойролцоогоор: <span style={{ color: '#ef4444' }}>15-20 минут</span></p>
+              </>
+            )}
+            {realtimeStatus === 'completed' && (
+              <>
+                <div style={{ fontSize: '50px', marginBottom: '10px' }}>🎉</div>
+                <h1 style={{ color: '#10b981', fontSize: '1.6rem', fontWeight: '900', margin: '0' }}>Таны хоол бэлэн боллоо!</h1>
+              </>
+            )}
+          </div>
+
+          {/* Захиалгын дугаар */}
+          <div style={{ textAlign: 'center', marginBottom: '40px' }}>
+            <span style={{ fontSize: '1rem', color: '#64748b', fontWeight: '500', textTransform: 'uppercase', letterSpacing: '1px' }}>Захиалгын дугаар</span>
+            <div style={{ fontSize: '5.5rem', color: '#0f172a', fontWeight: '900', lineHeight: '1', marginTop: '10px' }}>#{placedOrderId}</div>
+          </div>
+
+          {/* Захиалсан хоолны жагсаалт */}
+          <div style={{ marginBottom: '20px' }}>
+            {placedItems.map((item, index) => (
+              <div key={index} style={{ display: 'flex', justifyContent: 'space-between', padding: '12px 0', borderBottom: '1px solid #f1f5f9', color: '#475569', fontSize: '1.05rem' }}>
+                <span>
+                  {item.name} <span style={{ color: '#94a3b8', fontWeight: '600', marginLeft: '8px' }}>x {item.quantity}</span>
+                </span>
+                <span style={{ fontWeight: '600', color: '#0f172a' }}>
+                  {(item.price * item.quantity).toLocaleString()} ₮
+                </span>
+              </div>
+            ))}
+          </div>
+
+          {/* Нийт дүн */}
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', paddingTop: '10px', marginBottom: '35px' }}>
+            <span style={{ color: '#475569', fontSize: '1.1rem', fontWeight: '600' }}>Нийт дүн:</span>
+            <span style={{ color: '#0f172a', fontSize: '1.6rem', fontWeight: '800' }}>{placedOrderTotal.toLocaleString()} ₮</span>
+          </div>
+
+          {/* Санамж (Мөн төлөвөөс шалтгаалж солигдоно) */}
+          <div style={{ backgroundColor: '#f1f5f9', padding: '16px', borderRadius: '12px', textAlign: 'center' }}>
+            {realtimeStatus === 'pending' && (
+              <p style={{ color: '#475569', fontSize: '0.95rem', fontWeight: '500', margin: '0', lineHeight: '1.5' }}>
+                Кассанд тооцоогоо хийснээр таны захиалга баталгаажна.
+              </p>
+            )}
+            {realtimeStatus === 'cooking' && (
+              <p style={{ color: '#f59e0b', fontSize: '0.95rem', fontWeight: '700', margin: '0', lineHeight: '1.5' }}>
+                Төлбөр баталгаажсан. Та суудлаа эзлэн хүлээнэ үү.
+              </p>
+            )}
+            {realtimeStatus === 'completed' && (
+              <p style={{ color: '#10b981', fontSize: '1.05rem', fontWeight: '800', margin: '0', lineHeight: '1.5' }}>
+                Та кассан дээрээс хоолоо авна уу! Баярлалаа.
+              </p>
+            )}
+          </div>
+
+          {/* Хэрэв хоол бэлэн болсон бол дахин захиалга өгөх товч гаргах */}
+          {realtimeStatus === 'completed' && (
+            <button 
+              onClick={() => window.location.reload()}
+              style={{ width: '100%', padding: '16px', marginTop: '20px', borderRadius: '12px', border: 'none', backgroundColor: '#0f172a', color: '#ffffff', fontSize: '1.1rem', fontWeight: '800', cursor: 'pointer' }}
+            >
+              Дахин захиалга өгөх
+            </button>
+          )}
+
+        </div>
       </div>
     );
   }
 
+  // ---------------------------------------------------------
+  // ҮНДСЭН ЦЭСНИЙ ХЭСЭГ 
+  // ---------------------------------------------------------
   return (
-    <div style={{ padding: '20px', fontFamily: 'sans-serif', backgroundColor: '#f8fafc', minHeight: '100vh', boxSizing: 'border-box' }}>
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderBottom: '3px solid #e2e8f0', paddingBottom: '15px', marginBottom: '25px', flexWrap: 'wrap', gap: '15px' }}>
-        <h1 style={{ color: '#0f172a', margin: 0, fontSize: 'clamp(1.6rem, 4vw, 2.3rem)' }}>💼 Удирдлагын дэлгэц</h1>
-        <div style={{ display: 'flex', gap: '10px', flexWrap: 'wrap' }}>
-          <button onClick={() => setActiveTab('orders')} style={{ padding: '12px 20px', fontSize: '1rem', fontWeight: 'bold', border: 'none', borderRadius: '8px', cursor: 'pointer', backgroundColor: activeTab === 'orders' ? '#3b82f6' : '#e2e8f0', color: activeTab === 'orders' ? 'white' : '#475569' }}>📋 Захиалгууд</button>
-          <button onClick={() => setActiveTab('menu')} style={{ padding: '12px 20px', fontSize: '1rem', fontWeight: 'bold', border: 'none', borderRadius: '8px', cursor: 'pointer', backgroundColor: activeTab === 'menu' ? '#3b82f6' : '#e2e8f0', color: activeTab === 'menu' ? 'white' : '#475569' }}>🍔 Цэс удирдах</button>
-          
-          {/* Тайлан руу очих тусгай товч */}
-          <button onClick={() => window.location.href = '/report'} style={{ padding: '12px 20px', fontSize: '1rem', fontWeight: 'bold', border: '1px solid #10b981', borderRadius: '8px', cursor: 'pointer', backgroundColor: 'white', color: '#10b981' }}>📈 Тайлан руу очих</button>
-          
-          <button onClick={handleLogout} style={{ padding: '12px 20px', fontSize: '1rem', fontWeight: 'bold', border: 'none', borderRadius: '8px', cursor: 'pointer', backgroundColor: '#ef4444', color: 'white' }}>🚪 Гарах</button>
+    <div className="menu-container" style={{ paddingTop: '110px' }}>
+      
+      {/* 🔝 ХӨВДӨГ ТОЛГОЙ БОЛОН АНГИЛЛЫН СЕКЦ */}
+      <div style={{ position: 'fixed', top: 0, left: 0, right: 0, backgroundColor: '#ffffff', zIndex: 100, boxShadow: '0 2px 10px rgba(0,0,0,0.05)', padding: '10px 0' }}>
+        <h1 style={{ textAlign: 'center', margin: '0 0 10px 0', fontSize: '1.5rem', color: '#0f172a', fontWeight: '900' }}>🍽️ Зогсоо Хайрхан</h1>
+        
+        <div style={{ display: 'flex', gap: '10px', overflowX: 'auto', padding: '0 15px', scrollbarWidth: 'none', WebkitOverflowScrolling: 'touch' }}>
+          {categories.map((cat) => (
+            <button
+              key={cat}
+              onClick={() => handleCategoryClick(cat)}
+              style={{
+                padding: '8px 16px',
+                borderRadius: '20px',
+                border: 'none',
+                fontSize: '0.95rem',
+                fontWeight: '700',
+                whiteSpace: 'nowrap',
+                cursor: 'pointer',
+                backgroundColor: activeCategory === cat ? '#0f172a' : '#f1f5f9',
+                color: activeCategory === cat ? '#ffffff' : '#475569',
+                transition: '0.2s'
+              }}
+            >
+              {cat}
+            </button>
+          ))}
         </div>
       </div>
 
-      {activeTab === 'orders' && (
-        <div>
-          {isLoadingOrders ? (
-            <h2 style={{ textAlign: 'center', marginTop: '50px', color: '#64748b' }}>Захиалгуудыг уншиж байна...</h2>
-          ) : orders.length === 0 ? (
-            <h3 style={{ textAlign: 'center', color: '#64748b', marginTop: '50px' }}>Одоогоор идэвхтэй захиалга байхгүй байна.</h3>
-          ) : (
-            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(clamp(320px, 28vw, 500px), 1fr))', gap: '25px' }}>
-              {orders.map((order) => (
-                <div key={order.id} style={{ backgroundColor: 'white', padding: '24px', borderRadius: '16px', boxShadow: '0 6px 20px rgba(0,0,0,0.04)', display: 'flex', flexDirection: 'column', justifyContent: 'space-between', borderTop: order.status === 'cooking' ? '8px solid #f59e0b' : '8px solid #ef4444' }}>
-                  <div>
-                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', borderBottom: '2px solid #f1f5f9', paddingBottom: '12px', marginBottom: '15px' }}>
-                      <div>
-                        <strong style={{ fontSize: '1.8rem', color: '#1e293b' }}>Захиалга #{order.order_number || String(order.id).slice(-4).toUpperCase()}</strong>
-                        <div style={{ color: '#64748b', fontSize: '1.05rem', marginTop: '6px', fontWeight: '600' }}>
-                          🕒 {new Date(order.created_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })} 
-                          {order.phone_number && ` • 📱 ${order.phone_number}`}
-                        </div>
-                      </div>
-                      <span style={{ padding: '6px 12px', backgroundColor: order.status === 'pending' ? '#fee2e2' : '#fef3c7', color: order.status === 'pending' ? '#dc2626' : '#d97706', borderRadius: '6px', fontSize: '0.9rem', fontWeight: '800', whiteSpace: 'nowrap' }}>
-                        {order.status === 'pending' ? 'ТӨЛБӨР ХҮЛЭЭХ' : 'ХИЙЖ БАЙНА'}
+      {/* 🍔 ХООЛНЫ ЖАГСААЛТ */}
+      <div>
+        {Object.entries(grouped).map(([cat, items]) => (
+          <div key={cat} ref={el => categoryRefs.current[cat] = el}>
+            <h2 className="group-title" style={{ fontSize: '1.3rem', margin: '20px 15px 10px 15px', color: '#0f172a', fontWeight: '800' }}>{cat}</h2>
+            {items.map((item) => {
+              const cartItem = cart.find((c) => c.id === item.id);
+              const quantity = cartItem ? cartItem.quantity : 0;
+
+              return (
+                <div 
+                  key={item.id} 
+                  className="menu-item"
+                  onClick={() => {
+                    setSelectedItem(item);
+                    setDetailQuantity(1);
+                  }}
+                  style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '15px', margin: '0 15px 12px 15px', backgroundColor: '#ffffff', borderRadius: '16px', border: '1px solid #f1f5f9', cursor: 'pointer', boxShadow: '0 2px 4px rgba(0,0,0,0.01)' }}
+                >
+                  <div className="item-info" style={{ flex: 1, paddingRight: '15px' }}>
+                    <h3 style={{ margin: '0 0 6px 0', fontSize: '1.2rem', color: '#0f172a', fontWeight: '700' }}>{item.name}</h3>
+                    <p className="item-price" style={{ margin: 0, fontSize: '1.15rem', fontWeight: '800', color: '#0f172a' }}>{item.price.toLocaleString()} ₮</p>
+                    {quantity > 0 && (
+                      <span style={{ display: 'inline-block', marginTop: '8px', backgroundColor: '#f1f5f9', color: '#475569', padding: '2px 8px', borderRadius: '6px', fontSize: '0.85rem', fontWeight: '700' }}>
+                        Сагсанд {quantity} ш байна
                       </span>
-                    </div>
-                    <div style={{ backgroundColor: order.order_type === 'dine-in' ? '#eff6ff' : '#fff7ed', color: order.order_type === 'dine-in' ? '#1d4ed8' : '#c2410c', padding: '10px 15px', borderRadius: '8px', fontSize: '1.3rem', fontWeight: '800', textAlign: 'center', marginBottom: '15px' }}>
-                      {order.order_type === 'dine-in' ? '🍽️ СУУЖ ИДЭХ' : '🛍️ АВААД ЯВАХ'}
-                    </div>
-                    <div style={{ minHeight: '100px', marginBottom: '20px' }}>
-                      {order.order_items && order.order_items.map((item, idx) => (
-                        <div key={idx} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '10px', fontSize: '1.4rem', paddingBottom: '8px', borderBottom: '1px dashed #e2e8f0' }}>
-                          <span style={{ color: '#0f172a', fontWeight: '700', flex: 1, paddingRight: '10px' }}>{item.menu_items?.name || 'Тодорхойгүй хоол'}</span>
-                          <strong style={{ color: '#dc2626', fontSize: '1.5rem', fontWeight: '800', backgroundColor: '#fef2f2', padding: '2px 10px', borderRadius: '6px' }}>{item.quantity} ш</strong>
-                        </div>
-                      ))}
-                    </div>
+                    )}
                   </div>
-                  <div style={{ paddingTop: '15px', borderTop: '2px dashed #e2e8f0', display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '10px' }}>
-                    <strong style={{ fontSize: '1.7rem', color: '#0f172a', fontWeight: '800' }}>{order.total_amount?.toLocaleString()} ₮</strong>
-                    <div style={{ display: 'flex', gap: '8px' }}>
-                      <button onClick={() => { if (window.confirm(`⚠️ Захиалгыг цуцлахдаа итгэлтэй байна уу?`)) updateOrderStatus(order.id, 'cancelled'); }} style={{ padding: '12px 16px', backgroundColor: '#fee2e2', color: '#ef4444', border: 'none', borderRadius: '8px', cursor: 'pointer', fontWeight: 'bold' }}>❌ Цуцлах</button>
-                      {order.status === 'pending' ? (
-                        <button onClick={() => updateOrderStatus(order.id, 'cooking')} style={{ padding: '12px 18px', backgroundColor: '#3b82f6', color: 'white', border: 'none', borderRadius: '8px', cursor: 'pointer', fontWeight: 'bold' }}>💰 Төлбөр авсан</button>
-                      ) : (
-                        <button onClick={() => updateOrderStatus(order.id, 'completed')} style={{ padding: '12px 18px', backgroundColor: '#10b981', color: 'white', border: 'none', borderRadius: '8px', cursor: 'pointer', fontWeight: 'bold' }}>✔️ Хоол бэлэн</button>
-                      )}
-                    </div>
+                  
+                  <div style={{ position: 'relative', width: '85px', height: '85px', borderRadius: '12px', overflow: 'hidden', backgroundColor: '#f1f5f9' }}>
+                    <img 
+                      src={item.image_url || 'https://images.unsplash.com/photo-1546069901-ba9599a7e63c?auto=format&fit=crop&w=150&q=80'} 
+                      alt={item.name}
+                      style={{ width: '100%', height: '100%', objectFit: 'cover' }}
+                    />
                   </div>
                 </div>
-              ))}
-            </div>
-          )}
+              );
+            })}
+          </div>
+        ))}
+      </div>
+
+      {/* 🛒 ЖАНБАГУНИ */}
+      {cart.length > 0 && !isCartOpen && (
+        <div style={{ position: 'fixed', bottom: '20px', left: '15px', right: '15px', zIndex: 90 }}>
+          <button 
+            onClick={() => setIsCartOpen(true)}
+            style={{ width: '100%', padding: '16px', borderRadius: '14px', border: 'none', backgroundColor: '#0f172a', color: '#ffffff', fontSize: '1.25rem', fontWeight: '900', display: 'flex', justifyContent: 'space-between', alignItems: 'center', boxShadow: '0 8px 24px rgba(15, 23, 42, 0.35)', cursor: 'pointer' }}
+          >
+            <span style={{ background: '#ffffff', color: '#0f172a', padding: '3px 10px', borderRadius: '20px', fontSize: '0.95rem' }}>{totalItemsCount}</span>
+            <span>{totalPrice.toLocaleString()} ₮ • Сагс үзэх</span>
+            <span>🛒</span>
+          </button>
         </div>
       )}
 
-      {activeTab === 'menu' && (
-        <div style={{ backgroundColor: 'white', borderRadius: '16px', padding: '25px', boxShadow: '0 4px 20px rgba(0,0,0,0.02)' }}>
-          <h2 style={{ marginTop: 0, color: '#0f172a', marginBottom: '20px' }}>Хоолны үлдэгдэл тохируулах</h2>
-          {isLoadingMenu ? (
-            <p style={{ textAlign: 'center', color: '#64748b' }}>Цэс уншиж байна...</p>
-          ) : (
-            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(280px, 1fr))', gap: '15px' }}>
-              {menuItems.map((item) => (
-                <div key={item.id} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '15px', border: '1px solid #e2e8f0', borderRadius: '12px', backgroundColor: item.is_active ? '#ffffff' : '#f8fafc', opacity: item.is_active ? 1 : 0.65 }}>
-                  <div>
-                    <h3 style={{ margin: '0 0 5px 0', fontSize: '1.25rem', color: '#1e293b', textDecoration: item.is_active ? 'none' : 'line-through', fontWeight: '700' }}>{item.name}</h3>
-                    <span style={{ color: '#64748b', fontSize: '1rem', fontWeight: '600' }}>{item.price.toLocaleString()} ₮</span>
-                  </div>
-                  <button onClick={() => toggleMenuItemStatus(item.id, item.is_active)} style={{ padding: '10px 15px', borderRadius: '30px', border: 'none', fontWeight: 'bold', cursor: 'pointer', width: '110px', backgroundColor: item.is_active ? '#10b981' : '#ef4444', color: 'white' }}>
-                    {item.is_active ? '✅ Байгаа' : '❌ Дууссан'}
-                  </button>
-                </div>
-              ))}
+      {/* 🔎 ХООЛНЫ ДЭЛГЭРЭНГҮЙ СУУРЬ ТОО СОНГОХ МОДАЛ ЦОНХ */}
+      {selectedItem && (
+        <div className="cart-modal-overlay" onClick={(e) => { if (e.target.className === 'cart-modal-overlay') setSelectedItem(null); }}>
+          <div className="cart-modal-content" style={{ borderRadius: '24px 24px 0 0', padding: 0, overflow: 'hidden' }}>
+            
+            <button onClick={() => setSelectedItem(null)} style={{ position: 'absolute', top: '15px', left: '15px', zIndex: 10, width: '36px', height: '36px', borderRadius: '50%', border: 'none', backgroundColor: 'rgba(255,255,255,0.9)', fontSize: '1.2rem', display: 'flex', justifyContent: 'center', alignItems: 'center', cursor: 'pointer', boxShadow: '0 2px 8px rgba(0,0,0,0.1)' }}>
+              ⟨
+            </button>
+
+            <div style={{ width: '100%', height: '240px', backgroundColor: '#f1f5f9' }}>
+              <img 
+                src={selectedItem.image_url || 'https://images.unsplash.com/photo-1546069901-ba9599a7e63c?auto=format&fit=crop&w=500&q=80'} 
+                alt={selectedItem.name} 
+                style={{ width: '100%', height: '100%', objectFit: 'cover' }}
+              />
             </div>
-          )}
+
+            <div style={{ padding: '20px' }}>
+              <h2 style={{ margin: '0 0 5px 0', fontSize: '1.6rem', color: '#0f172a', fontWeight: '800' }}>{selectedItem.name}</h2>
+              <div style={{ fontSize: '1.5rem', fontWeight: '900', color: '#0f172a', borderBottom: '2px solid #e2e8f0', paddingBottom: '15px', marginBottom: '20px' }}>
+                {selectedItem.price.toLocaleString()} ₮
+              </div>
+
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '25px' }}>
+                <span style={{ fontSize: '1.2rem', fontWeight: '700', color: '#475569' }}>Суурь тоо:</span>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '15px', border: '1px solid #cbd5e1', borderRadius: '25px', padding: '4px 12px', background: '#f8fafc' }}>
+                  <button onClick={() => setDetailQuantity(prev => Math.max(1, prev - 1))} style={{ border: 'none', background: 'transparent', fontSize: '1.5rem', fontWeight: 'bold', width: '30px', cursor: 'pointer' }}>-</button>
+                  <strong style={{ fontSize: '1.3rem', width: '30px', textAlign: 'center' }}>{detailQuantity}</strong>
+                  <button onClick={() => setDetailQuantity(prev => prev + 1)} style={{ border: 'none', background: 'transparent', fontSize: '1.5rem', fontWeight: 'bold', width: '30px', cursor: 'pointer' }}>+</button>
+                </div>
+              </div>
+
+              <button 
+                onClick={() => handleAddToWithQty(selectedItem, detailQuantity)}
+                style={{ width: '100%', padding: '16px', borderRadius: '14px', border: 'none', backgroundColor: '#0f172a', color: '#ffffff', fontSize: '1.25rem', fontWeight: '900', cursor: 'pointer', boxShadow: '0 4px 12px rgba(15, 23, 42, 0.3)' }}
+              >
+                {(selectedItem.price * detailQuantity).toLocaleString()} ₮ Сагсанд хийх
+              </button>
+            </div>
+
+          </div>
         </div>
       )}
+
+      {/* 🛍️ МИНИЙ САГС МОДАЛ ЦОНХ */}
+      {isCartOpen && (
+        <div className="cart-modal-overlay" onClick={(e) => { if (e.target.className === 'cart-modal-overlay') setIsCartOpen(false); }}>
+          <div className="cart-modal-content" style={{ borderRadius: '24px 24px 0 0', padding: '24px' }}>
+            
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px' }}>
+              <h2 style={{ margin: 0, fontSize: '1.5rem', color: '#0f172a', fontWeight: '800' }}>Таны сагс</h2>
+              <button className="close-modal-btn" onClick={() => setIsCartOpen(false)} style={{ background: '#f1f5f9', width: '36px', height: '36px', borderRadius: '50%', border: 'none' }}>✖</button>
+            </div>
+
+            <div className="cart-summary" style={{ margin: 0, padding: 0, border: 'none', background: 'transparent' }}>
+              <ul className="cart-items-list" style={{ maxHeight: '200px', overflowY: 'auto', padding: 0, margin: '0 0 20px 0', borderBottom: '1px solid #f1f5f9' }}>
+                {cart.map((item) => (
+                  <li key={item.id} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '14px', fontSize: '1.15rem' }}>
+                    <span style={{ color: '#334155', fontWeight: '700' }}>{item.name}</span>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                      <button onClick={() => updateCartQuantity(item.id, -1)} style={{ border: '1px solid #cbd5e1', background: '#fff', borderRadius: '50%', width: '28px', height: '28px', fontWeight: 'bold', cursor: 'pointer' }}>-</button>
+                      <strong style={{ minWidth: '20px', textAlign: 'center' }}>{item.quantity}</strong>
+                      <button onClick={() => updateCartQuantity(item.id, 1)} style={{ border: '1px solid #cbd5e1', background: '#fff', borderRadius: '50%', width: '28px', height: '28px', fontWeight: 'bold', cursor: 'pointer' }}>+</button>
+                    </div>
+                  </li>
+                ))}
+              </ul>
+              
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px', background: '#f8fafc', padding: '15px', borderRadius: '14px' }}>
+                <span style={{ color: '#64748b', fontWeight: '600' }}>Нийт төлөх дүн:</span>
+                <strong style={{ fontSize: '1.5rem', color: '#0f172a', fontWeight: '900' }}>{totalPrice.toLocaleString()} ₮</strong>
+              </div>
+              
+              <input type="number" placeholder="Таны утасны дугаар (Заавал)" value={phone} onChange={(e) => setPhone(e.target.value)} style={{ width: '100%', padding: '14px', borderRadius: '12px', border: '1px solid #cbd5e1', fontSize: '1.1rem', marginBottom: '12px', boxSizing: 'border-box' }} />
+              <select value={orderType} onChange={(e) => setOrderType(e.target.value)} style={{ width: '100%', padding: '14px', borderRadius: '12px', border: '1px solid #cbd5e1', fontSize: '1.1rem', marginBottom: '20px', boxSizing: 'border-box', backgroundColor: '#fff' }}>
+                <option value="dine-in">🍽️ Сууж идэх</option>
+                <option value="pickup">🛍️ Аваад явах</option>
+              </select>
+              
+              <button className="order-btn" onClick={placeOrder} disabled={isSubmitting} style={{ width: '100%', padding: '16px', borderRadius: '14px', border: 'none', backgroundColor: '#0f172a', color: '#ffffff', fontSize: '1.25rem', fontWeight: '900', cursor: 'pointer', boxShadow: '0 4px 12px rgba(15, 23, 42, 0.2)' }}>
+                {isSubmitting ? 'БАТАЛГААЖУУЛЖ БАЙНА...' : `${totalPrice.toLocaleString()} ₮ Захиалах`}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
     </div>
   );
 }
 
-export default AdminPage;
+export default MenuPage;
