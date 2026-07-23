@@ -1,9 +1,11 @@
 import React from 'react';
 import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
-import MenuPage from './components/MenuPage';
-import AdminPage from './components/AdminPage';
-import KitchenPage from './components/KitchenPage';
-import ReportPage from './components/ReportPage'; // Үүнийг нэмнэ
+
+// Файлууд "pages" хавтас дотор байгаа тул замыг ингэж зааж өгнө 👇
+import MenuPage from './pages/MenuPage';
+import AdminPage from './pages/AdminPage';
+import KitchenPage from './pages/KitchenPage';
+import ReportPage from './pages/ReportPage';
 
 function App() {
   return (
@@ -12,7 +14,7 @@ function App() {
         <Route path="/" element={<MenuPage />} />
         <Route path="/admin" element={<AdminPage />} />
         <Route path="/kitchen" element={<KitchenPage />} />
-        <Route path="/report" element={<ReportPage />} /> {/* Үүнийг нэмнэ */}
+        <Route path="/report" element={<ReportPage />} /> 
       </Routes>
     </Router>
   );
