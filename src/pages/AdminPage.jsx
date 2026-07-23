@@ -40,6 +40,14 @@ function AdminPage() {
   const [menuItems, setMenuItems] = useState([]);
   const [isLoadingMenu, setIsLoadingMenu] = useState(false);
 
+  // ==============================================
+  // 🔐 ШИНЭ: КАСС ХААЛТЫН ТӨЛӨВҮҮД
+  // ==============================================
+  const [isShiftModalOpen, setIsShiftModalOpen] = useState(false);
+  const [expectedCash, setExpectedCash] = useState(0);
+  const [actualCash, setActualCash] = useState('');
+  const [isCalculating, setIsCalculating] = useState(false);
+
   useEffect(() => {
     if (isAuthenticated) {
       fetchOrders();
@@ -108,6 +116,34 @@ function AdminPage() {
     }
   };
 
+  // ==============================================
+  // 🔐 ШИНЭ: КАСС ХААХ ҮЙЛДЭЛ
+  // ==============================================
+  const openShiftModal = async () => {
+    setIsShiftModalOpen(true);
+    setIsCalculating(true);
+    try {
+      const startOfToday = new Date();
+      startOfToday.setHours(0, 0, 0, 0);
+
+      // Өнөөдрийн баталгаажсан (completed) бүх захиалгын дүнг татаж авах
+      const { data, error } = await supabase
+        .from('orders')
+        .select('total_amount')
+        .gte('created_at', startOfToday.toISOString())
+        .eq('status', 'completed');
+
+      if (error) throw error;
+      
+      const total = data.reduce((sum, order) => sum + (order.total_amount || 0), 0);
+      setExpectedCash(total);
+    } catch (err) {
+      console.error('Орлого татахад алдаа:', err);
+    } finally {
+      setIsCalculating(false);
+    }
+  };
+
   if (!isAuthenticated) {
     return (
       <div style={{ display: 'flex', height: '100vh', justifyContent: 'center', alignItems: 'center', backgroundColor: '#f1f5f9', fontFamily: 'sans-serif' }}>
@@ -126,19 +162,24 @@ function AdminPage() {
 
   return (
     <div style={{ padding: '20px', fontFamily: 'sans-serif', backgroundColor: '#f8fafc', minHeight: '100vh', boxSizing: 'border-box' }}>
+      
+      {/* ТОЛГОЙ ХЭСЭГ */}
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderBottom: '3px solid #e2e8f0', paddingBottom: '15px', marginBottom: '25px', flexWrap: 'wrap', gap: '15px' }}>
         <h1 style={{ color: '#0f172a', margin: 0, fontSize: 'clamp(1.6rem, 4vw, 2.3rem)' }}>💼 Удирдлагын дэлгэц</h1>
         <div style={{ display: 'flex', gap: '10px', flexWrap: 'wrap' }}>
           <button onClick={() => setActiveTab('orders')} style={{ padding: '12px 20px', fontSize: '1rem', fontWeight: 'bold', border: 'none', borderRadius: '8px', cursor: 'pointer', backgroundColor: activeTab === 'orders' ? '#3b82f6' : '#e2e8f0', color: activeTab === 'orders' ? 'white' : '#475569' }}>📋 Захиалгууд</button>
           <button onClick={() => setActiveTab('menu')} style={{ padding: '12px 20px', fontSize: '1rem', fontWeight: 'bold', border: 'none', borderRadius: '8px', cursor: 'pointer', backgroundColor: activeTab === 'menu' ? '#3b82f6' : '#e2e8f0', color: activeTab === 'menu' ? 'white' : '#475569' }}>🍔 Цэс удирдах</button>
           
-          {/* Тайлан руу очих тусгай товч */}
-          <button onClick={() => window.location.href = '/report'} style={{ padding: '12px 20px', fontSize: '1rem', fontWeight: 'bold', border: '1px solid #10b981', borderRadius: '8px', cursor: 'pointer', backgroundColor: 'white', color: '#10b981' }}>📈 Тайлан руу очих</button>
+          {/* ШИНЭ: Касс хаах товч */}
+          <button onClick={openShiftModal} style={{ padding: '12px 20px', fontSize: '1rem', fontWeight: 'bold', border: '2px solid #0f172a', borderRadius: '8px', cursor: 'pointer', backgroundColor: 'white', color: '#0f172a' }}>
+            🔐 Касс хаах
+          </button>
           
           <button onClick={handleLogout} style={{ padding: '12px 20px', fontSize: '1rem', fontWeight: 'bold', border: 'none', borderRadius: '8px', cursor: 'pointer', backgroundColor: '#ef4444', color: 'white' }}>🚪 Гарах</button>
         </div>
       </div>
 
+      {/* ТАБ 1: ЗАХИАЛГУУД */}
       {activeTab === 'orders' && (
         <div>
           {isLoadingOrders ? (
@@ -192,6 +233,7 @@ function AdminPage() {
         </div>
       )}
 
+      {/* ТАБ 2: ЦЭС УДИРДАХ */}
       {activeTab === 'menu' && (
         <div style={{ backgroundColor: 'white', borderRadius: '16px', padding: '25px', boxShadow: '0 4px 20px rgba(0,0,0,0.02)' }}>
           <h2 style={{ marginTop: 0, color: '#0f172a', marginBottom: '20px' }}>Хоолны үлдэгдэл тохируулах</h2>
@@ -214,6 +256,75 @@ function AdminPage() {
           )}
         </div>
       )}
+
+      {/* 🔐 ШИНЭ: КАСС ХААЛТЫН МОДАЛ ЦОНХ */}
+      {isShiftModalOpen && (
+        <div style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, backgroundColor: 'rgba(15, 23, 42, 0.75)', display: 'flex', justifyContent: 'center', alignItems: 'center', zIndex: 1000, padding: '20px' }}>
+          <div style={{ backgroundColor: 'white', padding: '30px', borderRadius: '20px', width: '100%', maxWidth: '420px', boxShadow: '0 25px 50px -12px rgba(0, 0, 0, 0.25)' }}>
+            <h2 style={{ margin: '0 0 20px 0', color: '#0f172a', fontSize: '1.6rem', textAlign: 'center', fontWeight: '800' }}>
+              🔐 Касс хаалт (Тооцоо нийлэх)
+            </h2>
+            
+            {isCalculating ? (
+              <p style={{ textAlign: 'center', color: '#64748b', fontSize: '1.1rem' }}>Орлого тооцоолж байна. Түр хүлээнэ үү...</p>
+            ) : (
+              <>
+                <div style={{ backgroundColor: '#f8fafc', padding: '20px', borderRadius: '16px', marginBottom: '20px', border: '1px solid #e2e8f0', textAlign: 'center' }}>
+                  <span style={{ color: '#475569', fontSize: '1rem', fontWeight: '600', textTransform: 'uppercase' }}>Систем дэх өнөөдрийн борлуулалт</span>
+                  <div style={{ fontSize: '2.5rem', color: '#0f172a', fontWeight: '900', marginTop: '5px' }}>
+                    {expectedCash.toLocaleString()} ₮
+                  </div>
+                </div>
+
+                <div style={{ marginBottom: '20px' }}>
+                  <label style={{ display: 'block', marginBottom: '10px', color: '#1e293b', fontWeight: '700', fontSize: '1.1rem' }}>Кассанд байгаа бэлэн мөнгө:</label>
+                  <input 
+                    type="number" 
+                    value={actualCash} 
+                    onChange={(e) => setActualCash(e.target.value)} 
+                    placeholder="Тоолсон мөнгөн дүнгээ оруулна уу"
+                    style={{ width: '100%', padding: '16px', borderRadius: '12px', border: '2px solid #cbd5e1', fontSize: '1.3rem', fontWeight: 'bold', boxSizing: 'border-box', outline: 'none' }}
+                  />
+                </div>
+
+                {/* Алдаа эсвэл зөрүү харуулах хэсэг */}
+                {actualCash !== '' && (
+                  <div style={{ padding: '16px', borderRadius: '12px', marginBottom: '25px', backgroundColor: (Number(actualCash) === expectedCash) ? '#dcfce7' : ((Number(actualCash) < expectedCash) ? '#fee2e2' : '#fef9c3'), color: (Number(actualCash) === expectedCash) ? '#16a34a' : ((Number(actualCash) < expectedCash) ? '#dc2626' : '#ca8a04') }}>
+                    {Number(actualCash) === expectedCash && (
+                      <strong style={{ display: 'flex', alignItems: 'center', gap: '8px', fontSize: '1.15rem' }}>✅ Тооцоо яг нийлж байна!</strong>
+                    )}
+                    {Number(actualCash) < expectedCash && (
+                      <strong style={{ display: 'flex', alignItems: 'center', gap: '8px', fontSize: '1.15rem' }}>⚠️ {(expectedCash - Number(actualCash)).toLocaleString()} ₮ дутаж байна!</strong>
+                    )}
+                    {Number(actualCash) > expectedCash && (
+                      <strong style={{ display: 'flex', alignItems: 'center', gap: '8px', fontSize: '1.15rem' }}>⚠️ {(Number(actualCash) - expectedCash).toLocaleString()} ₮ илүү байна.</strong>
+                    )}
+                  </div>
+                )}
+
+                <div style={{ display: 'flex', gap: '12px' }}>
+                  <button onClick={() => {setIsShiftModalOpen(false); setActualCash('');}} style={{ flex: 1, padding: '16px', borderRadius: '12px', border: 'none', backgroundColor: '#e2e8f0', color: '#475569', fontWeight: '800', cursor: 'pointer', fontSize: '1.1rem' }}>
+                    Буцах
+                  </button>
+                  <button 
+                    onClick={() => {
+                      if (window.confirm('Кассыг хааж, ээлжийг дуусгахдаа итгэлтэй байна уу?')) {
+                        setIsShiftModalOpen(false);
+                        setActualCash('');
+                        alert('Касс амжилттай хаагдлаа!');
+                      }
+                    }} 
+                    style={{ flex: 1, padding: '16px', borderRadius: '12px', border: 'none', backgroundColor: '#0f172a', color: 'white', fontWeight: '800', cursor: 'pointer', fontSize: '1.1rem' }}
+                  >
+                    Хаах батлах
+                  </button>
+                </div>
+              </>
+            )}
+          </div>
+        </div>
+      )}
+
     </div>
   );
 }
