@@ -44,10 +44,18 @@ function AdminPage() {
 
   // 🔐 КАСС ХААЛТЫН ТӨЛӨВҮҮД
   const [isShiftModalOpen, setIsShiftModalOpen] = useState(false);
-  const [expectedCash, setExpectedCash] = useState(0); // Зөвхөн бэлэн мөнгөний нийлбэр
+  const [expectedCash, setExpectedCash] = useState(0); 
   const [actualCash, setActualCash] = useState('');
   const [isCalculating, setIsCalculating] = useState(false);
   const [isShiftClosed, setIsShiftClosed] = useState(false);
+
+  // 🍔 ШИНЭ: ХООЛ НЭМЭХ ТӨЛӨВҮҮД
+  const [isAddMenuModalOpen, setIsAddMenuModalOpen] = useState(false);
+  const [newMenuName, setNewMenuName] = useState('');
+  const [newMenuPrice, setNewMenuPrice] = useState('');
+  const [newMenuCategory, setNewMenuCategory] = useState('');
+  const [newMenuImage, setNewMenuImage] = useState('');
+  const [isAddingMenu, setIsAddingMenu] = useState(false);
 
   const getTodayString = () => {
     const tzOffset = (new Date()).getTimezoneOffset() * 60000;
@@ -88,7 +96,6 @@ function AdminPage() {
     }
   };
 
-  // Төлөв болон Төлбөрийн төрлийг шинэчлэх
   const updateOrderStatus = async (orderId, newStatus, paymentMethod = null) => {
     try {
       let updateData = { status: newStatus };
@@ -136,6 +143,35 @@ function AdminPage() {
     } catch (err) { alert("Төлөв өөрчлөхөд алдаа гарлаа: " + err.message); }
   };
 
+  // 🍔 ШИНЭ: ХООЛ НЭМЭХ ФУНКЦ
+  const handleAddMenuItem = async (e) => {
+    e.preventDefault();
+    if (!newMenuName || !newMenuPrice || !newMenuCategory) return alert("Мэдээллийг бүрэн оруулна уу!");
+    
+    setIsAddingMenu(true);
+    try {
+      const { error } = await supabase.from('menu_items').insert([{
+        name: newMenuName,
+        price: Number(newMenuPrice),
+        category: newMenuCategory,
+        // Зураг оруулаагүй бол default зураг ашиглана
+        image_url: newMenuImage || 'https://images.unsplash.com/photo-1546069901-ba9599a7e63c?auto=format&fit=crop&w=150&q=80',
+        is_active: true
+      }]);
+      
+      if (error) throw error;
+      
+      alert("Шинэ хоол амжилттай нэмэгдлээ!");
+      setIsAddMenuModalOpen(false);
+      setNewMenuName(''); setNewMenuPrice(''); setNewMenuCategory(''); setNewMenuImage('');
+      fetchMenuItems(); // Цэсийг дахин ачааллах
+    } catch (err) {
+      alert("Алдаа гарлаа: " + err.message);
+    } finally {
+      setIsAddingMenu(false);
+    }
+  };
+
   const openShiftModal = async () => {
     if (isShiftClosed) return; 
     setIsShiftModalOpen(true);
@@ -144,20 +180,10 @@ function AdminPage() {
       const startOfToday = new Date();
       startOfToday.setHours(0, 0, 0, 0);
       
-      // Өнөөдөр хийгдэж байгаа болон дууссан захиалгуудыг татаж авах
-      const { data, error } = await supabase
-        .from('orders')
-        .select('total_amount, payment_method')
-        .gte('created_at', startOfToday.toISOString())
-        .in('status', ['cooking', 'completed']);
-        
+      const { data, error } = await supabase.from('orders').select('total_amount, payment_method').gte('created_at', startOfToday.toISOString()).in('status', ['cooking', 'completed']);
       if (error) throw error;
       
-      // ЗӨВХӨН БЭЛЭН МӨНГӨӨР хийгдсэн гүйлгээнүүдийг нэмэх
-      const cashTotal = data
-        .filter(order => order.payment_method === 'cash')
-        .reduce((sum, order) => sum + (order.total_amount || 0), 0);
-        
+      const cashTotal = data.filter(order => order.payment_method === 'cash').reduce((sum, order) => sum + (order.total_amount || 0), 0);
       setExpectedCash(cashTotal);
     } catch (err) {
       console.error('Орлого татахад алдаа:', err);
@@ -167,27 +193,16 @@ function AdminPage() {
   };
 
   const confirmShiftClose = async () => {
-    // Хэрэв мөнгө таарахгүй бол үйлдэл хийгдэхгүй
     if (Number(actualCash) !== expectedCash) return;
-    
     if (!window.confirm('Кассыг хааж, ээлжийг дуусгахдаа итгэлтэй байна уу?')) return;
-    
     try {
       const { error } = await supabase.from('shift_closures').insert([{
-        closure_date: getTodayString(),
-        expected_cash: expectedCash,
-        actual_cash: Number(actualCash),
-        difference: Number(actualCash) - expectedCash
+        closure_date: getTodayString(), expected_cash: expectedCash, actual_cash: Number(actualCash), difference: Number(actualCash) - expectedCash
       }]);
       if (error) throw error;
-      
-      setIsShiftClosed(true);
-      setIsShiftModalOpen(false);
-      setActualCash('');
+      setIsShiftClosed(true); setIsShiftModalOpen(false); setActualCash('');
       alert('✅ Өнөөдрийн орлого амжилттай хаагдлаа. Тайлан руу илгээгдэв!');
-    } catch (err) {
-      alert("Алдаа гарлаа: " + err.message);
-    }
+    } catch (err) { alert("Алдаа гарлаа: " + err.message); }
   };
 
   if (!isAuthenticated) {
@@ -263,16 +278,73 @@ function AdminPage() {
         </div>
       )}
 
+      {/* ТАБ 2: ЦЭС УДИРДАХ */}
       {activeTab === 'menu' && (
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(280px, 1fr))', gap: '15px' }}>
-          {menuItems.map((item) => (
-            <div key={item.id} style={{ display: 'flex', justifyContent: 'space-between', padding: '15px', border: '1px solid #e2e8f0', borderRadius: '12px', backgroundColor: 'white' }}>
-              <div><h3 style={{ margin: '0 0 5px 0' }}>{item.name}</h3><span>{item.price.toLocaleString()} ₮</span></div>
-              <button onClick={() => toggleMenuItemStatus(item.id, item.is_active)} style={{ padding: '10px', borderRadius: '8px', backgroundColor: item.is_active ? '#10b981' : '#ef4444', color: 'white', border: 'none', cursor: 'pointer' }}>
-                {item.is_active ? '✅ Байгаа' : '❌ Дууссан'}
-              </button>
+        <div style={{ backgroundColor: 'white', borderRadius: '16px', padding: '25px', boxShadow: '0 4px 20px rgba(0,0,0,0.02)' }}>
+          
+          {/* ✨ ШИНЭ: Шинэ хоол нэмэх товч */}
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px', flexWrap: 'wrap', gap: '10px' }}>
+            <h2 style={{ margin: 0, color: '#0f172a' }}>Хоолны үлдэгдэл тохируулах</h2>
+            <button 
+              onClick={() => setIsAddMenuModalOpen(true)} 
+              style={{ padding: '12px 20px', backgroundColor: '#0f172a', color: 'white', border: 'none', borderRadius: '8px', fontWeight: 'bold', cursor: 'pointer' }}
+            >
+              ➕ Шинэ хоол нэмэх
+            </button>
+          </div>
+
+          {isLoadingMenu ? (
+            <p style={{ textAlign: 'center', color: '#64748b' }}>Цэс уншиж байна...</p>
+          ) : (
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(280px, 1fr))', gap: '15px' }}>
+              {menuItems.map((item) => (
+                <div key={item.id} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '15px', border: '1px solid #e2e8f0', borderRadius: '12px', backgroundColor: item.is_active ? '#ffffff' : '#f8fafc', opacity: item.is_active ? 1 : 0.65 }}>
+                  <div>
+                    <h3 style={{ margin: '0 0 5px 0', fontSize: '1.25rem', color: '#1e293b', textDecoration: item.is_active ? 'none' : 'line-through', fontWeight: '700' }}>{item.name}</h3>
+                    <span style={{ color: '#64748b', fontSize: '1rem', fontWeight: '600' }}>{item.price.toLocaleString()} ₮</span>
+                    <br/>
+                    <span style={{ color: '#94a3b8', fontSize: '0.85rem' }}>{item.category}</span>
+                  </div>
+                  <button onClick={() => toggleMenuItemStatus(item.id, item.is_active)} style={{ padding: '10px 15px', borderRadius: '30px', border: 'none', fontWeight: 'bold', cursor: 'pointer', width: '110px', backgroundColor: item.is_active ? '#10b981' : '#ef4444', color: 'white' }}>
+                    {item.is_active ? '✅ Байгаа' : '❌ Дууссан'}
+                  </button>
+                </div>
+              ))}
             </div>
-          ))}
+          )}
+        </div>
+      )}
+
+      {/* 🍔 ШИНЭ: ХООЛ НЭМЭХ МОДАЛ ЦОНХ */}
+      {isAddMenuModalOpen && (
+        <div style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, backgroundColor: 'rgba(15, 23, 42, 0.75)', display: 'flex', justifyContent: 'center', alignItems: 'center', zIndex: 1000, padding: '20px' }}>
+          <div style={{ backgroundColor: 'white', padding: '30px', borderRadius: '20px', width: '100%', maxWidth: '420px', boxShadow: '0 25px 50px -12px rgba(0, 0, 0, 0.25)' }}>
+            <h2 style={{ textAlign: 'center', margin: '0 0 20px 0', color: '#0f172a' }}>➕ Шинэ хоол нэмэх</h2>
+            <form onSubmit={handleAddMenuItem} style={{ display: 'flex', flexDirection: 'column', gap: '15px' }}>
+              <div>
+                <label style={{ fontWeight: 'bold', color: '#475569', fontSize: '0.9rem' }}>Хоолны нэр:</label>
+                <input type="text" value={newMenuName} onChange={e => setNewMenuName(e.target.value)} required placeholder="Жишээ: Цуйван" style={{ width: '100%', padding: '12px', borderRadius: '8px', border: '1px solid #cbd5e1', marginTop: '5px', boxSizing: 'border-box', fontSize: '1rem' }} />
+              </div>
+              <div>
+                <label style={{ fontWeight: 'bold', color: '#475569', fontSize: '0.9rem' }}>Үнэ (MNT):</label>
+                <input type="number" value={newMenuPrice} onChange={e => setNewMenuPrice(e.target.value)} required placeholder="15000" style={{ width: '100%', padding: '12px', borderRadius: '8px', border: '1px solid #cbd5e1', marginTop: '5px', boxSizing: 'border-box', fontSize: '1rem' }} />
+              </div>
+              <div>
+                <label style={{ fontWeight: 'bold', color: '#475569', fontSize: '0.9rem' }}>Ангилал:</label>
+                <input type="text" value={newMenuCategory} onChange={e => setNewMenuCategory(e.target.value)} required placeholder="Жишээ: Үндсэн хоол, Уух зүйл" style={{ width: '100%', padding: '12px', borderRadius: '8px', border: '1px solid #cbd5e1', marginTop: '5px', boxSizing: 'border-box', fontSize: '1rem' }} />
+              </div>
+              <div>
+                <label style={{ fontWeight: 'bold', color: '#475569', fontSize: '0.9rem' }}>Зургийн линк (Заавал биш):</label>
+                <input type="text" value={newMenuImage} onChange={e => setNewMenuImage(e.target.value)} placeholder="https://..." style={{ width: '100%', padding: '12px', borderRadius: '8px', border: '1px solid #cbd5e1', marginTop: '5px', boxSizing: 'border-box', fontSize: '1rem' }} />
+              </div>
+              <div style={{ display: 'flex', gap: '12px', marginTop: '10px' }}>
+                <button type="button" onClick={() => setIsAddMenuModalOpen(false)} style={{ flex: 1, padding: '14px', borderRadius: '8px', border: 'none', backgroundColor: '#e2e8f0', color: '#475569', fontWeight: 'bold', cursor: 'pointer', fontSize: '1.05rem' }}>Цуцлах</button>
+                <button type="submit" disabled={isAddingMenu} style={{ flex: 1, padding: '14px', borderRadius: '8px', border: 'none', backgroundColor: '#10b981', color: 'white', fontWeight: 'bold', cursor: 'pointer', fontSize: '1.05rem' }}>
+                  {isAddingMenu ? 'Нэмж байна...' : 'Хадгалах'}
+                </button>
+              </div>
+            </form>
+          </div>
         </div>
       )}
 
