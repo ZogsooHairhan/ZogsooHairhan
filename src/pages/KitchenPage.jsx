@@ -36,9 +36,8 @@ function KitchenPage() {
   const [isLoading, setIsLoading] = useState(true);
   const [activeTab, setActiveTab] = useState('cooking'); 
 
-  // 🔔 ШИНЭ: Хонх дуугаргах функц
+  // 🔔 Хонх дуугаргах функц
   const playBellSound = () => {
-    // Таны гал тогоонд дуугарах хонхны дууны линк (Ding Dong)
     const audio = new Audio('https://actions.google.com/sounds/v1/alarms/ding_dong.ogg');
     audio.play().catch(err => console.log("Аудио тоглуулахад алдаа:", err));
   };
@@ -47,15 +46,14 @@ function KitchenPage() {
     if (isAuthenticated) {
       fetchOrders();
       
-      // 🔔 ШИНЭ: Зөвхөн шинэ захиалга (INSERT) орж ирэх үед хонх дуугарна
       const channel = supabase
         .channel('kitchen_orders')
         .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'orders' }, (payload) => {
-          playBellSound(); // Хонх дуугаргах
-          fetchOrders(); // Мэдээллээ шинэчлэх
+          playBellSound(); 
+          fetchOrders(); 
         })
         .on('postgres_changes', { event: 'UPDATE', schema: 'public', table: 'orders' }, (payload) => {
-          fetchOrders(); // Төлөв солигдох үед зөвхөн мэдээлэл шинэчлэнэ (дуугарахгүй)
+          fetchOrders(); 
         })
         .subscribe();
         
@@ -97,6 +95,20 @@ function KitchenPage() {
   const cookingOrders = orders.filter(o => o.status === 'cooking');
   const completedOrders = orders.filter(o => o.status === 'completed').sort((a, b) => new Date(b.updated_at || b.created_at) - new Date(a.updated_at || a.created_at));
 
+  // ✨ ШИНЭ: Хийгдэж байгаа нийт хоолнуудыг нэгтгэж тоолох функц
+  const pendingItemsSummary = {};
+  cookingOrders.forEach(order => {
+    order.order_items?.forEach(item => {
+      const itemName = item.menu_items?.name || 'Тодорхойгүй';
+      if (!pendingItemsSummary[itemName]) {
+        pendingItemsSummary[itemName] = 0;
+      }
+      pendingItemsSummary[itemName] += item.quantity;
+    });
+  });
+  // Тоо ширхэгээр нь ихээс нь бага руу эрэмбэлэх
+  const summaryEntries = Object.entries(pendingItemsSummary).sort((a, b) => b[1] - a[1]);
+
   if (!isAuthenticated) {
     return (
       <div style={{ display: 'flex', height: '100vh', justifyContent: 'center', alignItems: 'center', backgroundColor: '#f1f5f9', fontFamily: 'sans-serif' }}>
@@ -136,6 +148,25 @@ function KitchenPage() {
         <>
           {activeTab === 'cooking' && (
             <div>
+              {/* ✨ ШИНЭ: НИЙТ ХИЙГДЭЖ БАЙГАА ХООЛНЫ НЭГТГЭЛ САМБАР */}
+              {summaryEntries.length > 0 && (
+                <div style={{ backgroundColor: '#0f172a', padding: '20px', borderRadius: '16px', marginBottom: '25px', boxShadow: '0 10px 25px rgba(0,0,0,0.1)' }}>
+                  <h3 style={{ margin: '0 0 15px 0', fontSize: '1.1rem', color: '#94a3b8', textTransform: 'uppercase', letterSpacing: '1px' }}>
+                    📊 Нийт бэлтгэх хоолны нэгтгэл
+                  </h3>
+                  <div style={{ display: 'flex', flexWrap: 'wrap', gap: '15px' }}>
+                    {summaryEntries.map(([name, qty], idx) => (
+                      <div key={idx} style={{ backgroundColor: '#1e293b', padding: '12px 18px', borderRadius: '12px', display: 'flex', alignItems: 'center', gap: '15px', border: '1px solid #334155' }}>
+                        <span style={{ fontSize: '1.3rem', fontWeight: 'bold', color: 'white' }}>{name}</span>
+                        <span style={{ backgroundColor: '#3b82f6', color: 'white', padding: '6px 12px', borderRadius: '8px', fontSize: '1.4rem', fontWeight: '900' }}>
+                          {qty} ш
+                        </span>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+
               {cookingOrders.length === 0 ? (
                 <h3 style={{ textAlign: 'center', color: '#64748b', marginTop: '50px' }}>Одоогоор хийх хоол байхгүй байна. 🎉</h3>
               ) : (
@@ -157,7 +188,6 @@ function KitchenPage() {
                           </div>
                         </div>
 
-                        {/* ✨ ТАЙЛБАР ХАРУУЛАХ ХЭСЭГ */}
                         {order.note && order.note.trim() !== '' && (
                           <div style={{ backgroundColor: '#fef3c7', color: '#b45309', padding: '15px', borderRadius: '8px', marginBottom: '20px', fontSize: '1.4rem', fontWeight: '900', border: '2px solid #fde68a' }}>
                             💬 {order.note}
