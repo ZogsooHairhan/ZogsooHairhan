@@ -7,7 +7,6 @@ function KitchenPage() {
   const [password, setPassword] = useState('');
   const [isLoggingIn, setIsLoggingIn] = useState(false);
 
-  // 🔔 Хонхны дуу
   const [isSoundEnabled, setIsSoundEnabled] = useState(false);
   const audioRef = useRef(new Audio('https://res.cloudinary.com/dxfq3iotg/video/upload/v1557233524/success.mp3'));
 
@@ -40,7 +39,6 @@ function KitchenPage() {
   const [isLoading, setIsLoading] = useState(true);
   const [activeTab, setActiveTab] = useState('cooking'); 
 
-  // Дуу идэвхжүүлэх
   const enableSound = () => {
     audioRef.current.play().then(() => {
       setIsSoundEnabled(true);
@@ -81,7 +79,6 @@ function KitchenPage() {
       const startOfToday = new Date();
       startOfToday.setHours(0, 0, 0, 0);
 
-      // ✨ ШИНЭ: id баганыг ашиглан хоолыг яг таг чеклэдэг болгосон
       const { data, error } = await supabase
         .from('orders')
         .select(`*, order_items (id, quantity, is_done, menu_items (name))`)
@@ -108,18 +105,10 @@ function KitchenPage() {
     }
   };
 
-  // ✨ ШИНЭ: Хоол чеклэх/хасах функц (Амжилттай ажиллахын тулд SQL уншуулсан байх шаардлагатай)
   const toggleItemDone = async (orderItemId, currentStatus) => {
     try {
-      const { error } = await supabase
-        .from('order_items')
-        .update({ is_done: !currentStatus })
-        .eq('id', orderItemId);
-
-      if (error) {
-        alert("Алдаа гарлаа. Та Supabase SQL код уншуулахаа мартсан байж болзошгүй.");
-        throw error;
-      }
+      const { error } = await supabase.from('order_items').update({ is_done: !currentStatus }).eq('id', orderItemId);
+      if (error) throw error;
       fetchOrders(); 
     } catch (err) {
       console.error("Төлөв өөрчлөхөд алдаа:", err.message);
@@ -148,7 +137,6 @@ function KitchenPage() {
   return (
     <div style={{ padding: '15px', fontFamily: 'sans-serif', backgroundColor: '#f8fafc', minHeight: '100vh', boxSizing: 'border-box' }}>
       
-      {/* 🔔 ХОНХ ИДЭВХЖҮҮЛЭХ САНУУЛГА */}
       {!isSoundEnabled && (
         <div style={{ backgroundColor: '#fef2f2', color: '#ef4444', padding: '10px 20px', borderRadius: '10px', marginBottom: '15px', display: 'flex', justifyContent: 'space-between', alignItems: 'center', border: '2px solid #fca5a5', flexWrap: 'wrap', gap: '10px' }}>
           <strong style={{ fontSize: '1rem' }}>⚠️ Захиалга дуугаргахын тулд идэвхжүүлнэ үү.</strong>
@@ -156,7 +144,6 @@ function KitchenPage() {
         </div>
       )}
 
-      {/* ТОЛГОЙ ХЭСЭГ */}
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderBottom: '2px solid #e2e8f0', paddingBottom: '10px', marginBottom: '20px', flexWrap: 'wrap', gap: '10px' }}>
         <h1 style={{ color: '#0f172a', margin: 0, fontSize: '1.5rem' }}>👨‍🍳 Гал тогоо</h1>
         
@@ -182,13 +169,24 @@ function KitchenPage() {
               ) : (
                 <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(280px, 1fr))', gap: '15px' }}>
                   {cookingOrders.map((order) => {
-                    // ✨ ТӨРӨЛ БОЛОН ӨНГӨ ЯЛГАХ ХЭСЭГ (Бүхэлд нь өнгө оруулах)
-                    const isTakeaway = order.order_type === 'pickup';
-                    const cardBg = isTakeaway ? '#fff7ed' : '#eff6ff'; // Улбар шар (Takeaway) эсвэл Цэнхэр (Dine-in)
-                    const cardBorder = isTakeaway ? '#ea580c' : '#3b82f6'; 
-                    const badgeBg = isTakeaway ? '#ea580c' : '#3b82f6';
-                    const badgeColor = 'white';
-                    const typeLabel = isTakeaway ? '🛍️ АВААД ЯВАХ' : '🍽️ ЗААЛАНД';
+                    // ✨ ТӨРӨЛ БОЛОН ӨНГӨ ЯЛГАХ ХЭСЭГ (Тува өнгө нэмэгдсэн)
+                    let cardBg = '#eff6ff'; // Dine-in (Цэнхэр)
+                    let cardBorder = '#3b82f6'; 
+                    let badgeBg = '#3b82f6';
+                    let badgeColor = 'white';
+                    let typeLabel = '🍽️ ЗААЛАНД';
+
+                    if (order.order_type === 'pickup') {
+                      cardBg = '#fff7ed'; // Улбар шар
+                      cardBorder = '#ea580c'; 
+                      badgeBg = '#ea580c'; 
+                      typeLabel = '🛍️ АВААД ЯВАХ';
+                    } else if (order.order_type === 'tuva') {
+                      cardBg = '#fdf4ff'; // Тува (Ягаан)
+                      cardBorder = '#c026d3'; 
+                      badgeBg = '#c026d3'; 
+                      typeLabel = '👤 ТУВА';
+                    }
 
                     const pendingItems = order.order_items?.filter(item => !item.is_done) || [];
                     const doneItems = order.order_items?.filter(item => item.is_done) || [];
@@ -197,7 +195,6 @@ function KitchenPage() {
                     return (
                       <div key={order.id} style={{ backgroundColor: cardBg, padding: '16px', borderRadius: '12px', border: `2px solid ${cardBorder}`, boxShadow: '0 4px 15px rgba(0,0,0,0.05)', display: 'flex', flexDirection: 'column', justifyContent: 'space-between' }}>
                         <div>
-                          {/* Захиалгын толгой */}
                           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', borderBottom: `1px solid ${cardBorder}50`, paddingBottom: '10px', marginBottom: '12px' }}>
                             <div>
                               <strong style={{ fontSize: '1.6rem', color: '#1e293b' }}>
@@ -212,36 +209,25 @@ function KitchenPage() {
                             </div>
                           </div>
 
-                          {/* Тайлбар */}
                           {order.note && order.note.trim() !== '' && (
                             <div style={{ backgroundColor: 'white', color: '#b45309', padding: '10px', borderRadius: '6px', marginBottom: '12px', fontSize: '1.1rem', fontWeight: 'bold', border: '1px solid #fde68a' }}>
                               💬 {order.note}
                             </div>
                           )}
 
-                          {/* 1. ХИЙГДЭЭГҮЙ (ХҮЛЭЭГДЭЖ БУЙ) ХООЛНУУД */}
                           <div style={{ minHeight: '60px', marginBottom: '15px' }}>
                             {pendingItems.map((item, idx) => (
-                              <div 
-                                key={`pending-${idx}`} 
-                                onClick={() => toggleItemDone(item.id, item.is_done)}
-                                style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '8px', padding: '10px 15px', border: `1px solid ${cardBorder}40`, backgroundColor: 'white', borderRadius: '10px', cursor: 'pointer', transition: 'all 0.2s ease', boxShadow: '0 2px 4px rgba(0,0,0,0.03)' }}
-                              >
+                              <div key={`pending-${idx}`} onClick={() => toggleItemDone(item.id, item.is_done)} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '8px', padding: '10px 15px', border: `1px solid ${cardBorder}40`, backgroundColor: 'white', borderRadius: '10px', cursor: 'pointer', transition: 'all 0.2s ease', boxShadow: '0 2px 4px rgba(0,0,0,0.03)' }}>
                                 <span style={{ color: '#0f172a', fontWeight: '700', fontSize: '1.2rem' }}>⬜ {item.menu_items?.name || 'Тодорхойгүй'}</span>
                                 <strong style={{ color: '#dc2626', fontSize: '1.3rem', fontWeight: '900', backgroundColor: '#fef2f2', padding: '4px 10px', borderRadius: '6px' }}>{item.quantity} ш</strong>
                               </div>
                             ))}
 
-                            {/* 2. БЭЛЭН БОЛСОН ХООЛНУУД */}
                             {doneItems.length > 0 && (
                               <div style={{ marginTop: '15px', borderTop: `1px dashed ${cardBorder}`, paddingTop: '10px' }}>
                                 <span style={{ fontSize: '0.85rem', color: cardBorder, fontWeight: '900', textTransform: 'uppercase', marginBottom: '8px', display: 'block' }}>✅ Бэлэн болсон:</span>
                                 {doneItems.map((item, idx) => (
-                                  <div 
-                                    key={`done-${idx}`} 
-                                    onClick={() => toggleItemDone(item.id, item.is_done)}
-                                    style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '6px', padding: '8px 15px', backgroundColor: 'transparent', border: '1px dashed #cbd5e1', borderRadius: '10px', cursor: 'pointer', opacity: 0.7 }}
-                                  >
+                                  <div key={`done-${idx}`} onClick={() => toggleItemDone(item.id, item.is_done)} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '6px', padding: '8px 15px', backgroundColor: 'transparent', border: '1px dashed #cbd5e1', borderRadius: '10px', cursor: 'pointer', opacity: 0.7 }}>
                                     <span style={{ color: '#475569', fontWeight: '700', fontSize: '1.1rem', textDecoration: 'line-through' }}>✅ {item.menu_items?.name || 'Тодорхойгүй'}</span>
                                     <strong style={{ color: '#475569', fontSize: '1.1rem', textDecoration: 'line-through' }}>{item.quantity} ш</strong>
                                   </div>
@@ -251,17 +237,9 @@ function KitchenPage() {
                           </div>
                         </div>
 
-                        {/* БҮХ ХООЛ БЭЛЭН ТОВЧ */}
                         <button 
                           onClick={() => updateOrderStatus(order.id, 'completed')} 
-                          style={{ 
-                            width: '100%', padding: '14px', borderRadius: '10px', cursor: 'pointer', fontSize: '1.1rem', fontWeight: '900',
-                            backgroundColor: isAllDone ? '#10b981' : 'rgba(0,0,0,0.05)',
-                            color: isAllDone ? 'white' : '#64748b',
-                            boxShadow: isAllDone ? '0 4px 15px rgba(16, 185, 129, 0.4)' : 'none',
-                            border: isAllDone ? 'none' : '1px solid #cbd5e1',
-                            transition: 'all 0.3s'
-                          }}
+                          style={{ width: '100%', padding: '14px', borderRadius: '10px', cursor: 'pointer', fontSize: '1.1rem', fontWeight: '900', backgroundColor: isAllDone ? '#10b981' : 'rgba(0,0,0,0.05)', color: isAllDone ? 'white' : '#64748b', boxShadow: isAllDone ? '0 4px 15px rgba(16, 185, 129, 0.4)' : 'none', border: isAllDone ? 'none' : '1px solid #cbd5e1', transition: 'all 0.3s' }}
                         >
                           {isAllDone ? '✔️ ЗАХИАЛГА БЭЛЭН (ЯВУУЛАХ)' : '✔️ ХООЛ БЭЛЭН'}
                         </button>
@@ -273,7 +251,6 @@ function KitchenPage() {
             </div>
           )}
 
-          {/* БЭЛЭН БОЛСОН ТАБ */}
           {activeTab === 'completed' && (
             <div>
               {completedOrders.length === 0 ? (
@@ -299,10 +276,7 @@ function KitchenPage() {
                           ))}
                         </div>
                       </div>
-                      <button 
-                        onClick={() => { if (window.confirm("Буцаах уу?")) updateOrderStatus(order.id, 'cooking'); }}
-                        style={{ width: '100%', padding: '10px', backgroundColor: '#e2e8f0', color: '#475569', border: 'none', borderRadius: '8px', cursor: 'pointer', fontSize: '0.95rem', fontWeight: '800' }}
-                      >
+                      <button onClick={() => { if (window.confirm("Буцаах уу?")) updateOrderStatus(order.id, 'cooking'); }} style={{ width: '100%', padding: '10px', backgroundColor: '#e2e8f0', color: '#475569', border: 'none', borderRadius: '8px', cursor: 'pointer', fontSize: '0.95rem', fontWeight: '800' }}>
                         ↩️ Буцаах
                       </button>
                     </div>
