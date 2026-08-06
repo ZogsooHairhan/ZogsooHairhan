@@ -39,9 +39,7 @@ function CashierPage() {
   
   const [cart, setCart] = useState([]);
   const [orderNote, setOrderNote] = useState('');
-  
-  // ✨ ШИНЭ: Сагсанд нэмэхээс өмнө төрлөө сонгоно
-  const [currentInputType, setCurrentInputType] = useState('dine-in'); // dine-in, pickup, tuva
+  const [currentInputType, setCurrentInputType] = useState('dine-in'); 
   
   const [isPaymentModalOpen, setIsPaymentModalOpen] = useState(false);
   const [paymentStep, setPaymentStep] = useState(1); 
@@ -84,12 +82,10 @@ function CashierPage() {
 
   const addToCart = (item) => {
     setCart((prev) => {
-      // Ижил хоол, ижил төрөлтэй байвал тоог нь нэмнэ
       const existing = prev.find(c => c.id === item.id && c.itemType === currentInputType);
       if (existing) {
         return prev.map(c => (c.id === item.id && c.itemType === currentInputType) ? { ...c, quantity: c.quantity + 1 } : c);
       }
-      // Өөр төрөлтэй эсвэл шинэ бол тусдаа мөр болгож нэмнэ
       return [...prev, { ...item, quantity: 1, itemType: currentInputType, cartId: Date.now() + Math.random() }];
     });
   };
@@ -121,9 +117,8 @@ function CashierPage() {
     
     setIsSubmitting(true);
     try {
-      // Захиалгын ерөнхий төрлийг тодорхойлох
       const uniqueTypes = [...new Set(cart.map(item => item.itemType))];
-      const mainOrderType = uniqueTypes.length === 1 ? uniqueTypes[0] : 'mixed'; // Хэрвээ 2 өөр төрөл байвал 'mixed' болно
+      const mainOrderType = uniqueTypes.length === 1 ? uniqueTypes[0] : 'mixed'; 
 
       const { data: orderData, error: orderError } = await supabase
         .from('orders')
@@ -139,7 +134,6 @@ function CashierPage() {
       if (orderError) throw orderError;
       const newOrder = orderData[0];
 
-      // Хоол тус бүрийн төрлийг давхар бааз руу илгээх (item_type)
       const orderItemsData = cart.map((item) => ({
         order_id: newOrder.id, 
         menu_item_id: item.id, 
@@ -167,6 +161,37 @@ function CashierPage() {
     }
   };
 
+  // ✨ ШИНЭ: Дэлгэцэн дээрх тооны машин (iPad keyboard гаргахгүй)
+  const handleKeypad = (value) => {
+    if (value === 'C') {
+      setReceivedCash('');
+    } else if (value === 'DEL') {
+      setReceivedCash(prev => String(prev).slice(0, -1));
+    } else if (value === 'EXACT') {
+      setReceivedCash(String(totalPrice));
+    } else if (value === '20000' || value === '50000') {
+      setReceivedCash(value);
+    } else {
+      setReceivedCash(prev => {
+        const current = String(prev);
+        if (current === '0' && value !== '0' && value !== '000') return value;
+        return current + value;
+      });
+    }
+  };
+
+  const numpadBtnStyle = {
+    padding: '18px 5px', 
+    fontSize: '1.5rem', 
+    fontWeight: 'bold', 
+    borderRadius: '8px', 
+    border: '1px solid #cbd5e1', 
+    backgroundColor: 'white', 
+    color: '#0f172a',
+    cursor: 'pointer',
+    boxShadow: '0 2px 4px rgba(0,0,0,0.02)'
+  };
+
   const getTypeLabel = (type) => {
     if(type === 'pickup') return '🛍️ Авч явах';
     if(type === 'tuva') return '👤 Тува';
@@ -178,7 +203,6 @@ function CashierPage() {
       <div style={{ display: 'flex', height: '100vh', justifyContent: 'center', alignItems: 'center', backgroundColor: '#f1f5f9', fontFamily: 'Arial, sans-serif' }}>
         <form onSubmit={handleLogin} style={{ backgroundColor: 'white', padding: '40px', borderRadius: '8px', boxShadow: '0 4px 15px rgba(0,0,0,0.05)', textAlign: 'center', width: '340px' }}>
           <h2 style={{ marginBottom: '10px', color: '#0f172a' }}>Касс нэвтрэх</h2>
-          <p style={{ color: '#64748b', marginBottom: '20px', fontSize: '0.9rem' }}>Эрх бүхий ажилтан нэвтэрнэ үү.</p>
           <input type="email" placeholder="И-мэйл" value={email} onChange={(e) => setEmail(e.target.value)} style={{ width: '100%', padding: '12px', fontSize: '1rem', borderRadius: '4px', border: '1px solid #cbd5e1', marginBottom: '15px', boxSizing: 'border-box' }} required />
           <input type="password" placeholder="Нууц үг" value={password} onChange={(e) => setPassword(e.target.value)} style={{ width: '100%', padding: '12px', fontSize: '1rem', borderRadius: '4px', border: '1px solid #cbd5e1', marginBottom: '25px', boxSizing: 'border-box' }} required />
           <button type="submit" disabled={isLoggingIn} style={{ width: '100%', padding: '12px', fontSize: '1rem', backgroundColor: isLoggingIn ? '#94a3b8' : '#0f172a', color: 'white', border: 'none', borderRadius: '4px', cursor: 'pointer', fontWeight: 'bold' }}>
@@ -276,7 +300,6 @@ function CashierPage() {
             {cart.length > 0 && <button onClick={clearCart} style={{ background: 'none', border: 'none', color: '#ef4444', fontWeight: 'bold', cursor: 'pointer' }}>Устгах</button>}
           </div>
 
-          {/* ✨ ШИНЭ: Сагсны дээд талд төрөл сонгох товчнууд байрлана */}
           <div style={{ padding: '10px 20px', display: 'flex', gap: '5px', backgroundColor: '#f8fafc', borderBottom: '1px solid #e2e8f0' }}>
             <button onClick={() => setCurrentInputType('dine-in')} style={{ flex: 1, padding: '8px', borderRadius: '4px', border: '1px solid #cbd5e1', fontWeight: 'bold', fontSize: '0.9rem', cursor: 'pointer', backgroundColor: currentInputType === 'dine-in' ? '#3b82f6' : 'white', color: currentInputType === 'dine-in' ? 'white' : '#475569' }}>Зааланд</button>
             <button onClick={() => setCurrentInputType('pickup')} style={{ flex: 1, padding: '8px', borderRadius: '4px', border: '1px solid #cbd5e1', fontWeight: 'bold', fontSize: '0.9rem', cursor: 'pointer', backgroundColor: currentInputType === 'pickup' ? '#ea580c' : 'white', color: currentInputType === 'pickup' ? 'white' : '#475569' }}>Авч явах</button>
@@ -291,7 +314,7 @@ function CashierPage() {
             {cart.length === 0 ? (
               <div style={{ textAlign: 'center', color: '#94a3b8', marginTop: '50px' }}>Хоол сонгоогүй байна</div>
             ) : (
-              cart.map((item, idx) => (
+              cart.map((item) => (
                 <div key={item.cartId} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '15px' }}>
                   <div style={{ flex: 1, paddingRight: '10px' }}>
                     <div style={{ fontWeight: 'bold', color: '#1e293b' }}>
@@ -325,45 +348,69 @@ function CashierPage() {
         </div>
       )}
 
+      {/* 💳 ТӨЛБӨРИЙН МОДАЛ */}
       {isPaymentModalOpen && (
         <div style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, backgroundColor: 'rgba(15, 23, 42, 0.8)', display: 'flex', justifyContent: 'center', alignItems: 'center', zIndex: 1000, padding: '20px' }}>
-          <div style={{ backgroundColor: 'white', padding: '30px', borderRadius: '8px', width: '100%', maxWidth: '400px', boxShadow: '0 25px 50px -12px rgba(0, 0, 0, 0.25)' }}>
+          <div style={{ backgroundColor: 'white', padding: '30px', borderRadius: '12px', width: '100%', maxWidth: '450px', boxShadow: '0 25px 50px -12px rgba(0, 0, 0, 0.25)' }}>
             
             <div style={{ borderBottom: '1px solid #e2e8f0', paddingBottom: '15px', marginBottom: '20px', textAlign: 'center' }}>
-              <h2 style={{ margin: 0, color: '#0f172a', fontSize: '1.8rem' }}>{totalPrice.toLocaleString()} ₮</h2>
+              <h2 style={{ margin: 0, color: '#0f172a', fontSize: '2rem' }}>{totalPrice.toLocaleString()} ₮</h2>
             </div>
 
-            {/* ✨ ШИНЭ: Төлбөрийн хэлбэрийг шууд сонгоно */}
             {paymentStep === 1 && (
               <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
                 <p style={{ margin: '0 0 10px 0', color: '#64748b', textAlign: 'center', fontWeight: 'bold' }}>Төлбөрийн хэлбэрээ сонгоно уу</p>
-                <button onClick={() => setPaymentStep(2)} style={{ padding: '15px', borderRadius: '4px', border: '1px solid #cbd5e1', backgroundColor: '#f8fafc', color: '#0f172a', fontSize: '1.1rem', fontWeight: 'bold', cursor: 'pointer' }}>💵 Бэлэн мөнгө</button>
-                <button onClick={() => handleProcessPayment('card')} style={{ padding: '15px', borderRadius: '4px', border: 'none', backgroundColor: '#3b82f6', color: 'white', fontSize: '1.1rem', fontWeight: 'bold', cursor: 'pointer' }}>💳 Картаар</button>
-                <button onClick={() => handleProcessPayment('qpay')} style={{ padding: '15px', borderRadius: '4px', border: 'none', backgroundColor: '#f59e0b', color: 'white', fontSize: '1.1rem', fontWeight: 'bold', cursor: 'pointer' }}>📱 QPay / Дансаар</button>
-                <button onClick={() => setIsPaymentModalOpen(false)} style={{ padding: '15px', borderRadius: '4px', border: 'none', backgroundColor: 'transparent', color: '#ef4444', fontSize: '1rem', fontWeight: 'bold', cursor: 'pointer', marginTop: '10px' }}>Цуцлах</button>
+                <button onClick={() => setPaymentStep(2)} style={{ padding: '15px', borderRadius: '8px', border: '2px solid #cbd5e1', backgroundColor: '#f8fafc', color: '#0f172a', fontSize: '1.1rem', fontWeight: 'bold', cursor: 'pointer' }}>💵 Бэлэн мөнгө</button>
+                <button onClick={() => handleProcessPayment('card')} style={{ padding: '15px', borderRadius: '8px', border: 'none', backgroundColor: '#3b82f6', color: 'white', fontSize: '1.1rem', fontWeight: 'bold', cursor: 'pointer' }}>💳 Картаар</button>
+                <button onClick={() => handleProcessPayment('qpay')} style={{ padding: '15px', borderRadius: '8px', border: 'none', backgroundColor: '#f59e0b', color: 'white', fontSize: '1.1rem', fontWeight: 'bold', cursor: 'pointer' }}>📱 QPay / Дансаар</button>
+                <button onClick={() => setIsPaymentModalOpen(false)} style={{ padding: '15px', borderRadius: '8px', border: 'none', backgroundColor: 'transparent', color: '#ef4444', fontSize: '1.1rem', fontWeight: 'bold', cursor: 'pointer', marginTop: '10px' }}>Цуцлах</button>
               </div>
             )}
 
             {paymentStep === 2 && (
               <div style={{ display: 'flex', flexDirection: 'column', gap: '15px' }}>
+                
+                {/* Мөнгө харуулах дэлгэц (iPad keyboard гаргахгүйн тулд DIV ашиглав) */}
                 <div>
-                  <label style={{ display: 'block', color: '#475569', marginBottom: '5px', fontWeight: 'bold' }}>Өгсөн мөнгө (₮):</label>
-                  <input type="number" autoFocus value={receivedCash} onChange={e => setReceivedCash(e.target.value)} placeholder="0" style={{ width: '100%', padding: '15px', fontSize: '1.5rem', borderRadius: '4px', border: '2px solid #3b82f6', boxSizing: 'border-box', outline: 'none', textAlign: 'right', fontWeight: 'bold' }} />
+                  <label style={{ display: 'block', color: '#475569', marginBottom: '8px', fontWeight: 'bold' }}>Өгсөн мөнгө (₮):</label>
+                  <div style={{ width: '100%', padding: '15px', fontSize: '2rem', borderRadius: '8px', border: '2px solid #3b82f6', backgroundColor: '#f8fafc', textAlign: 'right', fontWeight: '900', minHeight: '65px', display: 'flex', alignItems: 'center', justifyContent: 'flex-end', boxSizing: 'border-box' }}>
+                    {receivedCash ? Number(receivedCash).toLocaleString() : '0'}
+                  </div>
                 </div>
-                <div style={{ display: 'flex', gap: '10px' }}>
-                  <button onClick={() => setReceivedCash(totalPrice)} style={{ flex: 1, padding: '10px', backgroundColor: '#f1f5f9', border: '1px solid #cbd5e1', borderRadius: '4px', fontWeight: 'bold', cursor: 'pointer' }}>Яг таарсан</button>
-                  <button onClick={() => setReceivedCash(20000)} style={{ flex: 1, padding: '10px', backgroundColor: '#f1f5f9', border: '1px solid #cbd5e1', borderRadius: '4px', fontWeight: 'bold', cursor: 'pointer' }}>20,000</button>
-                  <button onClick={() => setReceivedCash(50000)} style={{ flex: 1, padding: '10px', backgroundColor: '#f1f5f9', border: '1px solid #cbd5e1', borderRadius: '4px', fontWeight: 'bold', cursor: 'pointer' }}>50,000</button>
+
+                {/* ✨ ШИНЭ: ДЭЛГЭЦЭН ДЭЭРХ ТООНЫ МАШИН (Numpad) */}
+                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: '10px' }}>
+                  <button onClick={() => handleKeypad('1')} style={numpadBtnStyle}>1</button>
+                  <button onClick={() => handleKeypad('2')} style={numpadBtnStyle}>2</button>
+                  <button onClick={() => handleKeypad('3')} style={numpadBtnStyle}>3</button>
+                  <button onClick={() => handleKeypad('DEL')} style={{...numpadBtnStyle, backgroundColor: '#e2e8f0', color: '#475569'}}>⌫</button>
+                  
+                  <button onClick={() => handleKeypad('4')} style={numpadBtnStyle}>4</button>
+                  <button onClick={() => handleKeypad('5')} style={numpadBtnStyle}>5</button>
+                  <button onClick={() => handleKeypad('6')} style={numpadBtnStyle}>6</button>
+                  <button onClick={() => handleKeypad('20000')} style={{...numpadBtnStyle, backgroundColor: '#dbeafe', color: '#1d4ed8', fontSize: '1rem'}}>20,000</button>
+                  
+                  <button onClick={() => handleKeypad('7')} style={numpadBtnStyle}>7</button>
+                  <button onClick={() => handleKeypad('8')} style={numpadBtnStyle}>8</button>
+                  <button onClick={() => handleKeypad('9')} style={numpadBtnStyle}>9</button>
+                  <button onClick={() => handleKeypad('50000')} style={{...numpadBtnStyle, backgroundColor: '#dbeafe', color: '#1d4ed8', fontSize: '1rem'}}>50,000</button>
+                  
+                  <button onClick={() => handleKeypad('C')} style={{...numpadBtnStyle, backgroundColor: '#fee2e2', color: '#ef4444'}}>C</button>
+                  <button onClick={() => handleKeypad('0')} style={numpadBtnStyle}>0</button>
+                  <button onClick={() => handleKeypad('000')} style={numpadBtnStyle}>000</button>
+                  <button onClick={() => handleKeypad('EXACT')} style={{...numpadBtnStyle, backgroundColor: '#dcfce7', color: '#166534', fontSize: '1rem'}}>Таарсан</button>
                 </div>
-                <div style={{ backgroundColor: changeAmount >= 0 ? '#dcfce7' : '#fee2e2', padding: '15px', borderRadius: '4px', border: `1px solid ${changeAmount >= 0 ? '#bbf7d0' : '#fecaca'}`, marginTop: '10px' }}>
-                  <div style={{ color: changeAmount >= 0 ? '#166534' : '#991b1b', fontSize: '0.9rem', fontWeight: 'bold' }}>Хариулах дүн:</div>
-                  <div style={{ color: changeAmount >= 0 ? '#15803d' : '#b91c1c', fontSize: '2rem', fontWeight: '900', textAlign: 'right' }}>
+
+                <div style={{ backgroundColor: changeAmount >= 0 ? '#dcfce7' : '#fee2e2', padding: '15px', borderRadius: '8px', border: `1px solid ${changeAmount >= 0 ? '#bbf7d0' : '#fecaca'}`, marginTop: '5px' }}>
+                  <div style={{ color: changeAmount >= 0 ? '#166534' : '#991b1b', fontSize: '1rem', fontWeight: 'bold' }}>Хариулах дүн:</div>
+                  <div style={{ color: changeAmount >= 0 ? '#15803d' : '#b91c1c', fontSize: '2.2rem', fontWeight: '900', textAlign: 'right' }}>
                     {receivedCash === '' ? '0' : changeAmount.toLocaleString()} ₮
                   </div>
                 </div>
+
                 <div style={{ display: 'flex', gap: '10px', marginTop: '10px' }}>
-                  <button onClick={() => setPaymentStep(1)} style={{ flex: 1, padding: '15px', borderRadius: '4px', border: '1px solid #cbd5e1', backgroundColor: 'white', color: '#475569', fontWeight: 'bold', cursor: 'pointer' }}>Буцах</button>
-                  <button onClick={() => handleProcessPayment('cash')} disabled={isSubmitting || (receivedCash !== '' && changeAmount < 0)} style={{ flex: 2, padding: '15px', borderRadius: '4px', border: 'none', backgroundColor: '#10b981', color: 'white', fontWeight: 'bold', cursor: 'pointer', fontSize: '1.1rem' }}>
+                  <button onClick={() => setPaymentStep(1)} style={{ flex: 1, padding: '15px', borderRadius: '8px', border: '1px solid #cbd5e1', backgroundColor: 'white', color: '#475569', fontWeight: 'bold', cursor: 'pointer', fontSize: '1.1rem' }}>Буцах</button>
+                  <button onClick={() => handleProcessPayment('cash')} disabled={isSubmitting || (receivedCash !== '' && changeAmount < 0)} style={{ flex: 2, padding: '15px', borderRadius: '8px', border: 'none', backgroundColor: '#10b981', color: 'white', fontWeight: 'bold', cursor: 'pointer', fontSize: '1.2rem' }}>
                     {isSubmitting ? 'Уншиж байна...' : 'Баталгаажуулах'}
                   </button>
                 </div>
@@ -372,7 +419,6 @@ function CashierPage() {
           </div>
         </div>
       )}
-
     </div>
   );
 }
