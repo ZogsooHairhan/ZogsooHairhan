@@ -81,9 +81,10 @@ function KitchenPage() {
       const startOfToday = new Date();
       startOfToday.setHours(0, 0, 0, 0);
 
+      // ✨ ШИНЭ: id баганыг ашиглан хоолыг яг таг чеклэдэг болгосон
       const { data, error } = await supabase
         .from('orders')
-        .select(`*, order_items (menu_item_id, quantity, is_done, menu_items (name))`)
+        .select(`*, order_items (id, quantity, is_done, menu_items (name))`)
         .in('status', ['cooking', 'completed'])
         .gte('created_at', startOfToday.toISOString())
         .order('created_at', { ascending: true });
@@ -107,16 +108,18 @@ function KitchenPage() {
     }
   };
 
-  // Хоол чеклэх/хасах функц
-  const toggleItemDone = async (orderId, menuItemId, currentStatus) => {
+  // ✨ ШИНЭ: Хоол чеклэх/хасах функц (Амжилттай ажиллахын тулд SQL уншуулсан байх шаардлагатай)
+  const toggleItemDone = async (orderItemId, currentStatus) => {
     try {
       const { error } = await supabase
         .from('order_items')
         .update({ is_done: !currentStatus })
-        .eq('order_id', orderId)
-        .eq('menu_item_id', menuItemId);
+        .eq('id', orderItemId);
 
-      if (error) throw error;
+      if (error) {
+        alert("Алдаа гарлаа. Та Supabase SQL код уншуулахаа мартсан байж болзошгүй.");
+        throw error;
+      }
       fetchOrders(); 
     } catch (err) {
       console.error("Төлөв өөрчлөхөд алдаа:", err.message);
@@ -179,41 +182,39 @@ function KitchenPage() {
               ) : (
                 <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(280px, 1fr))', gap: '15px' }}>
                   {cookingOrders.map((order) => {
-                    // ТӨРӨЛ БОЛОН ӨНГӨ ЯЛГАХ ХЭСЭГ
+                    // ✨ ТӨРӨЛ БОЛОН ӨНГӨ ЯЛГАХ ХЭСЭГ (Бүхэлд нь өнгө оруулах)
                     const isTakeaway = order.order_type === 'pickup';
-                    const cardBorder = isTakeaway ? '#ea580c' : '#3b82f6'; // Улбар шар vs Цэнхэр
-                    const badgeBg = isTakeaway ? '#ffedd5' : '#eff6ff';
-                    const badgeColor = isTakeaway ? '#c2410c' : '#1d4ed8';
+                    const cardBg = isTakeaway ? '#fff7ed' : '#eff6ff'; // Улбар шар (Takeaway) эсвэл Цэнхэр (Dine-in)
+                    const cardBorder = isTakeaway ? '#ea580c' : '#3b82f6'; 
+                    const badgeBg = isTakeaway ? '#ea580c' : '#3b82f6';
+                    const badgeColor = 'white';
                     const typeLabel = isTakeaway ? '🛍️ АВААД ЯВАХ' : '🍽️ ЗААЛАНД';
 
-                    // ХИЙХ БОЛОН БЭЛЭН БОЛСОН ХООЛУУДЫГ ЯЛГАХ
                     const pendingItems = order.order_items?.filter(item => !item.is_done) || [];
                     const doneItems = order.order_items?.filter(item => item.is_done) || [];
-
-                    // Бүх хоол хийгдэж дууссан эсэх
                     const isAllDone = pendingItems.length === 0 && doneItems.length > 0;
 
                     return (
-                      <div key={order.id} style={{ backgroundColor: 'white', padding: '16px', borderRadius: '12px', boxShadow: '0 4px 15px rgba(0,0,0,0.05)', display: 'flex', flexDirection: 'column', justifyContent: 'space-between', borderTop: `6px solid ${cardBorder}` }}>
+                      <div key={order.id} style={{ backgroundColor: cardBg, padding: '16px', borderRadius: '12px', border: `2px solid ${cardBorder}`, boxShadow: '0 4px 15px rgba(0,0,0,0.05)', display: 'flex', flexDirection: 'column', justifyContent: 'space-between' }}>
                         <div>
-                          {/* Захиалгын толгой мэдээлэл */}
-                          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', borderBottom: '1px solid #f1f5f9', paddingBottom: '10px', marginBottom: '12px' }}>
+                          {/* Захиалгын толгой */}
+                          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', borderBottom: `1px solid ${cardBorder}50`, paddingBottom: '10px', marginBottom: '12px' }}>
                             <div>
                               <strong style={{ fontSize: '1.6rem', color: '#1e293b' }}>
                                 #{order.order_number || String(order.id).slice(-4).toUpperCase()}
                               </strong>
-                              <div style={{ color: '#64748b', fontSize: '0.9rem', marginTop: '4px', fontWeight: '600' }}>
+                              <div style={{ color: '#475569', fontSize: '0.9rem', marginTop: '4px', fontWeight: '700' }}>
                                 🕒 {new Date(order.created_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
                               </div>
                             </div>
-                            <div style={{ backgroundColor: badgeBg, color: badgeColor, padding: '6px 10px', borderRadius: '6px', fontSize: '1rem', fontWeight: '800' }}>
+                            <div style={{ backgroundColor: badgeBg, color: badgeColor, padding: '6px 10px', borderRadius: '6px', fontSize: '0.95rem', fontWeight: '800' }}>
                               {typeLabel}
                             </div>
                           </div>
 
                           {/* Тайлбар */}
                           {order.note && order.note.trim() !== '' && (
-                            <div style={{ backgroundColor: '#fef3c7', color: '#b45309', padding: '10px', borderRadius: '6px', marginBottom: '12px', fontSize: '1.1rem', fontWeight: 'bold' }}>
+                            <div style={{ backgroundColor: 'white', color: '#b45309', padding: '10px', borderRadius: '6px', marginBottom: '12px', fontSize: '1.1rem', fontWeight: 'bold', border: '1px solid #fde68a' }}>
                               💬 {order.note}
                             </div>
                           )}
@@ -223,26 +224,26 @@ function KitchenPage() {
                             {pendingItems.map((item, idx) => (
                               <div 
                                 key={`pending-${idx}`} 
-                                onClick={() => toggleItemDone(order.id, item.menu_item_id, item.is_done)}
-                                style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '8px', padding: '10px', border: '1px solid #cbd5e1', backgroundColor: 'white', borderRadius: '8px', cursor: 'pointer', transition: 'all 0.2s ease' }}
+                                onClick={() => toggleItemDone(item.id, item.is_done)}
+                                style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '8px', padding: '10px 15px', border: `1px solid ${cardBorder}40`, backgroundColor: 'white', borderRadius: '10px', cursor: 'pointer', transition: 'all 0.2s ease', boxShadow: '0 2px 4px rgba(0,0,0,0.03)' }}
                               >
-                                <span style={{ color: '#0f172a', fontWeight: '700', fontSize: '1.1rem' }}>⬜ {item.menu_items?.name || 'Тодорхойгүй'}</span>
-                                <strong style={{ color: '#dc2626', fontSize: '1.2rem', fontWeight: '900', backgroundColor: '#fef2f2', padding: '4px 10px', borderRadius: '6px' }}>{item.quantity} ш</strong>
+                                <span style={{ color: '#0f172a', fontWeight: '700', fontSize: '1.2rem' }}>⬜ {item.menu_items?.name || 'Тодорхойгүй'}</span>
+                                <strong style={{ color: '#dc2626', fontSize: '1.3rem', fontWeight: '900', backgroundColor: '#fef2f2', padding: '4px 10px', borderRadius: '6px' }}>{item.quantity} ш</strong>
                               </div>
                             ))}
 
-                            {/* 2. БЭЛЭН БОЛСОН ХООЛНУУД (Доошоо шилжсэн) */}
+                            {/* 2. БЭЛЭН БОЛСОН ХООЛНУУД */}
                             {doneItems.length > 0 && (
-                              <div style={{ marginTop: '15px', borderTop: '1px dashed #e2e8f0', paddingTop: '10px' }}>
-                                <span style={{ fontSize: '0.85rem', color: '#10b981', fontWeight: 'bold', textTransform: 'uppercase', marginBottom: '8px', display: 'block' }}>✅ Бэлэн болсон:</span>
+                              <div style={{ marginTop: '15px', borderTop: `1px dashed ${cardBorder}`, paddingTop: '10px' }}>
+                                <span style={{ fontSize: '0.85rem', color: cardBorder, fontWeight: '900', textTransform: 'uppercase', marginBottom: '8px', display: 'block' }}>✅ Бэлэн болсон:</span>
                                 {doneItems.map((item, idx) => (
                                   <div 
                                     key={`done-${idx}`} 
-                                    onClick={() => toggleItemDone(order.id, item.menu_item_id, item.is_done)}
-                                    style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '6px', padding: '8px 10px', backgroundColor: '#f8fafc', borderRadius: '6px', cursor: 'pointer' }}
+                                    onClick={() => toggleItemDone(item.id, item.is_done)}
+                                    style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '6px', padding: '8px 15px', backgroundColor: 'transparent', border: '1px dashed #cbd5e1', borderRadius: '10px', cursor: 'pointer', opacity: 0.7 }}
                                   >
-                                    <span style={{ color: '#64748b', fontWeight: '600', fontSize: '1rem', textDecoration: 'line-through' }}>{item.menu_items?.name || 'Тодорхойгүй'}</span>
-                                    <strong style={{ color: '#64748b', fontSize: '1.1rem', textDecoration: 'line-through' }}>{item.quantity} ш</strong>
+                                    <span style={{ color: '#475569', fontWeight: '700', fontSize: '1.1rem', textDecoration: 'line-through' }}>✅ {item.menu_items?.name || 'Тодорхойгүй'}</span>
+                                    <strong style={{ color: '#475569', fontSize: '1.1rem', textDecoration: 'line-through' }}>{item.quantity} ш</strong>
                                   </div>
                                 ))}
                               </div>
@@ -250,14 +251,15 @@ function KitchenPage() {
                           </div>
                         </div>
 
-                        {/* БҮХ ХООЛ БЭЛЭН ТОВЧ (Бүх хоолыг дарж дууссан үед ногоон болж гэрэлтэнэ) */}
+                        {/* БҮХ ХООЛ БЭЛЭН ТОВЧ */}
                         <button 
                           onClick={() => updateOrderStatus(order.id, 'completed')} 
                           style={{ 
-                            width: '100%', padding: '14px', border: 'none', borderRadius: '10px', cursor: 'pointer', fontSize: '1.1rem', fontWeight: '900',
-                            backgroundColor: isAllDone ? '#10b981' : '#e2e8f0',
+                            width: '100%', padding: '14px', borderRadius: '10px', cursor: 'pointer', fontSize: '1.1rem', fontWeight: '900',
+                            backgroundColor: isAllDone ? '#10b981' : 'rgba(0,0,0,0.05)',
                             color: isAllDone ? 'white' : '#64748b',
                             boxShadow: isAllDone ? '0 4px 15px rgba(16, 185, 129, 0.4)' : 'none',
+                            border: isAllDone ? 'none' : '1px solid #cbd5e1',
                             transition: 'all 0.3s'
                           }}
                         >
@@ -291,8 +293,8 @@ function KitchenPage() {
                         <div style={{ minHeight: '60px', marginBottom: '15px' }}>
                           {order.order_items?.map((item, idx) => (
                             <div key={idx} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '6px', fontSize: '1.1rem', color: '#64748b' }}>
-                              <span style={{ fontWeight: '600' }}>{item.menu_items?.name || 'Тодорхойгүй'}</span>
-                              <strong>{item.quantity} ш</strong>
+                              <span style={{ fontWeight: '600', textDecoration: 'line-through' }}>{item.menu_items?.name || 'Тодорхойгүй'}</span>
+                              <strong style={{ textDecoration: 'line-through' }}>{item.quantity} ш</strong>
                             </div>
                           ))}
                         </div>
