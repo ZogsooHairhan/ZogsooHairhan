@@ -7,7 +7,7 @@ function KitchenPage() {
   const [password, setPassword] = useState('');
   const [isLoggingIn, setIsLoggingIn] = useState(false);
 
-  // 🔔 ШИНЭЧЛЭГДСЭН: iPhone дээр уншихын тулд .mp3 форматтай найдвартай дууны линкээр солилоо
+  // 🔔 Хонхны дууны төлөв
   const [isSoundEnabled, setIsSoundEnabled] = useState(false);
   const audioRef = useRef(new Audio('https://res.cloudinary.com/dxfq3iotg/video/upload/v1557233524/success.mp3'));
 
@@ -40,18 +40,18 @@ function KitchenPage() {
   const [isLoading, setIsLoading] = useState(true);
   const [activeTab, setActiveTab] = useState('cooking'); 
 
-  // 🔔 ДУУ ИДЭВХЖҮҮЛЭХ ФУНКЦ
+  // 🔔 Дуу идэвхжүүлэх
   const enableSound = () => {
     audioRef.current.play().then(() => {
       setIsSoundEnabled(true);
     }).catch(err => {
       console.log("Дуу идэвхжүүлэхэд алдаа:", err);
-      alert("Дуу идэвхжүүлэх боломжгүй байна. Та утсаа дуутай (Silent биш) горимд байгаа эсэхийг шалгана уу.");
+      alert("Дуу идэвхжүүлэх боломжгүй байна.");
     });
   };
 
   const playBellSound = () => {
-    if (!isSoundEnabled) return; // Хэрэв идэвхжүүлээгүй бол дуугаргах гэж оролдохгүй
+    if (!isSoundEnabled) return; 
     audioRef.current.currentTime = 0;
     const playPromise = audioRef.current.play();
     if (playPromise !== undefined) {
@@ -83,9 +83,10 @@ function KitchenPage() {
       const startOfToday = new Date();
       startOfToday.setHours(0, 0, 0, 0);
 
+      // ✨ ШИНЭ: menu_item_id болон is_done багануудыг давхар дуудаж байна
       const { data, error } = await supabase
         .from('orders')
-        .select(`*, order_items (quantity, menu_items (name, category))`)
+        .select(`*, order_items (menu_item_id, quantity, is_done, menu_items (name))`)
         .in('status', ['cooking', 'completed'])
         .gte('created_at', startOfToday.toISOString())
         .order('created_at', { ascending: true });
@@ -109,25 +110,24 @@ function KitchenPage() {
     }
   };
 
+  // ✨ ШИНЭ: Хоолыг нэг нэгээр нь дарж (чеклэж) хасах функц
+  const toggleItemDone = async (orderId, menuItemId, currentStatus) => {
+    try {
+      const { error } = await supabase
+        .from('order_items')
+        .update({ is_done: !currentStatus })
+        .eq('order_id', orderId)
+        .eq('menu_item_id', menuItemId);
+
+      if (error) throw error;
+      fetchOrders(); // Амжилттай болсон бол дэлгэцээ шинэчилнэ
+    } catch (err) {
+      console.error("Төлөв өөрчлөхөд алдаа гарлаа:", err.message);
+    }
+  };
+
   const cookingOrders = orders.filter(o => o.status === 'cooking');
   const completedOrders = orders.filter(o => o.status === 'completed').sort((a, b) => new Date(b.updated_at || b.created_at) - new Date(a.updated_at || a.created_at));
-
-  // Зөвхөн "Ширхэг" гэсэн ангилалтай хоолыг нэгтгэж тоолох
-  const pendingItemsSummary = {};
-  cookingOrders.forEach(order => {
-    order.order_items?.forEach(item => {
-      const categoryName = item.menu_items?.category?.toLowerCase() || '';
-      
-      if (categoryName.includes('ширхэг')) {
-        const itemName = item.menu_items?.name || 'Тодорхойгүй';
-        if (!pendingItemsSummary[itemName]) {
-          pendingItemsSummary[itemName] = 0;
-        }
-        pendingItemsSummary[itemName] += item.quantity;
-      }
-    });
-  });
-  const summaryEntries = Object.entries(pendingItemsSummary).sort((a, b) => b[1] - a[1]);
 
   if (!isAuthenticated) {
     return (
@@ -178,25 +178,6 @@ function KitchenPage() {
         <>
           {activeTab === 'cooking' && (
             <div>
-              {/* 📊 ЗӨВХӨН ШИРХЭГИЙН ХООЛНЫ НЭГТГЭЛ САМБАР */}
-              {summaryEntries.length > 0 && (
-                <div style={{ backgroundColor: '#0f172a', padding: '20px', borderRadius: '16px', marginBottom: '25px', boxShadow: '0 10px 25px rgba(0,0,0,0.1)' }}>
-                  <h3 style={{ margin: '0 0 15px 0', fontSize: '1.1rem', color: '#94a3b8', textTransform: 'uppercase', letterSpacing: '1px' }}>
-                    🥟 Ширхэгийн хоолны нэгтгэл
-                  </h3>
-                  <div style={{ display: 'flex', flexWrap: 'wrap', gap: '15px' }}>
-                    {summaryEntries.map(([name, qty], idx) => (
-                      <div key={idx} style={{ backgroundColor: '#1e293b', padding: '12px 18px', borderRadius: '12px', display: 'flex', alignItems: 'center', gap: '15px', border: '1px solid #334155' }}>
-                        <span style={{ fontSize: '1.3rem', fontWeight: 'bold', color: 'white' }}>{name}</span>
-                        <span style={{ backgroundColor: '#3b82f6', color: 'white', padding: '6px 12px', borderRadius: '8px', fontSize: '1.4rem', fontWeight: '900' }}>
-                          {qty} ш
-                        </span>
-                      </div>
-                    ))}
-                  </div>
-                </div>
-              )}
-
               {cookingOrders.length === 0 ? (
                 <h3 style={{ textAlign: 'center', color: '#64748b', marginTop: '50px' }}>Одоогоор хийх хоол байхгүй байна. 🎉</h3>
               ) : (
@@ -225,10 +206,46 @@ function KitchenPage() {
                         )}
 
                         <div style={{ minHeight: '100px', marginBottom: '20px' }}>
+                          {/* ✨ ШИНЭ: Хоол тус бүр дээр дарж хасах (Done) болгодог хэсэг */}
                           {order.order_items?.map((item, idx) => (
-                            <div key={idx} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '12px', fontSize: '1.6rem', paddingBottom: '10px', borderBottom: '1px dashed #e2e8f0' }}>
-                              <span style={{ color: '#0f172a', fontWeight: '800', flex: 1, paddingRight: '10px' }}>{item.menu_items?.name || 'Тодорхойгүй'}</span>
-                              <strong style={{ color: '#dc2626', fontSize: '2rem', fontWeight: '900', backgroundColor: '#fef2f2', padding: '4px 15px', borderRadius: '8px' }}>{item.quantity} ш</strong>
+                            <div 
+                              key={idx} 
+                              onClick={() => toggleItemDone(order.id, item.menu_item_id, item.is_done)}
+                              style={{ 
+                                display: 'flex', 
+                                justifyContent: 'space-between', 
+                                alignItems: 'center', 
+                                marginBottom: '12px', 
+                                fontSize: '1.6rem', 
+                                padding: '12px', 
+                                border: item.is_done ? '1px solid #e2e8f0' : '1px dashed #cbd5e1',
+                                backgroundColor: item.is_done ? '#f8fafc' : 'white',
+                                borderRadius: '12px',
+                                cursor: 'pointer',
+                                opacity: item.is_done ? 0.5 : 1,
+                                transition: 'all 0.2s ease'
+                              }}
+                            >
+                              <span style={{ 
+                                color: '#0f172a', 
+                                fontWeight: '800', 
+                                flex: 1, 
+                                paddingRight: '10px',
+                                textDecoration: item.is_done ? 'line-through' : 'none'
+                              }}>
+                                {item.is_done ? '✅ ' : '⬜ '} {item.menu_items?.name || 'Тодорхойгүй'}
+                              </span>
+                              <strong style={{ 
+                                color: item.is_done ? '#64748b' : '#dc2626', 
+                                fontSize: '2rem', 
+                                fontWeight: '900', 
+                                backgroundColor: item.is_done ? '#e2e8f0' : '#fef2f2', 
+                                padding: '4px 15px', 
+                                borderRadius: '8px',
+                                textDecoration: item.is_done ? 'line-through' : 'none'
+                              }}>
+                                {item.quantity} ш
+                              </strong>
                             </div>
                           ))}
                         </div>
@@ -238,7 +255,7 @@ function KitchenPage() {
                         onClick={() => updateOrderStatus(order.id, 'completed')} 
                         style={{ width: '100%', padding: '20px', backgroundColor: '#10b981', color: 'white', border: 'none', borderRadius: '12px', cursor: 'pointer', fontSize: '1.5rem', fontWeight: '900', boxShadow: '0 4px 15px rgba(16, 185, 129, 0.3)' }}
                       >
-                        ✔️ ХООЛ БЭЛЭН
+                        ✔️ БҮХ ХООЛ БЭЛЭН
                       </button>
                     </div>
                   ))}
