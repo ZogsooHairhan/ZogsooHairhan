@@ -6,7 +6,6 @@ function KitchenPage() {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [isLoggingIn, setIsLoggingIn] = useState(false);
-
   const [isSoundEnabled, setIsSoundEnabled] = useState(false);
   const audioRef = useRef(new Audio('https://res.cloudinary.com/dxfq3iotg/video/upload/v1557233524/success.mp3'));
 
@@ -79,9 +78,10 @@ function KitchenPage() {
       const startOfToday = new Date();
       startOfToday.setHours(0, 0, 0, 0);
 
+      // ✨ ШИНЭ: item_type баганыг баазаас давхар дуудна
       const { data, error } = await supabase
         .from('orders')
-        .select(`*, order_items (id, quantity, is_done, menu_items (name))`)
+        .select(`*, order_items (id, quantity, is_done, item_type, menu_items (name))`)
         .in('status', ['cooking', 'completed'])
         .gte('created_at', startOfToday.toISOString())
         .order('created_at', { ascending: true });
@@ -169,11 +169,10 @@ function KitchenPage() {
               ) : (
                 <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(280px, 1fr))', gap: '15px' }}>
                   {cookingOrders.map((order) => {
-                    // ✨ ТӨРӨЛ БОЛОН ӨНГӨ ЯЛГАХ ХЭСЭГ (Тува өнгө нэмэгдсэн)
+                    // ТӨРӨЛ БОЛОН ӨНГӨ
                     let cardBg = '#eff6ff'; // Dine-in (Цэнхэр)
                     let cardBorder = '#3b82f6'; 
                     let badgeBg = '#3b82f6';
-                    let badgeColor = 'white';
                     let typeLabel = '🍽️ ЗААЛАНД';
 
                     if (order.order_type === 'pickup') {
@@ -186,6 +185,11 @@ function KitchenPage() {
                       cardBorder = '#c026d3'; 
                       badgeBg = '#c026d3'; 
                       typeLabel = '👤 ТУВА';
+                    } else if (order.order_type === 'mixed') {
+                      cardBg = '#f8fafc'; // Холимог (Саарал/Хар)
+                      cardBorder = '#475569'; 
+                      badgeBg = '#475569'; 
+                      typeLabel = '🔄 ХОЛИМОГ ЗАХИАЛГА';
                     }
 
                     const pendingItems = order.order_items?.filter(item => !item.is_done) || [];
@@ -204,7 +208,7 @@ function KitchenPage() {
                                 🕒 {new Date(order.created_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
                               </div>
                             </div>
-                            <div style={{ backgroundColor: badgeBg, color: badgeColor, padding: '6px 10px', borderRadius: '6px', fontSize: '0.95rem', fontWeight: '800' }}>
+                            <div style={{ backgroundColor: badgeBg, color: 'white', padding: '6px 10px', borderRadius: '6px', fontSize: '0.95rem', fontWeight: '800' }}>
                               {typeLabel}
                             </div>
                           </div>
@@ -216,12 +220,21 @@ function KitchenPage() {
                           )}
 
                           <div style={{ minHeight: '60px', marginBottom: '15px' }}>
-                            {pendingItems.map((item, idx) => (
-                              <div key={`pending-${idx}`} onClick={() => toggleItemDone(item.id, item.is_done)} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '8px', padding: '10px 15px', border: `1px solid ${cardBorder}40`, backgroundColor: 'white', borderRadius: '10px', cursor: 'pointer', transition: 'all 0.2s ease', boxShadow: '0 2px 4px rgba(0,0,0,0.03)' }}>
-                                <span style={{ color: '#0f172a', fontWeight: '700', fontSize: '1.2rem' }}>⬜ {item.menu_items?.name || 'Тодорхойгүй'}</span>
-                                <strong style={{ color: '#dc2626', fontSize: '1.3rem', fontWeight: '900', backgroundColor: '#fef2f2', padding: '4px 10px', borderRadius: '6px' }}>{item.quantity} ш</strong>
-                              </div>
-                            ))}
+                            {pendingItems.map((item, idx) => {
+                              // Хоол тус бүрийн дүрсийг олох
+                              let itemIcon = '🍽️';
+                              if (item.item_type === 'pickup') itemIcon = '🛍️';
+                              if (item.item_type === 'tuva') itemIcon = '👤';
+
+                              return (
+                                <div key={`pending-${idx}`} onClick={() => toggleItemDone(item.id, item.is_done)} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '8px', padding: '10px 15px', border: `1px solid ${cardBorder}40`, backgroundColor: 'white', borderRadius: '10px', cursor: 'pointer', transition: 'all 0.2s ease', boxShadow: '0 2px 4px rgba(0,0,0,0.03)' }}>
+                                  <span style={{ color: '#0f172a', fontWeight: '700', fontSize: '1.2rem' }}>
+                                    ⬜ {itemIcon} {item.menu_items?.name || 'Тодорхойгүй'}
+                                  </span>
+                                  <strong style={{ color: '#dc2626', fontSize: '1.3rem', fontWeight: '900', backgroundColor: '#fef2f2', padding: '4px 10px', borderRadius: '6px' }}>{item.quantity} ш</strong>
+                                </div>
+                              );
+                            })}
 
                             {doneItems.length > 0 && (
                               <div style={{ marginTop: '15px', borderTop: `1px dashed ${cardBorder}`, paddingTop: '10px' }}>
@@ -276,7 +289,10 @@ function KitchenPage() {
                           ))}
                         </div>
                       </div>
-                      <button onClick={() => { if (window.confirm("Буцаах уу?")) updateOrderStatus(order.id, 'cooking'); }} style={{ width: '100%', padding: '10px', backgroundColor: '#e2e8f0', color: '#475569', border: 'none', borderRadius: '8px', cursor: 'pointer', fontSize: '0.95rem', fontWeight: '800' }}>
+                      <button 
+                        onClick={() => { if (window.confirm("Буцаах уу?")) updateOrderStatus(order.id, 'cooking'); }}
+                        style={{ width: '100%', padding: '10px', backgroundColor: '#e2e8f0', color: '#475569', border: 'none', borderRadius: '8px', cursor: 'pointer', fontSize: '0.95rem', fontWeight: '800' }}
+                      >
                         ↩️ Буцаах
                       </button>
                     </div>

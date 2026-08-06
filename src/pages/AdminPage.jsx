@@ -38,18 +38,15 @@ function AdminPage() {
   const [menuItems, setMenuItems] = useState([]);
   const [isLoadingMenu, setIsLoadingMenu] = useState(false);
 
-  // 💳 ТӨЛБӨРИЙН ТӨРӨЛ СОНГОХ ЦОНХНЫ ТӨЛӨВҮҮД
   const [isPaymentModalOpen, setIsPaymentModalOpen] = useState(false);
   const [paymentOrderId, setPaymentOrderId] = useState(null);
 
-  // 🔐 КАСС ХААЛТЫН ТӨЛӨВҮҮД
   const [isShiftModalOpen, setIsShiftModalOpen] = useState(false);
   const [expectedCash, setExpectedCash] = useState(0); 
   const [actualCash, setActualCash] = useState('');
   const [isCalculating, setIsCalculating] = useState(false);
   const [isShiftClosed, setIsShiftClosed] = useState(false);
 
-  // 🍔 ШИНЭ: ХООЛ НЭМЭХ ТӨЛӨВҮҮД
   const [isAddMenuModalOpen, setIsAddMenuModalOpen] = useState(false);
   const [newMenuName, setNewMenuName] = useState('');
   const [newMenuPrice, setNewMenuPrice] = useState('');
@@ -86,7 +83,7 @@ function AdminPage() {
 
   const fetchOrders = async () => {
     try {
-      const { data, error } = await supabase.from('orders').select(`*, order_items (quantity, price, menu_items (name))`).in('status', ['pending', 'cooking']).order('created_at', { ascending: false });
+      const { data, error } = await supabase.from('orders').select(`*, order_items (quantity, price, item_type, menu_items (name))`).in('status', ['pending', 'cooking']).order('created_at', { ascending: false });
       if (error) throw error;
       setOrders(data);
     } catch (err) {
@@ -143,7 +140,6 @@ function AdminPage() {
     } catch (err) { alert("Төлөв өөрчлөхөд алдаа гарлаа: " + err.message); }
   };
 
-  // 🍔 ШИНЭ: ХООЛ НЭМЭХ ФУНКЦ
   const handleAddMenuItem = async (e) => {
     e.preventDefault();
     if (!newMenuName || !newMenuPrice || !newMenuCategory) return alert("Мэдээллийг бүрэн оруулна уу!");
@@ -154,7 +150,6 @@ function AdminPage() {
         name: newMenuName,
         price: Number(newMenuPrice),
         category: newMenuCategory,
-        // Зураг оруулаагүй бол default зураг ашиглана
         image_url: newMenuImage || 'https://images.unsplash.com/photo-1546069901-ba9599a7e63c?auto=format&fit=crop&w=150&q=80',
         is_active: true
       }]);
@@ -164,7 +159,7 @@ function AdminPage() {
       alert("Шинэ хоол амжилттай нэмэгдлээ!");
       setIsAddMenuModalOpen(false);
       setNewMenuName(''); setNewMenuPrice(''); setNewMenuCategory(''); setNewMenuImage('');
-      fetchMenuItems(); // Цэсийг дахин ачааллах
+      fetchMenuItems(); 
     } catch (err) {
       alert("Алдаа гарлаа: " + err.message);
     } finally {
@@ -239,7 +234,16 @@ function AdminPage() {
 
       {activeTab === 'orders' && (
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(clamp(320px, 28vw, 500px), 1fr))', gap: '25px' }}>
-          {orders.map((order) => (
+          {orders.map((order) => {
+            let badgeBg = '#eff6ff';
+            let badgeColor = '#1d4ed8';
+            let typeLabel = '🍽️ СУУЖ ИДЭХ';
+            
+            if(order.order_type === 'pickup') { badgeBg = '#fff7ed'; badgeColor = '#c2410c'; typeLabel = '🛍️ АВААД ЯВАХ'; }
+            else if(order.order_type === 'tuva') { badgeBg = '#fdf4ff'; badgeColor = '#a21caf'; typeLabel = '👤 ТУВА'; }
+            else if(order.order_type === 'mixed') { badgeBg = '#f1f5f9'; badgeColor = '#475569'; typeLabel = '🔄 ХОЛИМОГ'; }
+
+            return (
             <div key={order.id} style={{ backgroundColor: 'white', padding: '24px', borderRadius: '16px', boxShadow: '0 6px 20px rgba(0,0,0,0.04)', display: 'flex', flexDirection: 'column', justifyContent: 'space-between', borderTop: order.status === 'cooking' ? '8px solid #f59e0b' : '8px solid #ef4444' }}>
               <div>
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', borderBottom: '2px solid #f1f5f9', paddingBottom: '12px', marginBottom: '15px' }}>
@@ -250,13 +254,23 @@ function AdminPage() {
                     {order.status === 'pending' ? 'ТӨЛБӨР ХҮЛЭЭХ' : 'ХИЙЖ БАЙНА'}
                   </span>
                 </div>
-                <div style={{ backgroundColor: order.order_type === 'dine-in' ? '#eff6ff' : '#fff7ed', color: order.order_type === 'dine-in' ? '#1d4ed8' : '#c2410c', padding: '10px', borderRadius: '8px', fontSize: '1.3rem', fontWeight: '800', textAlign: 'center', marginBottom: '15px' }}>
-                  {order.order_type === 'dine-in' ? '🍽️ СУУЖ ИДЭХ' : '🛍️ АВААД ЯВАХ'}
+                <div style={{ backgroundColor: badgeBg, color: badgeColor, padding: '10px', borderRadius: '8px', fontSize: '1.3rem', fontWeight: '800', textAlign: 'center', marginBottom: '15px' }}>
+                  {typeLabel}
                 </div>
+                
+                {order.note && (
+                  <div style={{ backgroundColor: '#fef3c7', color: '#b45309', padding: '10px', borderRadius: '8px', marginBottom: '15px', fontSize: '1.1rem', fontWeight: 'bold' }}>
+                    💬 {order.note}
+                  </div>
+                )}
+
                 <div style={{ minHeight: '80px', marginBottom: '20px' }}>
                   {order.order_items?.map((item, idx) => (
                     <div key={idx} style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '10px', fontSize: '1.4rem' }}>
-                      <span>{item.menu_items?.name}</span>
+                      <span>
+                        {item.item_type === 'pickup' ? '🛍️ ' : (item.item_type === 'tuva' ? '👤 ' : '🍽️ ')} 
+                        {item.menu_items?.name}
+                      </span>
                       <strong style={{ color: '#dc2626' }}>{item.quantity} ш</strong>
                     </div>
                   ))}
@@ -274,21 +288,16 @@ function AdminPage() {
                 </div>
               </div>
             </div>
-          ))}
+          )})}
         </div>
       )}
 
       {/* ТАБ 2: ЦЭС УДИРДАХ */}
       {activeTab === 'menu' && (
         <div style={{ backgroundColor: 'white', borderRadius: '16px', padding: '25px', boxShadow: '0 4px 20px rgba(0,0,0,0.02)' }}>
-          
-          {/* ✨ ШИНЭ: Шинэ хоол нэмэх товч */}
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px', flexWrap: 'wrap', gap: '10px' }}>
             <h2 style={{ margin: 0, color: '#0f172a' }}>Хоолны үлдэгдэл тохируулах</h2>
-            <button 
-              onClick={() => setIsAddMenuModalOpen(true)} 
-              style={{ padding: '12px 20px', backgroundColor: '#0f172a', color: 'white', border: 'none', borderRadius: '8px', fontWeight: 'bold', cursor: 'pointer' }}
-            >
+            <button onClick={() => setIsAddMenuModalOpen(true)} style={{ padding: '12px 20px', backgroundColor: '#0f172a', color: 'white', border: 'none', borderRadius: '8px', fontWeight: 'bold', cursor: 'pointer' }}>
               ➕ Шинэ хоол нэмэх
             </button>
           </div>
