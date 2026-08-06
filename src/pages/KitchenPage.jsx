@@ -35,64 +35,52 @@ function KitchenPage() {
   };
 
   const [orders, setOrders] = useState([]);
+  const [menuItems, setMenuItems] = useState([]);
   const [isLoading, setIsLoading] = useState(true);
   const [activeTab, setActiveTab] = useState('cooking'); 
 
   const enableSound = () => {
-    audioRef.current.play().then(() => {
-      setIsSoundEnabled(true);
-    }).catch(err => {
-      console.log("Дуу идэвхжүүлэхэд алдаа:", err);
-      alert("Дуу идэвхжүүлэх боломжгүй байна.");
-    });
+    audioRef.current.play().then(() => setIsSoundEnabled(true)).catch(err => alert("Дуу идэвхжүүлэх боломжгүй байна."));
   };
 
   const playBellSound = () => {
     if (!isSoundEnabled) return; 
     audioRef.current.currentTime = 0;
     const playPromise = audioRef.current.play();
-    if (playPromise !== undefined) {
-      playPromise.catch(error => console.log("Хонх хаагдсан байна:", error));
-    }
+    if (playPromise !== undefined) playPromise.catch(error => console.log(error));
   };
 
   useEffect(() => {
     if (isAuthenticated) {
       fetchOrders();
-      const channel = supabase
-        .channel('kitchen_orders')
-        .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'orders' }, () => {
-          playBellSound(); 
-          fetchOrders(); 
-        })
-        .on('postgres_changes', { event: 'UPDATE', schema: 'public', table: 'orders' }, () => {
-          fetchOrders(); 
-        })
+      const channel = supabase.channel('kitchen_orders')
+        .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'orders' }, () => { playBellSound(); fetchOrders(); })
+        .on('postgres_changes', { event: 'UPDATE', schema: 'public', table: 'orders' }, () => { fetchOrders(); })
         .subscribe();
       return () => supabase.removeChannel(channel);
     }
   }, [isAuthenticated, isSoundEnabled]);
 
+  // Цэсний таб руу ороход цэсийг уншина
+  useEffect(() => {
+    if (activeTab === 'menu' && isAuthenticated) {
+      fetchMenuItems();
+    }
+  }, [activeTab, isAuthenticated]);
+
   const fetchOrders = async () => {
     try {
-      const startOfToday = new Date();
-      startOfToday.setHours(0, 0, 0, 0);
-
-      // ✨ ШИНЭ: item_type баганыг баазаас давхар дуудна
-      const { data, error } = await supabase
-        .from('orders')
-        .select(`*, order_items (id, quantity, is_done, item_type, menu_items (name))`)
-        .in('status', ['cooking', 'completed'])
-        .gte('created_at', startOfToday.toISOString())
-        .order('created_at', { ascending: true });
-
+      const startOfToday = new Date(); startOfToday.setHours(0, 0, 0, 0);
+      const { data, error } = await supabase.from('orders').select(`*, order_items (id, quantity, is_done, item_type, menu_items (name))`).in('status', ['cooking', 'completed']).gte('created_at', startOfToday.toISOString()).order('created_at', { ascending: true });
       if (error) throw error;
       setOrders(data);
-    } catch (err) {
-      console.error("Захиалга татахад алдаа:", err.message);
-    } finally {
-      setIsLoading(false);
-    }
+    } catch (err) { console.error(err.message); } finally { setIsLoading(false); }
+  };
+
+  // ✨ ШИНЭ: Цэс татах
+  const fetchMenuItems = async () => {
+    const { data, error } = await supabase.from('menu_items').select('*').order('name');
+    if (!error) setMenuItems(data);
   };
 
   const updateOrderStatus = async (orderId, newStatus) => {
@@ -100,9 +88,7 @@ function KitchenPage() {
       const { error } = await supabase.from('orders').update({ status: newStatus }).eq('id', orderId);
       if (error) throw error;
       fetchOrders(); 
-    } catch (err) {
-      alert("Алдаа гарлаа: " + err.message);
-    }
+    } catch (err) { alert("Алдаа гарлаа: " + err.message); }
   };
 
   const toggleItemDone = async (orderItemId, currentStatus) => {
@@ -110,9 +96,27 @@ function KitchenPage() {
       const { error } = await supabase.from('order_items').update({ is_done: !currentStatus }).eq('id', orderItemId);
       if (error) throw error;
       fetchOrders(); 
-    } catch (err) {
-      console.error("Төлөв өөрчлөхөд алдаа:", err.message);
-    }
+    } catch (err) { console.error(err.message); }
+  };
+
+  // ✨ ШИНЭ: Үлдэгдэл болон төлөв хадгалах
+  const updateStock = async (id, newStockValue) => {
+    try {
+      const stock = newStockValue === '' ? null : parseInt(newStockValue);
+      const isActive = stock === 0 ? false : true; 
+      const { error } = await supabase.from('menu_items').update({ stock: stock, is_active: isActive }).eq('id', id);
+      if (error) throw error;
+      alert("Үлдэгдэл амжилттай хадгалагдлаа!");
+      fetchMenuItems();
+    } catch (err) { alert("Алдаа: " + err.message); }
+  };
+
+  const updateItemStatus = async (id, newStatus) => {
+    try {
+      const { error } = await supabase.from('menu_items').update({ is_active: newStatus }).eq('id', id);
+      if (error) throw error;
+      fetchMenuItems();
+    } catch (err) { alert("Алдаа: " + err.message); }
   };
 
   const cookingOrders = orders.filter(o => o.status === 'cooking');
@@ -126,9 +130,7 @@ function KitchenPage() {
           <h2 style={{ marginBottom: '10px', color: '#0f172a' }}>Гал тогоо нэвтрэх</h2>
           <input type="email" placeholder="И-мэйл хаяг" value={email} onChange={(e) => setEmail(e.target.value)} style={{ width: '100%', padding: '14px', fontSize: '1rem', borderRadius: '8px', border: '1px solid #cbd5e1', marginBottom: '15px', boxSizing: 'border-box' }} required />
           <input type="password" placeholder="Нууц үг" value={password} onChange={(e) => setPassword(e.target.value)} style={{ width: '100%', padding: '14px', fontSize: '1rem', borderRadius: '8px', border: '1px solid #cbd5e1', marginBottom: '25px', boxSizing: 'border-box' }} required />
-          <button type="submit" disabled={isLoggingIn} style={{ width: '100%', padding: '15px', fontSize: '1.1rem', backgroundColor: isLoggingIn ? '#94a3b8' : '#f59e0b', color: 'white', border: 'none', borderRadius: '8px', cursor: 'pointer', fontWeight: 'bold' }}>
-            {isLoggingIn ? 'Шалгаж байна...' : 'Нэвтрэх'}
-          </button>
+          <button type="submit" disabled={isLoggingIn} style={{ width: '100%', padding: '15px', fontSize: '1.1rem', backgroundColor: isLoggingIn ? '#94a3b8' : '#f59e0b', color: 'white', border: 'none', borderRadius: '8px', cursor: 'pointer', fontWeight: 'bold' }}>Нэвтрэх</button>
         </form>
       </div>
     );
@@ -154,6 +156,11 @@ function KitchenPage() {
           <button onClick={() => setActiveTab('completed')} style={{ padding: '10px 15px', fontSize: '1rem', fontWeight: 'bold', border: 'none', borderRadius: '8px', cursor: 'pointer', backgroundColor: activeTab === 'completed' ? '#10b981' : '#e2e8f0', color: activeTab === 'completed' ? 'white' : '#475569' }}>
             ✅ Бэлэн ({completedOrders.length})
           </button>
+          {/* ✨ ШИНЭ: Үлдэгдэл тохируулах ТАБ */}
+          <button onClick={() => setActiveTab('menu')} style={{ padding: '10px 15px', fontSize: '1rem', fontWeight: 'bold', border: 'none', borderRadius: '8px', cursor: 'pointer', backgroundColor: activeTab === 'menu' ? '#8b5cf6' : '#e2e8f0', color: activeTab === 'menu' ? 'white' : '#475569' }}>
+            📦 Үлдэгдэл
+          </button>
+
           <button onClick={handleLogout} style={{ padding: '10px 15px', fontSize: '1rem', fontWeight: 'bold', border: 'none', borderRadius: '8px', cursor: 'pointer', backgroundColor: '#ef4444', color: 'white' }}>Гарах</button>
         </div>
       </div>
@@ -169,28 +176,10 @@ function KitchenPage() {
               ) : (
                 <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(280px, 1fr))', gap: '15px' }}>
                   {cookingOrders.map((order) => {
-                    // ТӨРӨЛ БОЛОН ӨНГӨ
-                    let cardBg = '#eff6ff'; // Dine-in (Цэнхэр)
-                    let cardBorder = '#3b82f6'; 
-                    let badgeBg = '#3b82f6';
-                    let typeLabel = '🍽️ ЗААЛАНД';
-
-                    if (order.order_type === 'pickup') {
-                      cardBg = '#fff7ed'; // Улбар шар
-                      cardBorder = '#ea580c'; 
-                      badgeBg = '#ea580c'; 
-                      typeLabel = '🛍️ АВААД ЯВАХ';
-                    } else if (order.order_type === 'tuva') {
-                      cardBg = '#fdf4ff'; // Тува (Ягаан)
-                      cardBorder = '#c026d3'; 
-                      badgeBg = '#c026d3'; 
-                      typeLabel = '👤 ТУВА';
-                    } else if (order.order_type === 'mixed') {
-                      cardBg = '#f8fafc'; // Холимог (Саарал/Хар)
-                      cardBorder = '#475569'; 
-                      badgeBg = '#475569'; 
-                      typeLabel = '🔄 ХОЛИМОГ ЗАХИАЛГА';
-                    }
+                    let cardBg = '#eff6ff'; let cardBorder = '#3b82f6'; let badgeBg = '#3b82f6'; let typeLabel = '🍽️ ЗААЛАНД';
+                    if (order.order_type === 'pickup') { cardBg = '#fff7ed'; cardBorder = '#ea580c'; badgeBg = '#ea580c'; typeLabel = '🛍️ АВААД ЯВАХ'; } 
+                    else if (order.order_type === 'tuva') { cardBg = '#fdf4ff'; cardBorder = '#c026d3'; badgeBg = '#c026d3'; typeLabel = '👤 ТУВА'; } 
+                    else if (order.order_type === 'mixed') { cardBg = '#f8fafc'; cardBorder = '#475569'; badgeBg = '#475569'; typeLabel = '🔄 ХОЛИМОГ ЗАХИАЛГА'; }
 
                     const pendingItems = order.order_items?.filter(item => !item.is_done) || [];
                     const doneItems = order.order_items?.filter(item => item.is_done) || [];
@@ -201,41 +190,26 @@ function KitchenPage() {
                         <div>
                           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', borderBottom: `1px solid ${cardBorder}50`, paddingBottom: '10px', marginBottom: '12px' }}>
                             <div>
-                              <strong style={{ fontSize: '1.6rem', color: '#1e293b' }}>
-                                #{order.order_number || String(order.id).slice(-4).toUpperCase()}
-                              </strong>
-                              <div style={{ color: '#475569', fontSize: '0.9rem', marginTop: '4px', fontWeight: '700' }}>
-                                🕒 {new Date(order.created_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
-                              </div>
+                              <strong style={{ fontSize: '1.6rem', color: '#1e293b' }}>#{order.order_number || String(order.id).slice(-4).toUpperCase()}</strong>
+                              <div style={{ color: '#475569', fontSize: '0.9rem', marginTop: '4px', fontWeight: '700' }}>🕒 {new Date(order.created_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</div>
                             </div>
-                            <div style={{ backgroundColor: badgeBg, color: 'white', padding: '6px 10px', borderRadius: '6px', fontSize: '0.95rem', fontWeight: '800' }}>
-                              {typeLabel}
-                            </div>
+                            <div style={{ backgroundColor: badgeBg, color: 'white', padding: '6px 10px', borderRadius: '6px', fontSize: '0.95rem', fontWeight: '800' }}>{typeLabel}</div>
                           </div>
 
                           {order.note && order.note.trim() !== '' && (
-                            <div style={{ backgroundColor: 'white', color: '#b45309', padding: '10px', borderRadius: '6px', marginBottom: '12px', fontSize: '1.1rem', fontWeight: 'bold', border: '1px solid #fde68a' }}>
-                              💬 {order.note}
-                            </div>
+                            <div style={{ backgroundColor: 'white', color: '#b45309', padding: '10px', borderRadius: '6px', marginBottom: '12px', fontSize: '1.1rem', fontWeight: 'bold', border: '1px solid #fde68a' }}>💬 {order.note}</div>
                           )}
 
                           <div style={{ minHeight: '60px', marginBottom: '15px' }}>
                             {pendingItems.map((item, idx) => {
-                              // Хоол тус бүрийн дүрсийг олох
-                              let itemIcon = '🍽️';
-                              if (item.item_type === 'pickup') itemIcon = '🛍️';
-                              if (item.item_type === 'tuva') itemIcon = '👤';
-
+                              let itemIcon = '🍽️'; if (item.item_type === 'pickup') itemIcon = '🛍️'; if (item.item_type === 'tuva') itemIcon = '👤';
                               return (
                                 <div key={`pending-${idx}`} onClick={() => toggleItemDone(item.id, item.is_done)} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '8px', padding: '10px 15px', border: `1px solid ${cardBorder}40`, backgroundColor: 'white', borderRadius: '10px', cursor: 'pointer', transition: 'all 0.2s ease', boxShadow: '0 2px 4px rgba(0,0,0,0.03)' }}>
-                                  <span style={{ color: '#0f172a', fontWeight: '700', fontSize: '1.2rem' }}>
-                                    ⬜ {itemIcon} {item.menu_items?.name || 'Тодорхойгүй'}
-                                  </span>
+                                  <span style={{ color: '#0f172a', fontWeight: '700', fontSize: '1.2rem' }}>⬜ {itemIcon} {item.menu_items?.name || 'Тодорхойгүй'}</span>
                                   <strong style={{ color: '#dc2626', fontSize: '1.3rem', fontWeight: '900', backgroundColor: '#fef2f2', padding: '4px 10px', borderRadius: '6px' }}>{item.quantity} ш</strong>
                                 </div>
                               );
                             })}
-
                             {doneItems.length > 0 && (
                               <div style={{ marginTop: '15px', borderTop: `1px dashed ${cardBorder}`, paddingTop: '10px' }}>
                                 <span style={{ fontSize: '0.85rem', color: cardBorder, fontWeight: '900', textTransform: 'uppercase', marginBottom: '8px', display: 'block' }}>✅ Бэлэн болсон:</span>
@@ -249,11 +223,7 @@ function KitchenPage() {
                             )}
                           </div>
                         </div>
-
-                        <button 
-                          onClick={() => updateOrderStatus(order.id, 'completed')} 
-                          style={{ width: '100%', padding: '14px', borderRadius: '10px', cursor: 'pointer', fontSize: '1.1rem', fontWeight: '900', backgroundColor: isAllDone ? '#10b981' : 'rgba(0,0,0,0.05)', color: isAllDone ? 'white' : '#64748b', boxShadow: isAllDone ? '0 4px 15px rgba(16, 185, 129, 0.4)' : 'none', border: isAllDone ? 'none' : '1px solid #cbd5e1', transition: 'all 0.3s' }}
-                        >
+                        <button onClick={() => updateOrderStatus(order.id, 'completed')} style={{ width: '100%', padding: '14px', borderRadius: '10px', cursor: 'pointer', fontSize: '1.1rem', fontWeight: '900', backgroundColor: isAllDone ? '#10b981' : 'rgba(0,0,0,0.05)', color: isAllDone ? 'white' : '#64748b', boxShadow: isAllDone ? '0 4px 15px rgba(16, 185, 129, 0.4)' : 'none', border: isAllDone ? 'none' : '1px solid #cbd5e1', transition: 'all 0.3s' }}>
                           {isAllDone ? '✔️ ЗАХИАЛГА БЭЛЭН (ЯВУУЛАХ)' : '✔️ ХООЛ БЭЛЭН'}
                         </button>
                       </div>
@@ -289,10 +259,7 @@ function KitchenPage() {
                           ))}
                         </div>
                       </div>
-                      <button 
-                        onClick={() => { if (window.confirm("Буцаах уу?")) updateOrderStatus(order.id, 'cooking'); }}
-                        style={{ width: '100%', padding: '10px', backgroundColor: '#e2e8f0', color: '#475569', border: 'none', borderRadius: '8px', cursor: 'pointer', fontSize: '0.95rem', fontWeight: '800' }}
-                      >
+                      <button onClick={() => { if (window.confirm("Буцаах уу?")) updateOrderStatus(order.id, 'cooking'); }} style={{ width: '100%', padding: '10px', backgroundColor: '#e2e8f0', color: '#475569', border: 'none', borderRadius: '8px', cursor: 'pointer', fontSize: '0.95rem', fontWeight: '800' }}>
                         ↩️ Буцаах
                       </button>
                     </div>
@@ -301,6 +268,50 @@ function KitchenPage() {
               )}
             </div>
           )}
+
+          {/* ✨ ШИНЭ: ҮЛДЭГДЭЛ ХЯНАХ ТАБ */}
+          {activeTab === 'menu' && (
+            <div>
+              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(300px, 1fr))', gap: '15px' }}>
+                {menuItems.map(item => (
+                  <div key={item.id} style={{ backgroundColor: 'white', padding: '20px', borderRadius: '12px', border: '1px solid #cbd5e1', boxShadow: '0 4px 6px rgba(0,0,0,0.02)', opacity: item.is_active ? 1 : 0.6 }}>
+                    <h3 style={{ margin: '0 0 15px 0', color: '#1e293b', fontSize: '1.2rem', textDecoration: item.is_active ? 'none' : 'line-through' }}>{item.name}</h3>
+                    
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                      {/* Тоо ширхэг оруулах хэсэг */}
+                      <div>
+                        <label style={{ fontSize: '0.9rem', color: '#64748b', display: 'block', marginBottom: '8px', fontWeight: 'bold' }}>Үлдэгдэл (ш):</label>
+                        <div style={{ display: 'flex', gap: '8px' }}>
+                          <input 
+                            type="number" 
+                            id={`stock-${item.id}`} 
+                            defaultValue={item.stock === null ? '' : item.stock} 
+                            placeholder="Хязгааргүй" 
+                            style={{ width: '100px', padding: '10px', borderRadius: '8px', border: '2px solid #cbd5e1', fontSize: '1.1rem', textAlign: 'center', outline: 'none' }}
+                          />
+                          <button onClick={() => {
+                            const val = document.getElementById(`stock-${item.id}`).value;
+                            updateStock(item.id, val);
+                          }} style={{ padding: '10px 15px', backgroundColor: '#3b82f6', color: 'white', border: 'none', borderRadius: '8px', cursor: 'pointer', fontWeight: 'bold' }}>
+                            Хадгалах
+                          </button>
+                        </div>
+                      </div>
+                      
+                      {/* Дууссан / Байгаа товч */}
+                      <button 
+                        onClick={() => updateItemStatus(item.id, !item.is_active)}
+                        style={{ padding: '12px 15px', borderRadius: '8px', border: 'none', fontWeight: 'bold', cursor: 'pointer', backgroundColor: item.is_active ? '#10b981' : '#ef4444', color: 'white', height: 'fit-content' }}
+                      >
+                        {item.is_active ? '✅ БАЙГАА' : '❌ ДУУССАН'}
+                      </button>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+
         </>
       )}
     </div>
