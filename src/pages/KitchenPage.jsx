@@ -7,9 +7,9 @@ function KitchenPage() {
   const [password, setPassword] = useState('');
   const [isLoggingIn, setIsLoggingIn] = useState(false);
 
-  // 🔔 Хонхны дууны төлөв болон файл
+  // 🔔 ШИНЭЧЛЭГДСЭН: iPhone дээр уншихын тулд .mp3 форматтай найдвартай дууны линкээр солилоо
   const [isSoundEnabled, setIsSoundEnabled] = useState(false);
-  const audioRef = useRef(new Audio('https://actions.google.com/sounds/v1/alarms/ding_dong.ogg'));
+  const audioRef = useRef(new Audio('https://res.cloudinary.com/dxfq3iotg/video/upload/v1557233524/success.mp3'));
 
   useEffect(() => {
     checkUser();
@@ -40,17 +40,18 @@ function KitchenPage() {
   const [isLoading, setIsLoading] = useState(true);
   const [activeTab, setActiveTab] = useState('cooking'); 
 
-  // 🔔 ДУУ ИДЭВХЖҮҮЛЭХ ФУНКЦ (Browser-ийн хаалтыг тайлах)
+  // 🔔 ДУУ ИДЭВХЖҮҮЛЭХ ФУНКЦ
   const enableSound = () => {
     audioRef.current.play().then(() => {
       setIsSoundEnabled(true);
     }).catch(err => {
       console.log("Дуу идэвхжүүлэхэд алдаа:", err);
-      alert("Дуу идэвхжүүлэх боломжгүй байна.");
+      alert("Дуу идэвхжүүлэх боломжгүй байна. Та утсаа дуутай (Silent биш) горимд байгаа эсэхийг шалгана уу.");
     });
   };
 
   const playBellSound = () => {
+    if (!isSoundEnabled) return; // Хэрэв идэвхжүүлээгүй бол дуугаргах гэж оролдохгүй
     audioRef.current.currentTime = 0;
     const playPromise = audioRef.current.play();
     if (playPromise !== undefined) {
@@ -75,14 +76,13 @@ function KitchenPage() {
         
       return () => supabase.removeChannel(channel);
     }
-  }, [isAuthenticated]);
+  }, [isAuthenticated, isSoundEnabled]);
 
   const fetchOrders = async () => {
     try {
       const startOfToday = new Date();
       startOfToday.setHours(0, 0, 0, 0);
 
-      // ✨ ШИНЭ: menu_items дотроос category давхар татаж авна
       const { data, error } = await supabase
         .from('orders')
         .select(`*, order_items (quantity, menu_items (name, category))`)
@@ -112,13 +112,12 @@ function KitchenPage() {
   const cookingOrders = orders.filter(o => o.status === 'cooking');
   const completedOrders = orders.filter(o => o.status === 'completed').sort((a, b) => new Date(b.updated_at || b.created_at) - new Date(a.updated_at || a.created_at));
 
-  // ✨ ШИНЭ: Зөвхөн "Ширхэг" гэсэн ангилалтай хоолыг нэгтгэж тоолох
+  // Зөвхөн "Ширхэг" гэсэн ангилалтай хоолыг нэгтгэж тоолох
   const pendingItemsSummary = {};
   cookingOrders.forEach(order => {
     order.order_items?.forEach(item => {
       const categoryName = item.menu_items?.category?.toLowerCase() || '';
       
-      // Хэрвээ ангиллын нэрэнд "ширхэг" гэсэн үг орсон байвал л тоолно
       if (categoryName.includes('ширхэг')) {
         const itemName = item.menu_items?.name || 'Тодорхойгүй';
         if (!pendingItemsSummary[itemName]) {
@@ -152,7 +151,7 @@ function KitchenPage() {
       {/* 🔔 ХОНХ ИДЭВХЖҮҮЛЭХ САНУУЛГА */}
       {!isSoundEnabled && (
         <div style={{ backgroundColor: '#fef2f2', color: '#ef4444', padding: '15px 25px', borderRadius: '12px', marginBottom: '20px', display: 'flex', justifyContent: 'space-between', alignItems: 'center', border: '2px solid #fca5a5', flexWrap: 'wrap', gap: '10px' }}>
-          <strong style={{ fontSize: '1.1rem' }}>⚠️ Системийн хонх хаагдсан байна. Захиалга ороход дуугаргахын тулд идэвхжүүлнэ үү.</strong>
+          <strong style={{ fontSize: '1.1rem' }}>⚠️ Захиалга ороход дуугаргахын тулд идэвхжүүлнэ үү.</strong>
           <button onClick={enableSound} style={{ padding: '12px 24px', backgroundColor: '#ef4444', color: 'white', border: 'none', borderRadius: '8px', fontWeight: 'bold', cursor: 'pointer', fontSize: '1.1rem', boxShadow: '0 4px 10px rgba(239, 68, 68, 0.3)' }}>
             🔔 Дууг идэвхжүүлэх
           </button>
