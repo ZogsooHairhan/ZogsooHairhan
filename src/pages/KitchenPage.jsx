@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { supabase } from '../supabaseClient';
 
 function KitchenPage() {
@@ -6,6 +6,10 @@ function KitchenPage() {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [isLoggingIn, setIsLoggingIn] = useState(false);
+
+  // 🔔 Хонхны дууны төлөв болон файл
+  const [isSoundEnabled, setIsSoundEnabled] = useState(false);
+  const audioRef = useRef(new Audio('https://actions.google.com/sounds/v1/alarms/ding_dong.ogg'));
 
   useEffect(() => {
     checkUser();
@@ -36,10 +40,22 @@ function KitchenPage() {
   const [isLoading, setIsLoading] = useState(true);
   const [activeTab, setActiveTab] = useState('cooking'); 
 
-  // 🔔 Хонх дуугаргах функц
+  // 🔔 ДУУ ИДЭВХЖҮҮЛЭХ ФУНКЦ (Browser-ийн хаалтыг тайлах)
+  const enableSound = () => {
+    audioRef.current.play().then(() => {
+      setIsSoundEnabled(true);
+    }).catch(err => {
+      console.log("Дуу идэвхжүүлэхэд алдаа:", err);
+      alert("Дуу идэвхжүүлэх боломжгүй байна.");
+    });
+  };
+
   const playBellSound = () => {
-    const audio = new Audio('https://actions.google.com/sounds/v1/alarms/ding_dong.ogg');
-    audio.play().catch(err => console.log("Аудио тоглуулахад алдаа:", err));
+    audioRef.current.currentTime = 0;
+    const playPromise = audioRef.current.play();
+    if (playPromise !== undefined) {
+      playPromise.catch(error => console.log("Хонх хаагдсан байна:", error));
+    }
   };
 
   useEffect(() => {
@@ -66,9 +82,10 @@ function KitchenPage() {
       const startOfToday = new Date();
       startOfToday.setHours(0, 0, 0, 0);
 
+      // ✨ ШИНЭ: menu_items дотроос category давхар татаж авна
       const { data, error } = await supabase
         .from('orders')
-        .select(`*, order_items (quantity, menu_items (name))`)
+        .select(`*, order_items (quantity, menu_items (name, category))`)
         .in('status', ['cooking', 'completed'])
         .gte('created_at', startOfToday.toISOString())
         .order('created_at', { ascending: true });
@@ -95,18 +112,22 @@ function KitchenPage() {
   const cookingOrders = orders.filter(o => o.status === 'cooking');
   const completedOrders = orders.filter(o => o.status === 'completed').sort((a, b) => new Date(b.updated_at || b.created_at) - new Date(a.updated_at || a.created_at));
 
-  // ✨ ШИНЭ: Хийгдэж байгаа нийт хоолнуудыг нэгтгэж тоолох функц
+  // ✨ ШИНЭ: Зөвхөн "Ширхэг" гэсэн ангилалтай хоолыг нэгтгэж тоолох
   const pendingItemsSummary = {};
   cookingOrders.forEach(order => {
     order.order_items?.forEach(item => {
-      const itemName = item.menu_items?.name || 'Тодорхойгүй';
-      if (!pendingItemsSummary[itemName]) {
-        pendingItemsSummary[itemName] = 0;
+      const categoryName = item.menu_items?.category?.toLowerCase() || '';
+      
+      // Хэрвээ ангиллын нэрэнд "ширхэг" гэсэн үг орсон байвал л тоолно
+      if (categoryName.includes('ширхэг')) {
+        const itemName = item.menu_items?.name || 'Тодорхойгүй';
+        if (!pendingItemsSummary[itemName]) {
+          pendingItemsSummary[itemName] = 0;
+        }
+        pendingItemsSummary[itemName] += item.quantity;
       }
-      pendingItemsSummary[itemName] += item.quantity;
     });
   });
-  // Тоо ширхэгээр нь ихээс нь бага руу эрэмбэлэх
   const summaryEntries = Object.entries(pendingItemsSummary).sort((a, b) => b[1] - a[1]);
 
   if (!isAuthenticated) {
@@ -128,6 +149,16 @@ function KitchenPage() {
   return (
     <div style={{ padding: '20px', fontFamily: 'sans-serif', backgroundColor: '#f8fafc', minHeight: '100vh', boxSizing: 'border-box' }}>
       
+      {/* 🔔 ХОНХ ИДЭВХЖҮҮЛЭХ САНУУЛГА */}
+      {!isSoundEnabled && (
+        <div style={{ backgroundColor: '#fef2f2', color: '#ef4444', padding: '15px 25px', borderRadius: '12px', marginBottom: '20px', display: 'flex', justifyContent: 'space-between', alignItems: 'center', border: '2px solid #fca5a5', flexWrap: 'wrap', gap: '10px' }}>
+          <strong style={{ fontSize: '1.1rem' }}>⚠️ Системийн хонх хаагдсан байна. Захиалга ороход дуугаргахын тулд идэвхжүүлнэ үү.</strong>
+          <button onClick={enableSound} style={{ padding: '12px 24px', backgroundColor: '#ef4444', color: 'white', border: 'none', borderRadius: '8px', fontWeight: 'bold', cursor: 'pointer', fontSize: '1.1rem', boxShadow: '0 4px 10px rgba(239, 68, 68, 0.3)' }}>
+            🔔 Дууг идэвхжүүлэх
+          </button>
+        </div>
+      )}
+
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderBottom: '3px solid #e2e8f0', paddingBottom: '15px', marginBottom: '25px', flexWrap: 'wrap', gap: '15px' }}>
         <h1 style={{ color: '#0f172a', margin: 0, fontSize: 'clamp(1.6rem, 4vw, 2.3rem)' }}>👨‍🍳 Гал тогоо</h1>
         
@@ -148,11 +179,11 @@ function KitchenPage() {
         <>
           {activeTab === 'cooking' && (
             <div>
-              {/* ✨ ШИНЭ: НИЙТ ХИЙГДЭЖ БАЙГАА ХООЛНЫ НЭГТГЭЛ САМБАР */}
+              {/* 📊 ЗӨВХӨН ШИРХЭГИЙН ХООЛНЫ НЭГТГЭЛ САМБАР */}
               {summaryEntries.length > 0 && (
                 <div style={{ backgroundColor: '#0f172a', padding: '20px', borderRadius: '16px', marginBottom: '25px', boxShadow: '0 10px 25px rgba(0,0,0,0.1)' }}>
                   <h3 style={{ margin: '0 0 15px 0', fontSize: '1.1rem', color: '#94a3b8', textTransform: 'uppercase', letterSpacing: '1px' }}>
-                    📊 Нийт бэлтгэх хоолны нэгтгэл
+                    🥟 Ширхэгийн хоолны нэгтгэл
                   </h3>
                   <div style={{ display: 'flex', flexWrap: 'wrap', gap: '15px' }}>
                     {summaryEntries.map(([name, qty], idx) => (
