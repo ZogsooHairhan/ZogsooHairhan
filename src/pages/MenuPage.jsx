@@ -3,9 +3,8 @@ import { supabase } from '../supabaseClient';
 
 function MenuPage() {
   // ==============================================
-  // KIOSK ТӨЛӨВҮҮД (Нэвтрэх шаардлагагүй!)
+  // KIOSK ТӨЛӨВҮҮД
   // ==============================================
-  // 'welcome' -> 'menu' -> 'payment_method' -> 'processing' -> 'success'
   const [kioskState, setKioskState] = useState('welcome'); 
   
   const [menuItems, setMenuItems] = useState([]);
@@ -15,7 +14,6 @@ function MenuPage() {
   const [selectedPayment, setSelectedPayment] = useState(null);
   const [successOrderNumber, setSuccessOrderNumber] = useState('');
 
-  // 1. Цэсийг мэдээллийн сангаас татах
   useEffect(() => {
     fetchMenu();
   }, []);
@@ -24,7 +22,6 @@ function MenuPage() {
     try {
       const { data, error } = await supabase.from('menu_items').select('*').eq('is_active', true).order('name');
       if (!error && data) {
-        // Үлдэгдэл нь 0 биш хоолнуудыг л харуулна
         const availableItems = data.filter(item => item.stock === null || item.stock > 0);
         setMenuItems(availableItems);
       }
@@ -36,7 +33,6 @@ function MenuPage() {
   const categories = ['Бүгд', ...new Set(menuItems.map(item => item.category || 'Бусад'))];
   const filteredMenu = activeCategory === 'Бүгд' ? menuItems : menuItems.filter(item => (item.category || 'Бусад') === activeCategory);
 
-  // 2. Сагсны үйлдэл
   const addToCart = (item) => {
     setCart((prev) => {
       const existing = prev.find(c => c.id === item.id);
@@ -64,7 +60,6 @@ function MenuPage() {
 
   const totalPrice = cart.reduce((sum, item) => sum + (item.price * item.quantity), 0);
 
-  // 3. Захиалга илгээх функц (Төлбөр амжилттай болсны дараа)
   const submitOrder = async (paymentMethod) => {
     try {
       const { data: orderData, error: orderError } = await supabase
@@ -72,7 +67,7 @@ function MenuPage() {
         .insert([{ 
           total_amount: totalPrice, 
           order_type: orderType, 
-          status: 'cooking', // Шууд гал тогоо руу орно
+          status: 'cooking', 
           payment_method: paymentMethod 
         }])
         .select();
@@ -86,12 +81,11 @@ function MenuPage() {
         menu_item_id: item.id, 
         quantity: item.quantity, 
         price: item.price,
-        item_type: orderType // Бүх хоол ижил төрөлтэй байна
+        item_type: orderType 
       }));
 
       await supabase.from('order_items').insert(orderItemsData);
 
-      // Үлдэгдлээс хасах
       for (const item of cart) {
         if (item.stock !== null) {
           const newStock = Math.max(0, item.stock - item.quantity);
@@ -103,14 +97,13 @@ function MenuPage() {
       setSuccessOrderNumber(orderNum);
       setKioskState('success');
       
-      // 5 секундын дараа автоматаар эхний хуудас руу шилжинэ
       setTimeout(() => {
         resetKiosk();
       }, 5000);
       
     } catch (err) {
       alert("Захиалга илгээхэд алдаа гарлаа: " + err.message);
-      setKioskState('menu'); // Алдаа гарвал буцаад сагс руу шилжинэ
+      setKioskState('menu'); 
     }
   };
 
@@ -120,15 +113,12 @@ function MenuPage() {
     setSelectedPayment(null);
     setSuccessOrderNumber('');
     setKioskState('welcome');
-    fetchMenu(); // Цэсийг шинэчлэх (үлдэгдэл шалгах)
+    fetchMenu(); 
   };
 
-  // 4. Төлбөр хийх үйл явцыг симуляци хийх
   const simulatePayment = (method) => {
     setSelectedPayment(method);
     setKioskState('processing');
-    
-    // Банкны API холбогдоогүй байгаа тул 3 секунд хүлээгээд амжилттай болгож байна
     setTimeout(() => {
       submitOrder(method);
     }, 3000);
@@ -143,20 +133,26 @@ function MenuPage() {
   if (kioskState === 'welcome') {
     return (
       <div style={{ display: 'flex', flexDirection: 'column', height: '100vh', justifyContent: 'center', alignItems: 'center', backgroundColor: '#0f172a', fontFamily: 'Arial, sans-serif', color: 'white', padding: '20px', textAlign: 'center' }}>
-        <div style={{ fontSize: '6rem', marginBottom: '20px' }}>🍔</div>
-        <h1 style={{ fontSize: '3rem', marginBottom: '10px' }}>Тавтай морилно уу</h1>
+        <div style={{ fontSize: '5rem', marginBottom: '10px' }}>🏔️</div>
+        {/* ✨ ШИНЭ: Рестораны нэр */}
+        <h2 style={{ fontSize: '2rem', marginBottom: '5px', color: '#38bdf8', textTransform: 'uppercase', letterSpacing: '2px' }}>Зогсоо хайрхан зоогийн газар</h2>
+        <h1 style={{ fontSize: '3.5rem', marginBottom: '10px' }}>Тавтай морилно уу</h1>
         <p style={{ fontSize: '1.5rem', color: '#94a3b8', marginBottom: '50px' }}>Та доорх сонголтуудаас сонгож захиалгаа эхлүүлнэ үү</p>
         
         <div style={{ display: 'flex', gap: '20px', width: '100%', maxWidth: '600px' }}>
           <button 
             onClick={() => { setOrderType('dine-in'); setKioskState('menu'); }}
-            style={{ flex: 1, padding: '40px 20px', fontSize: '1.8rem', fontWeight: 'bold', borderRadius: '20px', border: 'none', backgroundColor: '#3b82f6', color: 'white', cursor: 'pointer', boxShadow: '0 10px 25px rgba(59, 130, 246, 0.4)', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '15px' }}
+            style={{ flex: 1, padding: '40px 20px', fontSize: '1.8rem', fontWeight: 'bold', borderRadius: '20px', border: 'none', backgroundColor: '#3b82f6', color: 'white', cursor: 'pointer', boxShadow: '0 10px 25px rgba(59, 130, 246, 0.4)', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '15px', transition: 'transform 0.1s' }}
+            onMouseDown={e => e.currentTarget.style.transform = 'scale(0.95)'} 
+            onMouseUp={e => e.currentTarget.style.transform = 'scale(1)'}
           >
             <span style={{ fontSize: '3rem' }}>🍽️</span> ЗААЛАНД ИДЭХ
           </button>
           <button 
             onClick={() => { setOrderType('pickup'); setKioskState('menu'); }}
-            style={{ flex: 1, padding: '40px 20px', fontSize: '1.8rem', fontWeight: 'bold', borderRadius: '20px', border: 'none', backgroundColor: '#ea580c', color: 'white', cursor: 'pointer', boxShadow: '0 10px 25px rgba(234, 88, 12, 0.4)', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '15px' }}
+            style={{ flex: 1, padding: '40px 20px', fontSize: '1.8rem', fontWeight: 'bold', borderRadius: '20px', border: 'none', backgroundColor: '#ea580c', color: 'white', cursor: 'pointer', boxShadow: '0 10px 25px rgba(234, 88, 12, 0.4)', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '15px', transition: 'transform 0.1s' }}
+            onMouseDown={e => e.currentTarget.style.transform = 'scale(0.95)'} 
+            onMouseUp={e => e.currentTarget.style.transform = 'scale(1)'}
           >
             <span style={{ fontSize: '3rem' }}>🛍️</span> АВЧ ЯВАХ
           </button>
@@ -169,19 +165,24 @@ function MenuPage() {
   if (kioskState === 'menu') {
     return (
       <div style={{ display: 'flex', height: '100vh', fontFamily: 'Arial, sans-serif', backgroundColor: '#f8fafc', overflow: 'hidden' }}>
+        
         {/* ЗҮҮН ТАЛ: ЦЭС */}
         <div style={{ flex: 7, display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
-          {/* Толгойн хэсэг */}
+          
           <div style={{ backgroundColor: 'white', padding: '20px 30px', borderBottom: '1px solid #e2e8f0', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-            <button onClick={resetKiosk} style={{ padding: '12px 24px', fontSize: '1.1rem', backgroundColor: '#f1f5f9', color: '#0f172a', border: 'none', borderRadius: '10px', fontWeight: 'bold', cursor: 'pointer' }}>
-              ⬅️ Буцах
-            </button>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '20px' }}>
+              <button onClick={resetKiosk} style={{ padding: '12px 24px', fontSize: '1.1rem', backgroundColor: '#f1f5f9', color: '#0f172a', border: 'none', borderRadius: '10px', fontWeight: 'bold', cursor: 'pointer' }}>
+                ⬅️ Буцах
+              </button>
+              {/* ✨ ШИНЭ: Рестораны нэр толгой хэсэгт */}
+              <h2 style={{ margin: 0, color: '#0f172a', fontSize: '1.5rem', fontWeight: '900' }}>🏔️ Зогсоо хайрхан</h2>
+            </div>
+            
             <div style={{ backgroundColor: orderType === 'dine-in' ? '#eff6ff' : '#fff7ed', color: orderType === 'dine-in' ? '#1d4ed8' : '#c2410c', padding: '10px 20px', borderRadius: '10px', fontSize: '1.2rem', fontWeight: '900' }}>
               {orderType === 'dine-in' ? '🍽️ ЗААЛАНД' : '🛍️ АВЧ ЯВАХ'}
             </div>
           </div>
 
-          {/* Ангилал */}
           <div style={{ padding: '20px 30px', display: 'flex', gap: '15px', overflowX: 'auto', backgroundColor: '#f8fafc' }}>
             {categories.map(cat => (
               <button 
@@ -194,17 +195,25 @@ function MenuPage() {
             ))}
           </div>
 
-          {/* Хоолны жагсаалт */}
           <div style={{ flex: 1, padding: '10px 30px 30px 30px', overflowY: 'auto' }}>
-            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(220px, 1fr))', gap: '20px' }}>
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(240px, 1fr))', gap: '20px' }}>
               {filteredMenu.map(item => (
+                // ✨ ШИНЭ: Зурагтай болгож шинэчилсэн Хоолны Карт
                 <div 
                   key={item.id} 
                   onClick={() => addToCart(item)}
-                  style={{ backgroundColor: 'white', borderRadius: '16px', padding: '25px 15px', cursor: 'pointer', border: '2px solid #e2e8f0', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', textAlign: 'center', minHeight: '120px', boxShadow: '0 4px 10px rgba(0,0,0,0.03)' }}
+                  style={{ backgroundColor: 'white', borderRadius: '16px', cursor: 'pointer', border: '1px solid #e2e8f0', display: 'flex', flexDirection: 'column', overflow: 'hidden', minHeight: '220px', boxShadow: '0 4px 15px rgba(0,0,0,0.04)', transition: 'transform 0.1s', transform: 'scale(1)' }}
+                  onMouseDown={e => e.currentTarget.style.transform = 'scale(0.97)'} 
+                  onMouseUp={e => e.currentTarget.style.transform = 'scale(1)'}
                 >
-                  <h3 style={{ margin: '0 0 10px 0', fontSize: '1.3rem', color: '#1e293b' }}>{item.name}</h3>
-                  <div style={{ fontWeight: '900', color: '#3b82f6', fontSize: '1.4rem' }}>{item.price.toLocaleString()} ₮</div>
+                  <div style={{ height: '160px', backgroundColor: '#f1f5f9', width: '100%', position: 'relative' }}>
+                    <img src={item.image_url || 'https://images.unsplash.com/photo-1546069901-ba9599a7e63c?auto=format&fit=crop&w=300&q=80'} alt={item.name} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                  </div>
+                  
+                  <div style={{ padding: '15px', display: 'flex', flexDirection: 'column', flex: 1, justifyContent: 'space-between', backgroundColor: 'white' }}>
+                    <h3 style={{ margin: '0 0 8px 0', fontSize: '1.2rem', color: '#1e293b', lineHeight: '1.3' }}>{item.name}</h3>
+                    <div style={{ fontWeight: '900', color: '#3b82f6', fontSize: '1.3rem' }}>{item.price.toLocaleString()} ₮</div>
+                  </div>
                 </div>
               ))}
             </div>
@@ -240,7 +249,6 @@ function MenuPage() {
             )}
           </div>
 
-          {/* Төлбөр хийх товч */}
           <div style={{ padding: '25px', borderTop: '2px solid #e2e8f0', backgroundColor: '#f8fafc' }}>
             <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '20px' }}>
               <span style={{ color: '#64748b', fontSize: '1.2rem', fontWeight: 'bold' }}>Нийт дүн:</span>
@@ -300,7 +308,6 @@ function MenuPage() {
         
         {selectedPayment === 'qpay' ? (
           <div style={{ backgroundColor: 'white', padding: '30px', borderRadius: '20px', margin: '40px 0' }}>
-            {/* Түр хугацаанд зориулсан хуурамч QPay QR кодны зураг */}
             <img src={`https://api.qrserver.com/v1/create-qr-code/?size=300x300&data=QPay_Total_${totalPrice}`} alt="QPay QR" style={{ width: '300px', height: '300px' }} />
           </div>
         ) : (
