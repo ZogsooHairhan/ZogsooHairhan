@@ -1,0 +1,147 @@
+/* Үндсэн контейнер болон суурь тохиргоо */
+.menu-container {
+  max-width: 600px;
+  margin: 0 auto;
+  background-color: #ffffff;
+  min-height: 100vh;
+  padding-bottom: 100px; /* Сагсны товчлуурт зориулсан доод зай */
+  box-sizing: border-box;
+  color: #1e293b;
+}
+
+/* Ангиллын гарчиг */
+.group-title {
+  font-size: 1.3rem;
+  font-weight: 800;
+  color: #0f172a;
+  margin: 25px 15px 12px 15px;
+  letter-spacing: -0.3px;
+}
+
+/* 🍔 ХООЛНЫ КАРТ (image_a3ca01.png шиг цэвэрхэн) */
+.menu-item {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 16px;
+  margin: 0 15px 12px 15px;
+  background-color: #ffffff;
+  border-radius: 16px;
+  border: 1px solid #f1f5f9;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.02);
+  cursor: pointer;
+  transition: transform 0.2s, box-shadow 0.2s;
+}
+
+.menu-item:active {
+  transform: scale(0.98);
+  background-color: #f8fafc;
+}
+
+/* Хоолны мэдээлэл */
+.item-info {
+  flex: 1;
+  padding-right: 15px;
+  display: flex;
+  flex-direction: column;
+}
+
+.item-info h3 {
+  margin: 0 0 6px 0;
+  font-size: 1.15rem;
+  color: #0f172a;
+  font-weight: 700;
+  line-height: 1.4;
+}
+
+.item-price {
+  margin: 0;
+  font-size: 1.15rem;
+  font-weight: 800;
+  color: #1e293b;
+}
+
+/* 🔝 ДЭЭД ТАЛЫН ХӨВДӨГ АНГИЛЛЫН СЕКЦЭНД ЗОРИУЛСАН СКРОЛЛ */
+div::-webkit-scrollbar {
+  display: none; /* Скролл барыг нуух */
+}
+
+/* 🛍️ МОДАЛ ЦОНХНЫ СҮҮДЭРЛЭГЧ (OVERLAY) */
+.cart-modal-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background-color: rgba(0, 0, 0, 0.5);
+  display: flex;
+  align-items: flex-end; /* Доороос нь гаргаж ирнэ */
+  justify-content: center;
+  z-index: 200;
+  animation: fadeIn 0.25s ease-out;
+}
+
+/* 🔎 ДӨӨРӨӨСӨӨ СӨГДӨЖ ГАРЧ ИРЭХ МОДАЛ ХАЙРЦАГ (BaeMin стил) */
+.cart-modal-content {
+  background-color: #ffffff;
+  width: 100%;
+  max-width: 600px;
+  max-height: 85vh;
+  overflow-y: auto;
+  position: relative;
+  box-shadow: 0 -8px 32px rgba(0, 0, 0, 0.15);
+  animation: slideUp 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+/* Модал хаах товчлуур */
+.close-modal-btn {
+  cursor: pointer;
+  transition: background-color 0.2s;
+}
+
+.close-modal-btn:active {
+  background-color: #e2e8f0;
+}
+
+/* Оруулах талбарууд (Input & Select) */
+.cart-summary input, .cart-summary select {
+  width: 100%;
+  padding: 14px;
+  border-radius: 12px;
+  border: 1px solid #cbd5e1;
+  font-size: 1.1rem;
+  margin-bottom: 12px;
+  box-sizing: border-box;
+  background-color: #ffffff;
+  font-family: inherit;
+  color: #0f172a;
+}
+
+.cart-summary input:focus, .cart-summary select:focus {
+  border-color: #ffcc00;
+  background-color: #fffdf5;
+}
+
+/* Сагсны жагсаалт */
+.cart-items-list {
+  list-style: none;
+  overflow-y: auto;
+}
+
+/* Анимациуд */
+@keyframes fadeIn {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+@keyframes slideUp {
+  from { transform: translateY(100%); }
+  to { transform: translateY(0); }
+}
+
+/* Утасны дугаар оруулах хэсэгт сумнуудыг нуух */
+input[type=number]::-webkit-inner-spin-button, 
+input[type=number]::-webkit-outer-spin-button { 
+  -webkit-appearance: none; 
+  margin: 0; 
+}
