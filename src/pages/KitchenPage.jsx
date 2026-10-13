@@ -7,9 +7,9 @@ function KitchenPage() {
   const [password, setPassword] = useState('');
   const [isLoggingIn, setIsLoggingIn] = useState(false);
   
-  // iPad-д зориулсан Web Audio Context
-  const audioCtxRef = useRef(null);
-  const [isAudioReady, setIsAudioReady] = useState(false);
+  // 🔔 Аудио систем ба Тод хонхны дуу
+  const [isAudioUnlocked, setIsAudioUnlocked] = useState(false);
+  const audioRef = useRef(new Audio('https://res.cloudinary.com/dxfq3iotg/video/upload/v1557233524/success.mp3'));
 
   useEffect(() => {
     checkUser();
@@ -42,52 +42,26 @@ function KitchenPage() {
   const [activeTab, setActiveTab] = useState('cooking'); 
   const [searchQuery, setSearchQuery] = useState('');
 
-  // 🔔 iPad-д зориулсан Web Audio API дуу гаргагч функц
-  const playBeepSound = () => {
-    try {
-      const AudioContext = window.AudioContext || window.webkitAudioContext;
-      if (!audioCtxRef.current) {
-        audioCtxRef.current = new AudioContext();
-      }
-      const ctx = audioCtxRef.current;
-      if (ctx.state === 'suspended') {
-        ctx.resume();
-      }
-
-      // 3 удаа чанга хонх шиг дуургах
-      const times = [0, 0.25, 0.5];
-      times.forEach((t) => {
-        const osc = ctx.createOscillator();
-        const gain = ctx.createGain();
-
-        osc.type = 'sine';
-        osc.frequency.setValueAtTime(880, ctx.currentTime + t); // A5 нот (880Hz)
-        
-        gain.gain.setValueAtTime(0.8, ctx.currentTime + t); // Чанга
-        gain.gain.exponentialRampToValueAtTime(0.01, ctx.currentTime + t + 0.2);
-
-        osc.connect(gain);
-        gain.connect(ctx.destination);
-
-        osc.start(ctx.currentTime + t);
-        osc.stop(ctx.currentTime + t + 0.2);
+  // 🔓 Дэлгэцийн хаана ч хүрэхэд Аудиог автоматаар идэвхжүүлэх
+  const autoUnlockAudio = () => {
+    if (!isAudioUnlocked && audioRef.current) {
+      audioRef.current.play().then(() => {
+        audioRef.current.pause();
+        audioRef.current.currentTime = 0;
+        setIsAudioUnlocked(true);
+      }).catch(() => {
+        // Тач хийгээгүй үед ажиллахгүй байж болно
       });
-    } catch (e) {
-      console.error("Аудио тоглуулахад алдаа гарлаа:", e);
     }
   };
 
-  // iPad дээр дэлгэцэнд хүрэхэд Аудио системийг идэвхжүүлэх
-  const unlockAudio = () => {
-    if (!audioCtxRef.current) {
-      const AudioContext = window.AudioContext || window.webkitAudioContext;
-      audioCtxRef.current = new AudioContext();
+  const playBellSound = () => {
+    if (!audioRef.current) return;
+    audioRef.current.currentTime = 0;
+    const playPromise = audioRef.current.play();
+    if (playPromise !== undefined) {
+      playPromise.catch(error => console.log("Дуу тоглуулахыг хөтөч блоколсон байна:", error));
     }
-    if (audioCtxRef.current.state === 'suspended') {
-      audioCtxRef.current.resume();
-    }
-    setIsAudioReady(true);
-    playBeepSound(); // Шалгах чанга дуу гаргах
   };
 
   useEffect(() => {
@@ -95,7 +69,7 @@ function KitchenPage() {
       fetchOrders();
       const channel = supabase.channel('kitchen_orders')
         .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'orders' }, () => { 
-          playBeepSound(); 
+          playBellSound(); 
           fetchOrders(); 
         })
         .on('postgres_changes', { event: 'UPDATE', schema: 'public', table: 'orders' }, () => { 
@@ -127,6 +101,7 @@ function KitchenPage() {
   };
 
   const updateOrderStatus = async (orderId, newStatus) => {
+    autoUnlockAudio(); // Товч дарахад давхар аудиог идэвхжүүлнэ
     try {
       const { error } = await supabase.from('orders').update({ status: newStatus }).eq('id', orderId);
       if (error) throw error;
@@ -135,6 +110,7 @@ function KitchenPage() {
   };
 
   const toggleItemDone = async (orderItemId, currentStatus) => {
+    autoUnlockAudio(); // Товч дарахад давхар аудиог идэвхжүүлнэ
     try {
       const { error } = await supabase.from('order_items').update({ is_done: !currentStatus }).eq('id', orderItemId);
       if (error) throw error;
@@ -184,12 +160,12 @@ function KitchenPage() {
   }
 
   return (
-    <div style={{ padding: '15px', fontFamily: 'Arial, sans-serif', backgroundColor: '#f8fafc', minHeight: '100vh', boxSizing: 'border-box' }}>
+    <div onClick={autoUnlockAudio} style={{ padding: '15px', fontFamily: 'Arial, sans-serif', backgroundColor: '#f8fafc', minHeight: '100vh', boxSizing: 'border-box' }}>
       
-      {!isAudioReady && (
+      {!isAudioUnlocked && (
         <div style={{ backgroundColor: '#fef2f2', color: '#ef4444', padding: '12px 20px', borderRadius: '10px', marginBottom: '15px', display: 'flex', justifyContent: 'space-between', alignItems: 'center', border: '2px solid #fca5a5', flexWrap: 'wrap', gap: '10px' }}>
-          <strong style={{ fontSize: '1.1rem' }}>🔊 iPad дээр дууг шууд идэвхжүүлэхийн тулд дарна уу!</strong>
-          <button onClick={unlockAudio} style={{ padding: '10px 20px', backgroundColor: '#ef4444', color: 'white', border: 'none', borderRadius: '8px', fontWeight: 'bold', cursor: 'pointer', fontSize: '1rem' }}>🔔 ДУУ ИДЭВХЖҮҮЛЭХ</button>
+          <strong style={{ fontSize: '1.1rem' }}>🔊 iPad дээр дэлгэцийн хаана ч хамаагүй ганц дарахад дуу шууд идэвхжнэ.</strong>
+          <button onClick={autoUnlockAudio} style={{ padding: '10px 20px', backgroundColor: '#ef4444', color: 'white', border: 'none', borderRadius: '8px', fontWeight: 'bold', cursor: 'pointer', fontSize: '1rem' }}>🔔 ИДЭВХЖҮҮЛЭХ</button>
         </div>
       )}
 
@@ -197,13 +173,13 @@ function KitchenPage() {
         <h1 style={{ color: '#0f172a', margin: 0, fontSize: '1.5rem' }}>👨‍🍳 Гал тогоо</h1>
         
         <div style={{ display: 'flex', gap: '10px', flexWrap: 'wrap' }}>
-          <button onClick={() => setActiveTab('cooking')} style={{ padding: '10px 15px', fontSize: '1rem', fontWeight: 'bold', border: 'none', borderRadius: '8px', cursor: 'pointer', backgroundColor: activeTab === 'cooking' ? '#f59e0b' : '#e2e8f0', color: activeTab === 'cooking' ? 'white' : '#475569' }}>
+          <button onClick={() => { autoUnlockAudio(); setActiveTab('cooking'); }} style={{ padding: '10px 15px', fontSize: '1rem', fontWeight: 'bold', border: 'none', borderRadius: '8px', cursor: 'pointer', backgroundColor: activeTab === 'cooking' ? '#f59e0b' : '#e2e8f0', color: activeTab === 'cooking' ? 'white' : '#475569' }}>
             🔥 Хийгдэж байгаа ({cookingOrders.length})
           </button>
-          <button onClick={() => setActiveTab('completed')} style={{ padding: '10px 15px', fontSize: '1rem', fontWeight: 'bold', border: 'none', borderRadius: '8px', cursor: 'pointer', backgroundColor: activeTab === 'completed' ? '#10b981' : '#e2e8f0', color: activeTab === 'completed' ? 'white' : '#475569' }}>
+          <button onClick={() => { autoUnlockAudio(); setActiveTab('completed'); }} style={{ padding: '10px 15px', fontSize: '1rem', fontWeight: 'bold', border: 'none', borderRadius: '8px', cursor: 'pointer', backgroundColor: activeTab === 'completed' ? '#10b981' : '#e2e8f0', color: activeTab === 'completed' ? 'white' : '#475569' }}>
             ✅ Бэлэн ({completedOrders.length})
           </button>
-          <button onClick={() => setActiveTab('menu')} style={{ padding: '10px 15px', fontSize: '1rem', fontWeight: 'bold', border: 'none', borderRadius: '8px', cursor: 'pointer', backgroundColor: activeTab === 'menu' ? '#8b5cf6' : '#e2e8f0', color: activeTab === 'menu' ? 'white' : '#475569' }}>
+          <button onClick={() => { autoUnlockAudio(); setActiveTab('menu'); }} style={{ padding: '10px 15px', fontSize: '1rem', fontWeight: 'bold', border: 'none', borderRadius: '8px', cursor: 'pointer', backgroundColor: activeTab === 'menu' ? '#8b5cf6' : '#e2e8f0', color: activeTab === 'menu' ? 'white' : '#475569' }}>
             📦 Үлдэгдэл
           </button>
 
