@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect } from 'react';
 import { supabase } from '../supabaseClient';
 
 function KitchenPage() {
@@ -7,9 +7,7 @@ function KitchenPage() {
   const [password, setPassword] = useState('');
   const [isLoggingIn, setIsLoggingIn] = useState(false);
   
-  // 🔔 Аудио систем ба Тод хонхны дуу
   const [isAudioUnlocked, setIsAudioUnlocked] = useState(false);
-  const audioRef = useRef(new Audio('https://res.cloudinary.com/dxfq3iotg/video/upload/v1557233524/success.mp3'));
 
   useEffect(() => {
     checkUser();
@@ -42,25 +40,28 @@ function KitchenPage() {
   const [activeTab, setActiveTab] = useState('cooking'); 
   const [searchQuery, setSearchQuery] = useState('');
 
-  // 🔓 Дэлгэцийн хаана ч хүрэхэд Аудиог автоматаар идэвхжүүлэх
+  // 🔓 Дэлгэц дээр дарахад аудиог идэвхжүүлэх
   const autoUnlockAudio = () => {
-    if (!isAudioUnlocked && audioRef.current) {
-      audioRef.current.play().then(() => {
-        audioRef.current.pause();
-        audioRef.current.currentTime = 0;
-        setIsAudioUnlocked(true);
-      }).catch(() => {
-        // Тач хийгээгүй үед ажиллахгүй байж болно
-      });
+    if (!isAudioUnlocked) {
+      try {
+        const testAudio = new Audio('https://res.cloudinary.com/dxfq3iotg/video/upload/v1557233524/success.mp3');
+        testAudio.play().then(() => {
+          setIsAudioUnlocked(true);
+        }).catch(() => {});
+      } catch (e) {}
     }
   };
 
+  // 🔔 Захиалга орох бүрд шинэ аудио үүсгэж тасралтгүй, гацахгүй тоглуулах
   const playBellSound = () => {
-    if (!audioRef.current) return;
-    audioRef.current.currentTime = 0;
-    const playPromise = audioRef.current.play();
-    if (playPromise !== undefined) {
-      playPromise.catch(error => console.log("Дуу тоглуулахыг хөтөч блоколсон байна:", error));
+    try {
+      const bell = new Audio('https://res.cloudinary.com/dxfq3iotg/video/upload/v1557233524/success.mp3');
+      bell.volume = 1.0;
+      bell.play().catch(error => {
+        console.log("Дуу тоглуулахыг хөтөч блоколсон байна:", error);
+      });
+    } catch (e) {
+      console.error("Аудио алдаа:", e);
     }
   };
 
@@ -101,7 +102,7 @@ function KitchenPage() {
   };
 
   const updateOrderStatus = async (orderId, newStatus) => {
-    autoUnlockAudio(); // Товч дарахад давхар аудиог идэвхжүүлнэ
+    autoUnlockAudio();
     try {
       const { error } = await supabase.from('orders').update({ status: newStatus }).eq('id', orderId);
       if (error) throw error;
@@ -110,7 +111,7 @@ function KitchenPage() {
   };
 
   const toggleItemDone = async (orderItemId, currentStatus) => {
-    autoUnlockAudio(); // Товч дарахад давхар аудиог идэвхжүүлнэ
+    autoUnlockAudio();
     try {
       const { error } = await supabase.from('order_items').update({ is_done: !currentStatus }).eq('id', orderItemId);
       if (error) throw error;
@@ -164,7 +165,7 @@ function KitchenPage() {
       
       {!isAudioUnlocked && (
         <div style={{ backgroundColor: '#fef2f2', color: '#ef4444', padding: '12px 20px', borderRadius: '10px', marginBottom: '15px', display: 'flex', justifyContent: 'space-between', alignItems: 'center', border: '2px solid #fca5a5', flexWrap: 'wrap', gap: '10px' }}>
-          <strong style={{ fontSize: '1.1rem' }}>🔊 iPad дээр дэлгэцийн хаана ч хамаагүй ганц дарахад дуу шууд идэвхжнэ.</strong>
+          <strong style={{ fontSize: '1.1rem' }}>🔊 iPad дээр дууг тогтвортой болгохын тулд дэлгэц дээр дарна уу.</strong>
           <button onClick={autoUnlockAudio} style={{ padding: '10px 20px', backgroundColor: '#ef4444', color: 'white', border: 'none', borderRadius: '8px', fontWeight: 'bold', cursor: 'pointer', fontSize: '1rem' }}>🔔 ИДЭВХЖҮҮЛЭХ</button>
         </div>
       )}
