@@ -8,8 +8,10 @@ export const DEFAULT_LANGUAGE = 'mn';
 
 export const uiText = {
   mn: {
-    openMenu: 'Хоолны цэс нээх',
-    closeMenu: 'Хоолны цэс хаах',
+    openMenu: 'Цэс нээх',
+    closeMenu: 'Цэс хаах',
+    navigation: 'Үндсэн цэс',
+    allCategories: 'Бүгд',
     menu: 'Хоолны цэс',
     location: 'Байршил',
     language: 'Хэл сонгох',
@@ -33,8 +35,10 @@ export const uiText = {
     itemCount: (count) => `${count} төрөл`,
   },
   en: {
-    openMenu: 'Open food menu',
-    closeMenu: 'Close food menu',
+    openMenu: 'Open navigation',
+    closeMenu: 'Close navigation',
+    navigation: 'Main navigation',
+    allCategories: 'All',
     menu: 'Food Menu',
     location: 'Location',
     language: 'Choose language',
@@ -58,8 +62,10 @@ export const uiText = {
     itemCount: (count) => `${count} ${count === 1 ? 'item' : 'items'}`,
   },
   ru: {
-    openMenu: 'Открыть меню',
-    closeMenu: 'Закрыть меню',
+    openMenu: 'Открыть навигацию',
+    closeMenu: 'Закрыть навигацию',
+    navigation: 'Основная навигация',
+    allCategories: 'Все',
     menu: 'Меню',
     location: 'Как нас найти',
     language: 'Выбрать язык',
