@@ -141,7 +141,203 @@ div::-webkit-scrollbar {
 
 /* Утасны дугаар оруулах хэсэгт сумнуудыг нуух */
 input[type=number]::-webkit-inner-spin-button, 
-input[type=number]::-webkit-outer-spin-button { 
-  -webkit-appearance: none; 
-  margin: 0; 
+input[type=number]::-webkit-outer-spin-button {
+  -webkit-appearance: none;
+  margin: 0;
+}
+
+/* 🏠 НҮҮР ХУУДАС: зүүн талд мэдээлэл, баруун талд цэс */
+.menu-page {
+  min-height: 100vh;
+  background-color: #f8fafc;
+  color: #0f172a;
+}
+
+.menu-page-layout {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  gap: 20px;
+  max-width: 1200px;
+  margin: 0 auto;
+  padding: 16px;
+}
+
+/* Газрын мэдээлэл */
+.about-panel {
+  background-color: #ffffff;
+  border-radius: 20px;
+  padding: 24px 20px;
+  box-shadow: 0 10px 25px rgba(0, 0, 0, 0.05);
+}
+
+.about-name {
+  margin: 0 0 4px;
+  font-size: clamp(1.4rem, 5vw, 1.8rem);
+  font-weight: 800;
+  color: #ea580c;
+  text-align: left;
+}
+
+.about-tagline {
+  margin-bottom: 14px;
+  font-size: 0.95rem;
+  font-weight: 600;
+  color: #64748b;
+}
+
+.about-description {
+  margin-bottom: 18px;
+  font-size: 1rem;
+  color: #334155;
+}
+
+.about-row {
+  padding: 12px 0;
+  border-top: 1px solid #f1f5f9;
+}
+
+.about-row dt {
+  font-size: 0.85rem;
+  font-weight: 700;
+  color: #64748b;
+}
+
+.about-row dd {
+  font-size: 1rem;
+  font-weight: 600;
+  color: #1e293b;
+}
+
+.about-row a {
+  color: #c2410c;
+}
+
+/* Хоолны цэс */
+.menu-title {
+  margin: 0 0 12px;
+  padding: 0;
+  border: none;
+  font-size: 1.4rem;
+  font-weight: 800;
+  color: #0f172a;
+}
+
+.menu-search {
+  width: 100%;
+  margin-bottom: 12px;
+  padding: 12px 15px;
+  border: 1px solid #cbd5e1;
+  border-radius: 12px;
+  background-color: #ffffff;
+  font-size: 1rem;
+}
+
+.menu-search:focus {
+  outline: 2px solid #ea580c;
+  outline-offset: -1px;
+}
+
+.menu-categories {
+  display: flex;
+  gap: 8px;
+  margin-bottom: 15px;
+  padding-bottom: 5px;
+  overflow-x: auto;
+}
+
+.menu-category {
+  padding: 8px 16px;
+  border: none;
+  border-radius: 20px;
+  background-color: #ffffff;
+  box-shadow: 0 2px 5px rgba(0, 0, 0, 0.03);
+  color: #64748b;
+  font-size: 0.9rem;
+  font-weight: 700;
+  white-space: nowrap;
+  cursor: pointer;
+}
+
+.menu-category.is-active {
+  background-color: #ea580c;
+  color: #ffffff;
+}
+
+.menu-status {
+  padding: 40px 20px;
+  text-align: center;
+  font-size: 1rem;
+  color: #64748b;
+}
+
+.menu-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
+  gap: 15px;
+}
+
+.menu-card {
+  overflow: hidden;
+  border: 1px solid #e2e8f0;
+  border-radius: 14px;
+  background-color: #ffffff;
+  box-shadow: 0 4px 6px rgba(0, 0, 0, 0.02);
+}
+
+.menu-card.is-sold-out {
+  opacity: 0.6;
+}
+
+.menu-card-image {
+  height: 120px;
+  background-color: #e2e8f0;
+}
+
+.menu-card-image img {
+  display: block;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.menu-card-body {
+  padding: 12px;
+}
+
+.menu-card-name {
+  margin-bottom: 6px;
+  font-size: 1rem;
+  color: #1e293b;
+}
+
+.menu-card-price {
+  font-size: 0.95rem;
+  font-weight: 700;
+  color: #ea580c;
+}
+
+.menu-card-badge {
+  display: inline-block;
+  margin-top: 8px;
+  padding: 2px 10px;
+  border-radius: 20px;
+  background-color: #e2e8f0;
+  color: #475569;
+  font-size: 0.8rem;
+  font-weight: 700;
+}
+
+/* Таблет, компьютер дээр хоёр багана болно */
+@media (min-width: 768px) {
+  .menu-page-layout {
+    grid-template-columns: 320px minmax(0, 1fr);
+    gap: 28px;
+    padding: 24px;
+    align-items: start;
+  }
+
+  .about-panel {
+    position: sticky;
+    top: 24px;
+  }
 }
