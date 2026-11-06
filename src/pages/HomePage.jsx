@@ -77,7 +77,12 @@ function HomePage() {
           <h2 className="home-heading">{text.ourMenu}</h2>
           <div className="category-grid">
             {categories.map(({ name: category, count, image }) => (
-              <Link key={category} className="category-card" to={`/menu?category=${encodeURIComponent(category)}`}>
+              <Link
+                key={category}
+                className="category-card"
+                to={`/menu?category=${encodeURIComponent(category)}`}
+                state={{ keepScroll: true }}
+              >
                 <span className="image-tile">
                   {image && <img src={image} alt="" loading="lazy" />}
                 </span>

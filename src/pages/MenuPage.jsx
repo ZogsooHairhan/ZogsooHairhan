@@ -1,19 +1,18 @@
-import { useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { useOutletContext, useSearchParams } from 'react-router-dom';
 import { groupByCategory } from '../data/menuCategories';
 import { translateMenuText } from '../data/translations';
 
-function FoodCard({ item, language, text }) {
+function Dish({ item, language, text }) {
   const isSoldOut = item.stock === 0;
+  const [firstWord, ...otherWords] = translateMenuText(item.name, language).trim().split(/\s+/);
+
   return (
-    <article className={`food-card${isSoldOut ? ' is-sold-out' : ''}`}>
-      <span className="image-tile">
-        {item.image_url && <img src={item.image_url} alt="" loading="lazy" />}
-      </span>
-      <h3 className="food-card-name">{translateMenuText(item.name, language)}</h3>
-      <p className="food-card-price">{item.price?.toLocaleString()} ₮</p>
-      {isSoldOut && <span className="food-card-badge">{text.soldOut}</span>}
-    </article>
+    <li className={`dish${isSoldOut ? ' is-sold-out' : ''}`}>
+      <p className="dish-name"><strong>{firstWord}</strong> {otherWords.join(' ')}</p>
+      <p className="dish-price">{item.price?.toLocaleString()} ₮</p>
+      {isSoldOut && <p className="dish-badge">{text.soldOut}</p>}
+    </li>
   );
 }
 
@@ -21,10 +20,16 @@ function MenuPage() {
   const { language, text, menuItems, menuStatus } = useOutletContext();
   const [searchParams, setSearchParams] = useSearchParams();
   const [searchQuery, setSearchQuery] = useState('');
+  const activeRowRef = useRef(null);
 
   const groups = groupByCategory(menuItems);
   const requestedCategory = searchParams.get('category');
   const activeCategory = groups.some(({ name }) => name === requestedCategory) ? requestedCategory : null;
+
+  // Дэлгэсэн ангиллын мөр дээд мөрийн яг доор ирнэ.
+  useEffect(() => {
+    if (activeCategory) activeRowRef.current?.scrollIntoView();
+  }, [activeCategory]);
 
   const query = searchQuery.trim().toLowerCase();
   const matchesSearch = (item) => (
@@ -33,13 +38,12 @@ function MenuPage() {
   );
 
   const visibleGroups = groups
-    .filter(({ name }) => !activeCategory || name === activeCategory)
     .map(({ name, items }) => ({ name, items: items.filter(matchesSearch) }))
     .filter(({ items }) => items.length > 0);
 
-  const tabs = [{ value: null, label: text.allCategories }].concat(
-    groups.map(({ name }) => ({ value: name, label: translateMenuText(name, language) })),
-  );
+  const toggleCategory = (name) => {
+    setSearchParams(name === activeCategory ? {} : { category: name }, { replace: true, state: { keepScroll: true } });
+  };
 
   return (
     <div className="food-page">
@@ -55,35 +59,39 @@ function MenuPage() {
         />
       </header>
 
-      <div className="food-tabs">
-        {tabs.map(({ value, label }) => (
-          <button
-            key={label}
-            type="button"
-            className="food-tab"
-            aria-pressed={activeCategory === value}
-            onClick={() => setSearchParams(value ? { category: value } : {})}
-          >
-            {label}
-          </button>
-        ))}
-      </div>
+      {menuStatus && <p className="menu-status">{menuStatus}</p>}
+      {!menuStatus && visibleGroups.length === 0 && <p className="menu-status">{text.noResults}</p>}
 
-      <div className="food-body">
-        {menuStatus && <p className="menu-status">{menuStatus}</p>}
-        {!menuStatus && visibleGroups.length === 0 && <p className="menu-status">{text.noResults}</p>}
-        {!menuStatus && visibleGroups.map(({ name, items }) => (
-          <section key={name} className="food-group">
-            <h2 className="food-group-title">
-              {translateMenuText(name, language)}
-              <span className="food-group-count">{items.length}</span>
-            </h2>
-            <div className="food-grid">
-              {items.map(item => <FoodCard key={item.id} item={item} language={language} text={text} />)}
-            </div>
-          </section>
-        ))}
-      </div>
+      {!menuStatus && visibleGroups.length > 0 && (
+        <div className="menu-accordion">
+          {visibleGroups.map(({ name, items }, index) => {
+            const isActive = name === activeCategory;
+            const isExpanded = isActive || Boolean(query);
+            const panelId = `menu-category-${index}`;
+            return (
+              <section key={name} ref={isActive ? activeRowRef : null} className="menu-category">
+                <h2 className="menu-category-heading">
+                  <button
+                    type="button"
+                    className="menu-category-toggle"
+                    aria-expanded={isExpanded}
+                    aria-controls={panelId}
+                    onClick={() => toggleCategory(name)}
+                  >
+                    <span className="menu-category-name">{translateMenuText(name, language)}</span>
+                    <span className="menu-category-icon" aria-hidden="true" />
+                  </button>
+                </h2>
+                {isExpanded && (
+                  <ul id={panelId} className="menu-dishes">
+                    {items.map(item => <Dish key={item.id} item={item} language={language} text={text} />)}
+                  </ul>
+                )}
+              </section>
+            );
+          })}
+        </div>
+      )}
     </div>
   );
 }

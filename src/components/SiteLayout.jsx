@@ -82,10 +82,10 @@ function SiteLayout() {
   useEffect(() => {
     if (location.hash) {
       document.getElementById(location.hash.slice(1))?.scrollIntoView();
-    } else if (navigationType !== 'POP') {
+    } else if (navigationType !== 'POP' && !location.state?.keepScroll) {
       window.scrollTo(0, 0);
     }
-  }, [location.key, location.hash, navigationType]);
+  }, [location.key, location.hash, location.state, navigationType]);
 
   // Цэс ачаалагдахад хуудас уртасдаг тул #хэсэг рүүгээ дахин очно.
   useEffect(() => {
