@@ -248,6 +248,15 @@ input[type=number]::-webkit-outer-spin-button {
   transform: rotate(180deg);
 }
 
+.home-rail-text {
+  animation: rail-text-in 0.4s ease;
+}
+
+@keyframes rail-text-in {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
 /* Дээд мөр */
 .home-bar {
   position: fixed;
@@ -466,6 +475,82 @@ input[type=number]::-webkit-outer-spin-button {
   color: var(--muted);
   font-size: 1rem;
   font-weight: 300;
+}
+
+/* Шинэ мэдээ */
+.news-list {
+  display: grid;
+  gap: 56px;
+}
+
+.news-card {
+  display: grid;
+  gap: 24px;
+}
+
+.news-image {
+  display: block;
+  width: 100%;
+  max-width: 520px;
+  height: auto;
+  border: 1px solid var(--line-soft);
+}
+
+.news-title {
+  color: var(--text);
+  font-family: var(--serif);
+  font-size: clamp(1.8rem, 4.5vw, 3.6rem);
+  font-weight: 400;
+  line-height: 1.1;
+  text-transform: uppercase;
+  overflow-wrap: break-word;
+}
+
+.news-text {
+  margin-top: 14px;
+  color: var(--muted);
+  font-size: 1.1rem;
+  font-weight: 300;
+}
+
+.news-links {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+  margin-top: 26px;
+}
+
+/* Холбоо барих */
+.contact-block {
+  margin-top: 36px;
+  padding-top: 20px;
+  border-top: 1px solid var(--line-soft);
+}
+
+.contact-title {
+  margin-bottom: 10px;
+  color: var(--muted);
+  font-size: 0.8rem;
+  font-weight: 600;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+}
+
+.contact-phones {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px 32px;
+}
+
+.contact-phone {
+  color: var(--text);
+  font-family: var(--serif);
+  font-size: clamp(1.5rem, 3vw, 2.2rem);
+  text-decoration: none;
+}
+
+.contact-phone:hover {
+  color: var(--accent);
 }
 
 .gallery-grid {
@@ -767,6 +852,12 @@ input[type=number]::-webkit-outer-spin-button {
 }
 
 @media (min-width: 768px) {
+  .news-card {
+    grid-template-columns: minmax(0, 460px) minmax(0, 1fr);
+    gap: 48px;
+    align-items: center;
+  }
+
   .home-root {
     --rail: 92px;
     --bar: 88px;
@@ -822,6 +913,10 @@ input[type=number]::-webkit-outer-spin-button {
 }
 
 @media (prefers-reduced-motion: reduce) {
+  .home-rail-text {
+    animation: none;
+  }
+
   .nav-overlay,
   .nav-panel,
   .nav-panel.is-open,

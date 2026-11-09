@@ -1,11 +1,11 @@
 import { Link, useOutletContext } from 'react-router-dom';
-import { restaurantInfo } from '../data/restaurantInfo';
+import { phoneHref, restaurantInfo } from '../data/restaurantInfo';
 import { DEFAULT_LANGUAGE, localize } from '../data/translations';
 
 function HomePage() {
   const { language, text } = useOutletContext();
 
-  const { map, about, sections, gallery } = restaurantInfo;
+  const { map, about, sections, news, gallery, phones } = restaurantInfo;
   const name = localize(restaurantInfo.name, language);
   const description = localize(restaurantInfo.description, language);
   // Google Maps тува хэлгүй тул тува дээр монголоор харуулна.
@@ -46,6 +46,30 @@ function HomePage() {
         )}
       </section>
 
+      {news.length > 0 && (
+        <section className="home-section" id="news">
+          <h2 className="home-heading">{text.news}</h2>
+          <div className="news-list">
+            {news.map(({ image, imageAlt, title, text: body, links }) => (
+              <article key={localize(title, DEFAULT_LANGUAGE)} className="news-card">
+                {image && <img className="news-image" src={image} alt={localize(imageAlt, language)} loading="lazy" />}
+                <div className="news-body">
+                  <h3 className="news-title">{localize(title, language)}</h3>
+                  {body && <p className="news-text">{localize(body, language)}</p>}
+                  {links?.length > 0 && (
+                    <div className="news-links">
+                      {links.map(({ label, url }) => (
+                        <a key={url} className="hero-button" href={url} target="_blank" rel="noreferrer">{label}</a>
+                      ))}
+                    </div>
+                  )}
+                </div>
+              </article>
+            ))}
+          </div>
+        </section>
+      )}
+
       {gallery.length > 0 && (
         <section className="home-section">
           <h2 className="home-heading">{text.gallery}</h2>
@@ -66,6 +90,14 @@ function HomePage() {
           allowFullScreen
         />
         <a className="location-link" href={map.link} target="_blank" rel="noreferrer">{text.directions}</a>
+        {phones.length > 0 && (
+          <div className="contact-block">
+            <h3 className="contact-title">{text.contact}</h3>
+            <div className="contact-phones">
+              {phones.map(phone => <a key={phone} className="contact-phone" href={phoneHref(phone)}>{phone}</a>)}
+            </div>
+          </div>
+        )}
       </section>
     </>
   );

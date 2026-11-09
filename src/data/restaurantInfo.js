@@ -2,7 +2,7 @@
 // Текстийг { mn, en, tyv } гэж гурван хэлээр, эсвэл энгийн '...' гэж бичиж болно.
 // Энгийн текст бичвэл бүх хэл дээр адилхан харагдана.
 export const restaurantInfo = {
-  name: { mn: 'ЗОГСОО ХАЙРХАН', en: 'ZOGSOO HAIRHAN', tyv: 'ЗОГСОО ХАЙРХАН' },
+  name: { mn: 'ЗОГСОО ХАЙРХАН', en: 'ZOGSOO KHAIRKHAN', tyv: 'ЗОГСОО ХАЙРХАН' },
   tagline: {
     mn: 'Зоогийн газар • Тавтай морилно уу',
     en: 'Restaurant • Welcome',
@@ -13,7 +13,8 @@ export const restaurantInfo = {
     en: 'A restaurant serving soups, buuz, khuushuur, tsuivan and more.',
     tyv: 'Мүн, бууза, хуужуур, цуйван болгаш өске-даа аъш-чем белеткээр ресторан.',
   },
-  phone: '86839090', // Жишээ: '9911 2233'
+  // Утасны дугаарууд. Эхнийх нь дээд мөрөнд, бүгд "Холбоо барих" болон доод хэсэгт харагдана.
+  phones: ['8683 9090', '8945 3938'],
 
   // "Бидний тухай" хэсгийн бичвэр. Мөр нэмэх тусам хуудсан дээр нэмэгдэнэ.
   about: [
@@ -27,6 +28,30 @@ export const restaurantInfo = {
   // "Бидний тухай" доор гарчигтай нэмэлт хэсгүүд.
   // Жишээ: { title: { mn: 'Хүргэлт', en: 'Delivery', tyv: '...' }, text: { mn: '...', en: '...', tyv: '...' } }
   sections: [],
+
+  // "Шинэ" хэсэг. Шинэ мэдээг жагсаалтын эхэнд нэмнэ. Зургаа public/images/news хавтсанд хийнэ.
+  news: [
+    {
+      image: '/images/news/e24-uvs.webp',
+      imageAlt: {
+        mn: 'Увс E24 апп ба Зогсоо Хайрхан зоогийн газрын хамтын ажиллагааны зар',
+        en: 'Poster for the Uvs E24 app and Zogsoo Khairkhan partnership',
+      },
+      title: {
+        mn: 'Увс E24 апп × Зогсоо Хайрхан',
+        en: 'Uvs E24 app × Zogsoo Khairkhan',
+        tyv: 'Увс E24 апп × Зогсоо Хайрхан',
+      },
+      text: {
+        mn: 'Аппаа татаад гэртээ хүргүүл.',
+        en: 'Download the app and get our food delivered to your home.',
+      },
+      links: [
+        { label: 'Play Store', url: 'https://play.google.com/store/apps/details?id=mn.et24' },
+        { label: 'App Store', url: 'https://apps.apple.com/app/id6444353401' },
+      ],
+    },
+  ],
 
   map: {
     link: 'https://maps.app.goo.gl/T7MnSh4r4Amysqc27',
@@ -43,3 +68,5 @@ export const restaurantInfo = {
     { label: 'Facebook', url: 'https://www.facebook.com/profile.php?id=61558305202341' },
   ],
 };
+
+export const phoneHref = (phone) => `tel:${phone.replace(/\s/g, '')}`;

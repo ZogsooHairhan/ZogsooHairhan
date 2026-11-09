@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { Link, Outlet, useLocation, useNavigationType } from 'react-router-dom';
 import { supabase } from '../supabaseClient';
-import { restaurantInfo } from '../data/restaurantInfo';
+import { phoneHref, restaurantInfo } from '../data/restaurantInfo';
 import { DEFAULT_LANGUAGE, LANGUAGES, localize, uiText } from '../data/translations';
 import '../pages/MenuPage.css';
 
@@ -22,6 +22,7 @@ function SiteLayout() {
   const [loadFailed, setLoadFailed] = useState(false);
   const [isNavOpen, setIsNavOpen] = useState(false);
   const [language, setLanguage] = useState(getSavedLanguage);
+  const [isHeroNameVisible, setIsHeroNameVisible] = useState(true);
   const panelRef = useRef(null);
   const location = useLocation();
   const navigationType = useNavigationType();
@@ -55,6 +56,19 @@ function SiteLayout() {
       // Хадгалах боломжгүй хөтөч дээр сонголт зөвхөн энэ удаад хүчинтэй.
     }
   }, [language]);
+
+  // Нүүр хуудасны том нэр дээд мөрийн доор орж харагдахгүй болохыг ажиглана.
+  useEffect(() => {
+    const title = document.querySelector('.hero-title');
+    if (!title) return undefined;
+    const barHeight = document.querySelector('.home-bar')?.offsetHeight || 0;
+    const observer = new IntersectionObserver(
+      ([entry]) => setIsHeroNameVisible(entry.isIntersecting),
+      { rootMargin: `-${barHeight}px 0px 0px 0px` },
+    );
+    observer.observe(title);
+    return () => observer.disconnect();
+  }, [location.pathname]);
 
   const closeNav = useCallback(() => setIsNavOpen(false), []);
 
@@ -103,9 +117,12 @@ function SiteLayout() {
   else if (loadFailed) menuStatus = text.loadFailed;
   else if (menuItems.length === 0) menuStatus = text.emptyMenu;
 
-  const { phone, links } = restaurantInfo;
+  const { phones, links } = restaurantInfo;
   const name = localize(restaurantInfo.name, language);
-  const phoneHref = `tel:${phone.replace(/\s/g, '')}`;
+  // Том нэр харагдахгүй үед (цэсний хуудас, эсвэл доош гүйлгэсэн) босоо бичигт нэрийг харуулна.
+  const railText = location.pathname === '/' && isHeroNameVisible
+    ? localize(restaurantInfo.tagline, language)
+    : name;
 
   const navLinks = [
     { to: '/#about', label: text.about },
@@ -126,13 +143,13 @@ function SiteLayout() {
         >
           <span /><span /><span />
         </button>
-        <p className="home-rail-text">{localize(restaurantInfo.tagline, language)}</p>
+        <p key={railText} className="home-rail-text">{railText}</p>
       </div>
 
       <header className="home-bar">
         <Link className="home-bar-brand" to="/">{name}</Link>
         <div className="home-bar-end">
-          {phone && <a className="home-bar-phone" href={phoneHref}>{phone}</a>}
+          {phones[0] && <a className="home-bar-phone" href={phoneHref(phones[0])}>{phones[0]}</a>}
           <div className="lang-switch" role="group" aria-label={text.language}>
             {LANGUAGES.map(({ code, label, name: languageName }) => (
               <button
@@ -155,7 +172,7 @@ function SiteLayout() {
 
         <footer className="home-footer">
           <strong>{name}</strong>
-          {phone && <a href={phoneHref}>{phone}</a>}
+          {phones.map(phone => <a key={phone} href={phoneHref(phone)}>{phone}</a>)}
           {links.map(({ label, url }) => (
             <a key={url} href={url} target="_blank" rel="noreferrer">{localize(label, language)}</a>
           ))}
