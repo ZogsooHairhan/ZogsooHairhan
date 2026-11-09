@@ -280,6 +280,7 @@ input[type=number]::-webkit-outer-spin-button {
   display: flex;
   flex-shrink: 0;
   gap: 24px;
+  margin-right: -4px;
   align-items: center;
 }
 
@@ -297,7 +298,7 @@ input[type=number]::-webkit-outer-spin-button {
 }
 
 .lang-button {
-  min-width: 36px;
+  min-width: 30px;
   height: 44px;
   padding: 0 4px;
   border: none;
@@ -409,38 +410,6 @@ input[type=number]::-webkit-outer-spin-button {
   background-color: var(--accent);
 }
 
-/* Үндсэн мэдээлэл */
-.fact-grid {
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
-  gap: 28px 32px;
-}
-
-.fact-card {
-  display: flex;
-  flex-direction: column;
-  gap: 8px;
-  padding-top: 16px;
-  border-top: 1px solid var(--line-soft);
-}
-
-.fact-label {
-  color: var(--muted);
-  font-size: 0.75rem;
-  letter-spacing: 0.1em;
-  text-transform: uppercase;
-}
-
-.fact-value {
-  color: var(--text);
-  font-size: 1.05rem;
-  font-weight: 400;
-}
-
-a.fact-value:hover {
-  color: var(--accent);
-}
-
 /* Хэсгүүд */
 .home-section {
   padding: 56px var(--gutter);
@@ -454,10 +423,24 @@ a.fact-value:hover {
   border: none;
   color: var(--text);
   font-family: var(--serif);
-  font-size: clamp(2.2rem, 6vw, 4.5rem);
+  font-size: clamp(1.7rem, 6vw, 4.5rem);
   font-weight: 500;
-  line-height: 1.05;
+  line-height: 1.1;
   text-transform: uppercase;
+  overflow-wrap: break-word;
+}
+
+.about-text {
+  max-width: 900px;
+  color: var(--text);
+  font-family: var(--serif);
+  font-size: clamp(1.4rem, 3vw, 2.3rem);
+  font-weight: 400;
+  line-height: 1.35;
+}
+
+.about-text + .about-text {
+  margin-top: 18px;
 }
 
 .story-grid {
@@ -483,64 +466,6 @@ a.fact-value:hover {
   color: var(--muted);
   font-size: 1rem;
   font-weight: 300;
-}
-
-.category-grid {
-  display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(240px, 1fr));
-  gap: 36px 24px;
-}
-
-.category-card {
-  display: flex;
-  flex-direction: column;
-  color: var(--text);
-  text-decoration: none;
-}
-
-.image-tile {
-  display: block;
-  overflow: hidden;
-  margin-bottom: 14px;
-  aspect-ratio: 4 / 3;
-  border: 1px solid var(--line-soft);
-  background-color: var(--panel);
-}
-
-/* Зураггүй ангилалд уулын зураасан дүрс харагдана */
-.image-tile:empty {
-  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 400 300' preserveAspectRatio='none'%3E%3Cpath d='M0 210 L70 140 L120 180 L200 80 L275 175 L330 125 L400 185' fill='none' stroke='%23ffffff' stroke-opacity='.28' vector-effect='non-scaling-stroke'/%3E%3Cpath d='M0 250 L95 195 L170 235 L260 180 L340 240 L400 205' fill='none' stroke='%23ffffff' stroke-opacity='.16' vector-effect='non-scaling-stroke'/%3E%3C/svg%3E");
-  background-size: 100% 100%;
-}
-
-.image-tile img {
-  display: block;
-  width: 100%;
-  height: 100%;
-  object-fit: cover;
-  transition: transform 0.4s;
-}
-
-.category-card:hover .image-tile img {
-  transform: scale(1.04);
-}
-
-.category-card-name {
-  font-size: 1.35rem;
-  font-weight: 300;
-  line-height: 1.2;
-  letter-spacing: -0.01em;
-  text-transform: uppercase;
-}
-
-.category-card:hover .category-card-name {
-  color: var(--accent);
-}
-
-.category-card-count {
-  margin-top: 6px;
-  color: var(--muted);
-  font-size: 0.85rem;
 }
 
 .gallery-grid {
@@ -793,6 +718,15 @@ a.fact-value:hover {
   font-weight: 700;
 }
 
+.dish-ingredients {
+  color: var(--muted);
+  font-size: max(0.6em, 0.85rem);
+  font-weight: 300;
+  letter-spacing: 0;
+  text-transform: none;
+  white-space: normal;
+}
+
 .dish-price {
   margin-top: 8px;
   color: var(--text);
@@ -806,6 +740,21 @@ a.fact-value:hover {
   font-size: 0.8rem;
   letter-spacing: 0.06em;
   text-transform: uppercase;
+}
+
+@media (max-width: 400px) {
+  .home-bar {
+    gap: 8px;
+  }
+
+  .home-bar-brand {
+    font-size: 0.85rem;
+    letter-spacing: 0.06em;
+  }
+
+  .home-bar-end {
+    gap: 12px;
+  }
 }
 
 @media (min-width: 768px) {
@@ -869,8 +818,7 @@ a.fact-value:hover {
   .nav-panel.is-open,
   .menu-toggle span,
   .menu-category-icon::before,
-  .menu-category-icon::after,
-  .image-tile img {
+  .menu-category-icon::after {
     transition: none;
   }
 }

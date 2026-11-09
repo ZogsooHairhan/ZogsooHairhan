@@ -1,15 +1,20 @@
 import { useEffect, useRef, useState } from 'react';
 import { useOutletContext, useSearchParams } from 'react-router-dom';
 import { groupByCategory } from '../data/menuCategories';
+import { getIngredients } from '../data/menuIngredients';
 import { translateMenuText } from '../data/translations';
 
 function Dish({ item, language, text }) {
   const isSoldOut = item.stock === 0;
   const [firstWord, ...otherWords] = translateMenuText(item.name, language).trim().split(/\s+/);
+  const ingredients = getIngredients(item.name, language);
 
   return (
     <li className={`dish${isSoldOut ? ' is-sold-out' : ''}`}>
-      <p className="dish-name"><strong>{firstWord}</strong> {otherWords.join(' ')}</p>
+      <p className="dish-name">
+        <strong>{firstWord}</strong> {otherWords.join(' ')}
+        {ingredients && <span className="dish-ingredients"> ({ingredients})</span>}
+      </p>
       <p className="dish-price">{item.price?.toLocaleString()} ₮</p>
       {isSoldOut && <p className="dish-badge">{text.soldOut}</p>}
     </li>
