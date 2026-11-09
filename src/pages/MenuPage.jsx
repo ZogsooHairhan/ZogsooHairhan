@@ -2,11 +2,13 @@ import { useEffect, useRef, useState } from 'react';
 import { useOutletContext, useSearchParams } from 'react-router-dom';
 import { groupByCategory } from '../data/menuCategories';
 import { getIngredients } from '../data/menuIngredients';
+import { getDishImage } from '../data/menuImages';
 import { translateMenuText } from '../data/translations';
 
-function Dish({ item, language, text }) {
+function Dish({ item, language, text, image }) {
   const isSoldOut = item.stock === 0;
-  const [firstWord, ...otherWords] = translateMenuText(item.name, language).trim().split(/\s+/);
+  const displayName = translateMenuText(item.name, language).trim();
+  const [firstWord, ...otherWords] = displayName.split(/\s+/);
   const ingredients = getIngredients(item.name, language);
 
   return (
@@ -17,6 +19,7 @@ function Dish({ item, language, text }) {
       </p>
       <p className="dish-price">{item.price?.toLocaleString()} ₮</p>
       {isSoldOut && <p className="dish-badge">{text.soldOut}</p>}
+      {image && <img className="dish-image" src={image} alt={displayName} loading="lazy" />}
     </li>
   );
 }
@@ -28,6 +31,11 @@ function MenuPage() {
   const activeRowRef = useRef(null);
 
   const groups = groupByCategory(menuItems);
+
+  const imageUses = new Map();
+  menuItems.forEach(({ image_url: url }) => {
+    if (url) imageUses.set(url, (imageUses.get(url) || 0) + 1);
+  });
   const requestedCategory = searchParams.get('category');
   const activeCategory = groups.some(({ name }) => name === requestedCategory) ? requestedCategory : null;
 
@@ -89,7 +97,9 @@ function MenuPage() {
                 </h2>
                 {isExpanded && (
                   <ul id={panelId} className="menu-dishes">
-                    {items.map(item => <Dish key={item.id} item={item} language={language} text={text} />)}
+                    {items.map(item => (
+                      <Dish key={item.id} item={item} language={language} text={text} image={getDishImage(item, imageUses)} />
+                    ))}
                   </ul>
                 )}
               </section>

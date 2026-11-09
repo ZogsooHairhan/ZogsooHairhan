@@ -734,6 +734,15 @@ input[type=number]::-webkit-outer-spin-button {
   font-weight: 400;
 }
 
+.dish-image {
+  display: block;
+  width: min(260px, 70%);
+  aspect-ratio: 4 / 3;
+  margin: 14px auto 0;
+  border: 1px solid var(--line-soft);
+  object-fit: cover;
+}
+
 .dish-badge {
   margin-top: 4px;
   color: var(--muted);
