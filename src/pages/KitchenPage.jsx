@@ -134,7 +134,7 @@ function KitchenPage() {
 
   if (!isAuthenticated) {
     return (
-      <div style={{ display: 'flex', height: '100vh', justifyContent: 'center', alignItems: 'center', backgroundColor: '#f1f5f9', fontFamily: 'Arial, sans-serif' }}>
+      <div style={{ display: 'flex', height: '100vh', justifyContent: 'center', alignItems: 'center', backgroundColor: '#f1f5f9', fontFamily: "'Onest', Arial, sans-serif", fontWeight: 500 }}>
         <form onSubmit={handleLogin} style={{ backgroundColor: 'white', padding: '40px', borderRadius: '16px', boxShadow: '0 10px 30px rgba(0,0,0,0.08)', textAlign: 'center', width: '340px' }}>
           <div style={{ fontSize: '50px', marginBottom: '10px' }}>👨‍🍳</div>
           <div style={{ fontSize: '1.5rem', fontWeight: 800, color: '#1d3264', marginBottom: '4px' }}>Зогсоо Хайрхан</div>
@@ -148,7 +148,7 @@ function KitchenPage() {
   }
 
   return (
-    <div onClick={autoUnlockAudio} style={{ padding: '15px', fontFamily: 'Arial, sans-serif', backgroundColor: '#f8fafc', minHeight: '100vh', boxSizing: 'border-box' }}>
+    <div onClick={autoUnlockAudio} style={{ padding: '15px', fontFamily: "'Onest', Arial, sans-serif", fontWeight: 500, backgroundColor: '#f8fafc', minHeight: '100vh', boxSizing: 'border-box' }}>
       
       {!isAudioUnlocked && (
         <div style={{ backgroundColor: '#fef2f2', color: '#ef4444', padding: '12px 20px', borderRadius: '10px', marginBottom: '15px', display: 'flex', justifyContent: 'space-between', alignItems: 'center', border: '2px solid #fca5a5', flexWrap: 'wrap', gap: '10px' }}>
@@ -176,13 +176,13 @@ function KitchenPage() {
       </div>
 
       {isLoading ? (
-        <h2 style={{ textAlign: 'center', marginTop: '40px', color: '#64748b', fontSize: '1.2rem' }}>Уншиж байна...</h2>
+        <h2 style={{ textAlign: 'center', marginTop: '40px', color: '#475569', fontSize: '1.2rem' }}>Уншиж байна...</h2>
       ) : (
         <>
           {activeTab === 'cooking' && (
             <div>
               {cookingOrders.length === 0 ? (
-                <h3 style={{ textAlign: 'center', color: '#64748b', marginTop: '40px' }}>Хийх хоол байхгүй байна. 🎉</h3>
+                <h3 style={{ textAlign: 'center', color: '#475569', marginTop: '40px' }}>Хийх хоол байхгүй байна. 🎉</h3>
               ) : (
                 <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(280px, 1fr))', gap: '15px' }}>
                   {cookingOrders.map((order) => {
@@ -212,7 +212,7 @@ function KitchenPage() {
 
                           <div style={{ minHeight: '60px', marginBottom: '15px' }}>
                             {pendingItems.length === 0 && doneItems.length === 0 && (
-                              <div style={{ color: '#64748b', fontSize: '1rem', padding: '10px 0' }}>⏳ Хоолны жагсаалт ачаалж байна...</div>
+                              <div style={{ color: '#475569', fontSize: '1rem', padding: '10px 0' }}>⏳ Хоолны жагсаалт ачаалж байна...</div>
                             )}
                             {pendingItems.map((item, idx) => {
                               let itemIcon = '🍽️'; if (item.item_type === 'pickup') itemIcon = '🛍️'; if (item.item_type === 'tuva') itemIcon = '👤';
@@ -227,7 +227,7 @@ function KitchenPage() {
                               <div style={{ marginTop: '15px', borderTop: `1px dashed ${cardBorder}`, paddingTop: '10px' }}>
                                 <span style={{ fontSize: '0.85rem', color: cardBorder, fontWeight: '900', textTransform: 'uppercase', marginBottom: '8px', display: 'block' }}>✅ Бэлэн болсон:</span>
                                 {doneItems.map((item, idx) => (
-                                  <div key={`done-${idx}`} onClick={() => toggleItemDone(item.id, item.is_done)} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '6px', padding: '8px 15px', backgroundColor: 'transparent', border: '1px dashed #cbd5e1', borderRadius: '10px', cursor: 'pointer', opacity: 0.7 }}>
+                                  <div key={`done-${idx}`} onClick={() => toggleItemDone(item.id, item.is_done)} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '6px', padding: '8px 15px', backgroundColor: 'transparent', border: '1px dashed #cbd5e1', borderRadius: '10px', cursor: 'pointer', opacity: 0.85 }}>
                                     <span style={{ color: '#475569', fontWeight: '700', fontSize: '1.1rem', textDecoration: 'line-through' }}>✅ {item.menu_items?.name || 'Тодорхойгүй'}</span>
                                     <strong style={{ color: '#475569', fontSize: '1.1rem', textDecoration: 'line-through' }}>{item.quantity} ш</strong>
                                   </div>
@@ -250,11 +250,11 @@ function KitchenPage() {
           {activeTab === 'completed' && (
             <div>
               {completedOrders.length === 0 ? (
-                <h3 style={{ textAlign: 'center', color: '#64748b', marginTop: '40px' }}>Бэлэн болсон хоол алга байна.</h3>
+                <h3 style={{ textAlign: 'center', color: '#475569', marginTop: '40px' }}>Бэлэн болсон хоол алга байна.</h3>
               ) : (
                 <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(280px, 1fr))', gap: '15px' }}>
                   {completedOrders.map((order) => (
-                    <div key={order.id} style={{ backgroundColor: '#f8fafc', padding: '16px', borderRadius: '12px', border: '1px solid #e2e8f0', display: 'flex', flexDirection: 'column', justifyContent: 'space-between', opacity: 0.85 }}>
+                    <div key={order.id} style={{ backgroundColor: '#f8fafc', padding: '16px', borderRadius: '12px', border: '1px solid #e2e8f0', display: 'flex', flexDirection: 'column', justifyContent: 'space-between' }}>
                       <div>
                         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', borderBottom: '1px solid #e2e8f0', paddingBottom: '10px', marginBottom: '12px' }}>
                           <div><strong style={{ fontSize: '1.3rem', color: '#475569', textDecoration: 'line-through' }}>#{order.order_number || String(order.id).slice(-4).toUpperCase()}</strong></div>
@@ -265,8 +265,8 @@ function KitchenPage() {
                         )}
                         <div style={{ minHeight: '60px', marginBottom: '15px' }}>
                           {order.order_items?.map((item, idx) => (
-                            <div key={idx} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '6px', fontSize: '1.1rem', color: '#64748b' }}>
-                              <span style={{ fontWeight: '600', textDecoration: 'line-through' }}>{item.menu_items?.name || 'Тодорхойгүй'}</span>
+                            <div key={idx} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '6px', fontSize: '1.1rem', color: '#334155' }}>
+                              <span style={{ fontWeight: '700', textDecoration: 'line-through' }}>{item.menu_items?.name || 'Тодорхойгүй'}</span>
                               <strong style={{ textDecoration: 'line-through' }}>{item.quantity} ш</strong>
                             </div>
                           ))}

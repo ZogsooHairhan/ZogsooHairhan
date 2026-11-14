@@ -5,14 +5,14 @@ import SiteLayout from './components/SiteLayout';
 import HomePage from './pages/HomePage';
 import MenuPage from './pages/MenuPage';
 
-// Ажилчдын хуудсуудыг (график зэрэг том сан) зөвхөн нээх үед нь ачаална.
+// Ажилчдын хуудсуудыг зөвхөн нээх үед нь ачаална.
 // Ингэснээр QR уншуулж орсон зочдод сайт хурдан нээгдэнэ.
 const KitchenPage = lazy(() => import('./pages/KitchenPage'));
 const ReportPage = lazy(() => import('./pages/ReportPage'));
 const CashierPage = lazy(() => import('./pages/CashierPage'));
 
 const loading = (
-  <div style={{ display: 'flex', height: '100vh', alignItems: 'center', justifyContent: 'center', fontFamily: 'Arial, sans-serif', color: '#64748b' }}>
+  <div style={{ display: 'flex', height: '100vh', alignItems: 'center', justifyContent: 'center', fontFamily: "'Onest', Arial, sans-serif", fontWeight: 500, color: '#64748b' }}>
     Зогсоо Хайрхан · ачаалж байна...
   </div>
 );

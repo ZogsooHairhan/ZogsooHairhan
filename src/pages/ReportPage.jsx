@@ -1,6 +1,4 @@
 import { useState, useEffect, useRef, useMemo } from 'react';
-import { Link } from 'react-router-dom';
-import Chart from 'chart.js/auto';
 import { supabase } from '../supabaseClient';
 
 // ==============================================
@@ -20,7 +18,6 @@ const PAYMENT_METHODS = [
   { key: 'transfer', label: 'Данс', by: 'дансаар', color: '#e87ba4' },
   { key: 'unknown', label: 'Тодорхойгүй', by: 'тодорхойгүй хэлбэрээр', color: '#8a8f98' },
 ];
-const TOTAL_COLOR = '#1d3264';
 
 const ORDER_TYPES = [
   { key: 'dine-in', label: 'Зааланд' },
@@ -383,205 +380,145 @@ function ShareBar({ value, color }) {
   );
 }
 
-// Chart.js шугаман график (QPay-ийн дашбоард шиг)
-function LineChart({ title, labels, series, format, ariaLabel }) {
-  const canvasRef = useRef(null);
-  useEffect(() => {
-    if (!canvasRef.current) return undefined;
-    const dense = labels.length > 16;
-    const chart = new Chart(canvasRef.current, {
-      type: 'line',
-      data: {
-        labels,
-        datasets: series.map((s) => ({
-          label: s.label,
-          data: s.data,
-          borderColor: s.color,
-          backgroundColor: s.color,
-          borderWidth: s.total ? 3 : 2,
-          pointRadius: dense ? 2 : 4,
-          pointHoverRadius: 6,
-          pointBorderColor: '#ffffff',
-          pointBorderWidth: 1.5,
-          tension: 0.25,
-          spanGaps: false,
-          order: s.total ? 0 : 1,
-        })),
-      },
-      options: {
-        responsive: true,
-        maintainAspectRatio: false,
-        animation: false,
-        interaction: { mode: 'index', intersect: false },
-        plugins: {
-          legend: { position: 'top', labels: { usePointStyle: true, pointStyle: 'circle', boxWidth: 8, boxHeight: 8, padding: 14, color: '#334155', font: { size: 12 } } },
-          tooltip: {
-            backgroundColor: '#0f172a', padding: 10, boxPadding: 4, usePointStyle: true,
-            callbacks: { label: (ctx) => ` ${ctx.dataset.label}: ${format(ctx.parsed.y)}` },
-          },
-        },
-        scales: {
-          x: { grid: { color: '#eef1f5' }, ticks: { color: '#475569', autoSkip: true, maxRotation: 0 } },
-          y: {
-            beginAtZero: true,
-            grid: { color: '#eef1f5' },
-            border: { display: false },
-            ticks: { color: '#475569', precision: 0, callback: (v) => Number(v).toLocaleString('en-US') },
-          },
-        },
-      },
-    });
-    return () => chart.destroy();
-  }, [labels, series, format]);
-
-  return (
-    <figure className="rp-chart">
-      <figcaption className="rp-chart-title">{title}</figcaption>
-      <div className="rp-chart-box"><canvas ref={canvasRef} role="img" aria-label={ariaLabel} /></div>
-    </figure>
-  );
-}
-
 const STYLES = `
-  .rp-shell { display: flex; min-height: 100vh; font-family: Arial, sans-serif; color: #0f172a; background: #e9edf3; }
+  .rp-shell { display: flex; min-height: 100vh; font-family: 'Onest', Arial, sans-serif; font-weight: 500; color: #0f172a; background: #e9edf3; }
   .rp-shell * { box-sizing: border-box; }
+  .rp-shell b, .rp-shell strong { font-weight: 700; }
 
-  /* Зүүн цэс */
-  .rp-side { width: 240px; flex-shrink: 0; background: #1d3264; color: #c9d3ea; display: flex; flex-direction: column; position: sticky; top: 0; height: 100vh; }
-  .rp-brand { padding: 22px 20px 18px; border-bottom: 1px solid rgba(255,255,255,0.08); }
-  .rp-brand-name { color: white; font-size: 1.35rem; font-weight: 800; letter-spacing: 0.01em; line-height: 1.15; }
-  .rp-brand-tag { display: inline-block; margin-top: 6px; padding: 2px 8px; border-radius: 4px; background: white; color: #1d3264; font-size: 0.72rem; font-weight: 800; font-style: italic; }
+  /* Зүүн цэс: тайлангийн хэсгүүд */
+  .rp-side { width: 240px; flex-shrink: 0; background: #1d3264; color: #dbe3f3; display: flex; flex-direction: column; position: sticky; top: 0; height: 100vh; }
+  .rp-brand { padding: 22px 20px 18px; border-bottom: 1px solid rgba(255,255,255,0.1); }
+  .rp-brand-name { color: white; font-size: 1.4rem; font-weight: 800; line-height: 1.15; }
+  .rp-brand-tag { display: inline-block; margin-top: 6px; padding: 2px 8px; border-radius: 4px; background: white; color: #1d3264; font-size: 0.75rem; font-weight: 800; }
   .rp-nav { display: flex; flex-direction: column; padding: 14px 0; gap: 2px; flex: 1; }
-  .rp-nav a, .rp-nav button { display: flex; align-items: center; gap: 12px; padding: 13px 22px; color: #c9d3ea; text-decoration: none; font-size: 1rem; background: none; border: none; cursor: pointer; text-align: left; font-family: inherit; }
-  .rp-nav a:hover, .rp-nav button:hover { color: white; background: rgba(255,255,255,0.05); }
-  .rp-nav a.active { background: #2c4a8a; color: white; font-weight: 700; }
+  .rp-nav button { display: flex; align-items: center; gap: 12px; padding: 14px 22px; color: #dbe3f3; font-size: 1.05rem; font-weight: 600; background: none; border: none; border-left: 4px solid transparent; cursor: pointer; text-align: left; font-family: inherit; }
+  .rp-nav button:hover { color: white; background: rgba(255,255,255,0.06); }
+  .rp-nav button[aria-current='page'] { background: #2c4a8a; color: white; font-weight: 800; border-left-color: #7cb4ff; }
   .rp-nav .rp-nav-bottom { margin-top: auto; }
-  .rp-nav-icon { width: 22px; text-align: center; }
+  .rp-nav-icon { width: 24px; text-align: center; }
 
   .rp-main { flex: 1; min-width: 0; display: flex; flex-direction: column; }
   .rp-topbar { background: white; display: flex; justify-content: space-between; align-items: center; gap: 12px; flex-wrap: wrap; padding: 14px 24px; border-bottom: 1px solid #dfe3ea; }
-  .rp-page .rp-title, .rp-topbar .rp-title { margin: 0; padding: 0; border: none; font-size: 1.45rem; font-weight: 600; color: #0f172a; text-align: left; }
-  .rp-topbar-sub { font-size: 0.8rem; color: #64748b; margin-top: 2px; }
+  .rp-topbar .rp-title { margin: 0; padding: 0; border: none; font-size: 1.5rem; font-weight: 800; color: #0f172a; text-align: left; }
+  .rp-topbar-sub { font-size: 0.85rem; color: #475569; margin-top: 2px; }
   .rp-actions { display: flex; gap: 8px; flex-wrap: wrap; }
-  .rp-btn { padding: 9px 16px; font-size: 0.92rem; font-weight: 600; border-radius: 4px; cursor: pointer; border: 1px solid #d9dde4; background: white; color: #1f2937; font-family: inherit; }
+  .rp-btn { padding: 9px 16px; font-size: 0.95rem; font-weight: 700; border-radius: 4px; cursor: pointer; border: 1px solid #cfd5df; background: white; color: #1f2937; font-family: inherit; }
   .rp-btn:hover { border-color: #1890ff; color: #1890ff; }
   .rp-btn:disabled { opacity: 0.5; cursor: default; }
-  .rp-content { padding: 22px; display: grid; grid-template-columns: minmax(0, 1fr); gap: 20px; }
-  .rp-grid > * { min-width: 0; }
+  .rp-btn-primary { background: #1d3264; border-color: #1d3264; color: white; }
+  .rp-btn-primary:hover { background: #2c4a8a; color: white; border-color: #2c4a8a; }
+  .rp-content { padding: 22px; display: grid; grid-template-columns: minmax(0, 1fr); gap: 20px; align-content: start; }
 
-  .rp-panel, .rp-card, .rp-summary { background: white; border-radius: 6px; border: 1px solid #e3e7ee; break-inside: avoid; }
-  .rp-panel { padding: 22px 22px 10px; }
-  .rp-page .rp-panel-title, .rp-panel .rp-panel-title { margin: 0 0 18px; padding: 0; border: none; font-size: 1.4rem; font-weight: 500; color: #0f172a; text-align: left; }
+  .rp-card, .rp-summary, .rp-periodbar { background: white; border-radius: 6px; border: 1px solid #e0e5ed; break-inside: avoid; }
 
-  /* Шүүлтүүр — QPay шиг */
-  .rp-controls { display: flex; justify-content: space-between; align-items: flex-start; gap: 12px; flex-wrap: wrap; margin-bottom: 12px; }
-  .rp-select { padding: 9px 12px; min-width: 180px; border: 1px solid #d9dde4; border-radius: 4px; background: white; color: #334155; font-size: 0.95rem; font-family: inherit; }
-  .rp-right { display: flex; flex-direction: column; align-items: flex-end; gap: 10px; }
+  /* Хугацаа сонгох мөр */
+  .rp-periodbar { padding: 14px 18px; display: flex; justify-content: space-between; align-items: center; gap: 12px; flex-wrap: wrap; }
+  .rp-period-text { font-size: 0.95rem; color: #1e293b; line-height: 1.55; }
+  .rp-period-text .rp-compare { color: #475569; font-size: 0.85rem; }
+  .rp-period-controls { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
   .rp-seg { display: inline-flex; }
-  .rp-seg button { padding: 9px 20px; border: 1px solid #d9dde4; background: white; color: #1f2937; font-size: 0.95rem; cursor: pointer; margin-left: -1px; font-family: inherit; }
+  .rp-seg button { padding: 9px 18px; border: 1px solid #cfd5df; background: white; color: #1f2937; font-size: 0.95rem; font-weight: 600; cursor: pointer; margin-left: -1px; font-family: inherit; }
   .rp-seg button:first-child { border-radius: 4px 0 0 4px; margin-left: 0; }
   .rp-seg button:last-child { border-radius: 0 4px 4px 0; }
-  .rp-seg button[aria-pressed='true'] { color: #1890ff; border-color: #1890ff; position: relative; z-index: 1; }
+  .rp-seg button[aria-pressed='true'] { color: #1890ff; border-color: #1890ff; position: relative; z-index: 1; font-weight: 800; }
   .rp-datebar { display: flex; align-items: center; gap: 6px; }
-  .rp-datebar input { padding: 8px 10px; border: 1px solid #d9dde4; border-radius: 4px; font-size: 0.95rem; color: #1f2937; background: white; font-family: inherit; min-height: 38px; }
-  .rp-step { width: 38px; height: 38px; border: 1px solid #d9dde4; border-radius: 4px; background: white; font-size: 1.2rem; cursor: pointer; color: #334155; }
+  .rp-datebar input { padding: 8px 10px; border: 1px solid #cfd5df; border-radius: 4px; font-size: 0.95rem; font-weight: 600; color: #1f2937; background: white; font-family: inherit; min-height: 38px; }
+  .rp-step { width: 38px; height: 38px; border: 1px solid #cfd5df; border-radius: 4px; background: white; font-size: 1.2rem; cursor: pointer; color: #334155; }
   .rp-step:disabled { opacity: 0.35; cursor: default; }
-  .rp-weeknum { font-size: 0.85rem; color: #64748b; min-width: 82px; text-align: right; }
-  .rp-meta { font-size: 0.86rem; color: #475569; line-height: 1.6; margin-bottom: 16px; }
 
-  .rp-kpis { display: grid; grid-template-columns: repeat(auto-fit, minmax(170px, 1fr)); gap: 12px; margin-bottom: 18px; }
-  .rp-kpi { background: #f8fafc; border: 1px solid #e3e7ee; border-radius: 6px; padding: 14px 16px; }
-  .rp-kpi-label { font-size: 0.85rem; font-weight: 700; color: #475569; }
-  .rp-kpi-value { margin: 6px 0 4px; font-size: clamp(1.1rem, 1.55vw, 1.45rem); font-weight: 700; font-variant-numeric: tabular-nums; white-space: nowrap; }
-  .rp-kpi-sub { font-size: 0.8rem; color: #64748b; min-height: 1.1em; }
-  .rp-kpi-hint { margin-top: 6px; font-size: 0.75rem; color: #94a3b8; line-height: 1.4; }
+  .rp-section { display: grid; grid-template-columns: minmax(0, 1fr); gap: 20px; }
+  .rp-section-hidden { display: none; }
+  .rp-section-title { margin: 0; font-size: 1.15rem; font-weight: 800; }
 
-  .rp-chart { margin: 0 0 18px; }
-  .rp-chart-title { text-align: center; font-weight: 700; font-size: 0.95rem; color: #334155; margin-bottom: 6px; }
-  .rp-chart-box { position: relative; height: 300px; width: 100%; min-width: 0; }
+  .rp-kpis { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 14px; }
+  @media (max-width: 760px) { .rp-kpis { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
+  .rp-kpi { background: white; border: 1px solid #e0e5ed; border-radius: 6px; padding: 16px 18px; }
+  .rp-kpi-label { font-size: 0.92rem; font-weight: 700; color: #334155; }
+  .rp-kpi-value { margin: 6px 0 4px; font-size: clamp(1.2rem, 1.7vw, 1.6rem); font-weight: 800; font-variant-numeric: tabular-nums; white-space: nowrap; }
+  .rp-kpi-sub { font-size: 0.85rem; color: #475569; min-height: 1.1em; }
+  .rp-kpi-hint { margin-top: 6px; font-size: 0.8rem; color: #64748b; line-height: 1.4; }
 
   .rp-pos { color: #047857; } .rp-neg { color: #b91c1c; } .rp-warn { color: #b45309; }
-  .rp-delta { font-weight: 700; } .rp-good { color: #047857; } .rp-bad { color: #b91c1c; } .rp-muted { color: #94a3b8; font-weight: 400; }
-  .rp-delta-word { font-weight: 400; color: #64748b; }
+  .rp-delta { font-weight: 800; } .rp-good { color: #047857; } .rp-bad { color: #b91c1c; } .rp-muted { color: #64748b; font-weight: 500; }
+  .rp-delta-word { font-weight: 500; color: #475569; }
 
   .rp-summary { border-left: 4px solid #1d3264; padding: 18px 20px; }
-  .rp-summary ul { margin: 10px 0 0; padding: 0; list-style: none; display: grid; gap: 8px; }
-  .rp-summary li { position: relative; padding-left: 22px; line-height: 1.5; font-size: 0.95rem; color: #1e293b; }
-  .rp-summary li::before { content: '•'; position: absolute; left: 6px; color: #94a3b8; font-weight: 700; }
-  .rp-summary li.good::before { content: '▲'; left: 2px; font-size: 0.75rem; top: 3px; color: #047857; }
-  .rp-summary li.bad::before { content: '▼'; left: 2px; font-size: 0.75rem; top: 3px; color: #b91c1c; }
+  .rp-summary ul { margin: 10px 0 0; padding: 0; list-style: none; display: grid; gap: 9px; }
+  .rp-summary li { position: relative; padding-left: 22px; line-height: 1.55; font-size: 1rem; color: #0f172a; }
+  .rp-summary li::before { content: '•'; position: absolute; left: 6px; color: #64748b; font-weight: 800; }
+  .rp-summary li.good::before { content: '▲'; left: 2px; font-size: 0.75rem; top: 4px; color: #047857; }
+  .rp-summary li.bad::before { content: '▼'; left: 2px; font-size: 0.75rem; top: 4px; color: #b91c1c; }
   .rp-summary li.warn { background: #fffbeb; border: 1px solid #fde68a; border-radius: 4px; padding: 8px 10px 8px 30px; color: #92400e; }
   .rp-summary li.warn::before { content: '!'; left: 12px; top: 8px; color: #b45309; }
 
-  .rp-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(420px, 1fr)); gap: 20px; }
+  .rp-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(380px, 1fr)); gap: 20px; align-items: start; }
+  .rp-grid > * { min-width: 0; }
   .rp-card { padding: 20px; }
-  .rp-card-title, .rp-summary .rp-card-title { margin: 0 0 4px; padding: 0; border: none; font-size: 1.05rem; font-weight: 700; color: #0f172a; text-align: left; }
-  .rp-card-note { margin: 0 0 14px; font-size: 0.82rem; color: #64748b; line-height: 1.5; }
-  .rp-table { width: 100%; border-collapse: collapse; font-size: 0.9rem; font-variant-numeric: tabular-nums; }
-  .rp-table th { text-align: left; padding: 8px 6px; font-size: 0.78rem; font-weight: 700; color: #64748b; border-bottom: 2px solid #e2e8f0; }
-  .rp-table td { padding: 9px 6px; border-bottom: 1px solid #f1f5f9; vertical-align: middle; }
+  .rp-card-title, .rp-summary .rp-card-title { margin: 0 0 4px; padding: 0; border: none; font-size: 1.1rem; font-weight: 800; color: #0f172a; text-align: left; }
+  .rp-card-note { margin: 0 0 14px; font-size: 0.86rem; color: #475569; line-height: 1.5; }
+  .rp-table { width: 100%; border-collapse: collapse; font-size: 0.95rem; font-variant-numeric: tabular-nums; }
+  .rp-table th { text-align: left; padding: 8px 6px; font-size: 0.82rem; font-weight: 800; color: #475569; border-bottom: 2px solid #e2e8f0; }
+  .rp-table td { padding: 10px 6px; border-bottom: 1px solid #eef1f5; vertical-align: middle; }
   .rp-table .r { text-align: right; white-space: nowrap; } .rp-table .c { text-align: center; }
-  .rp-table .indent { padding-left: 22px; color: #475569; }
-  .rp-table tr.rp-group td { font-weight: 700; color: #475569; padding-top: 14px; border-bottom: none; }
-  .rp-table tr.rp-subtotal td { font-weight: 700; border-top: 1px solid #cbd5e1; }
-  .rp-table tr.rp-total td { font-weight: 700; border-top: 2px solid #0f172a; border-bottom: none; font-size: 0.98rem; }
-  .rp-table tr.rp-peak td { background: #eef4ff; font-weight: 700; }
-  .rp-dot { display: inline-block; width: 9px; height: 9px; border-radius: 50%; margin-right: 8px; vertical-align: middle; }
-  .rp-bar { height: 8px; background: #f1f5f9; border-radius: 4px; overflow: hidden; min-width: 60px; }
+  .rp-table .indent { padding-left: 22px; color: #334155; }
+  .rp-table tr.rp-group td { font-weight: 800; color: #334155; padding-top: 14px; border-bottom: none; }
+  .rp-table tr.rp-subtotal td { font-weight: 800; border-top: 1px solid #cbd5e1; }
+  .rp-table tr.rp-total td { font-weight: 800; border-top: 2px solid #0f172a; border-bottom: none; font-size: 1rem; }
+  .rp-table tr.rp-peak td { background: #eef4ff; font-weight: 800; }
+  .rp-dot { display: inline-block; width: 10px; height: 10px; border-radius: 50%; margin-right: 8px; vertical-align: middle; }
+  .rp-bar { height: 8px; background: #eef1f5; border-radius: 4px; overflow: hidden; min-width: 60px; }
   .rp-bar-fill { height: 100%; background: #1d3264; }
-  .rp-scroll { max-height: 420px; overflow-y: auto; margin-bottom: 12px; }
   .rp-closure { display: flex; justify-content: space-between; align-items: center; gap: 12px; flex-wrap: wrap; background: #f0fdf4; color: #166534; padding: 14px 18px; border: 1px solid #bbf7d0; border-radius: 6px; }
   .rp-form { display: grid; gap: 12px; }
-  .rp-form label { display: block; font-size: 0.85rem; color: #475569; margin-bottom: 4px; }
-  .rp-form input, .rp-form select { width: 100%; padding: 9px 10px; border-radius: 4px; border: 1px solid #cbd5e1; background: white; font-size: 0.95rem; }
-  .rp-btn-primary { background: #1d3264; border-color: #1d3264; color: white; }
-  .rp-btn-primary:hover { background: #2c4a8a; color: white; border-color: #2c4a8a; }
-  .rp-del { background: none; border: none; color: #b91c1c; cursor: pointer; font-size: 0.82rem; font-weight: 700; padding: 4px; }
-  .rp-glossary { display: grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); gap: 8px 24px; margin: 8px 0 12px; }
-  .rp-glossary div { font-size: 0.82rem; color: #475569; line-height: 1.5; }
-  .rp-notes { font-size: 0.8rem; color: #64748b; line-height: 1.6; padding: 4px 4px 20px; }
-  .rp-loading { padding: 50px; text-align: center; color: #64748b; background: white; border-radius: 6px; }
-  .rp-link { background: none; border: none; color: #1890ff; font-weight: 700; cursor: pointer; padding: 4px 0 8px; font-family: inherit; }
+  .rp-form label { display: block; font-size: 0.9rem; font-weight: 700; color: #334155; margin-bottom: 4px; }
+  .rp-form input, .rp-form select { width: 100%; padding: 10px; border-radius: 4px; border: 1px solid #cbd5e1; background: white; font-size: 1rem; font-weight: 600; font-family: inherit; }
+  .rp-del { background: none; border: none; color: #b91c1c; cursor: pointer; font-size: 0.85rem; font-weight: 800; padding: 4px; font-family: inherit; }
+  .rp-glossary { display: grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); gap: 10px 24px; }
+  .rp-glossary div { font-size: 0.88rem; color: #334155; line-height: 1.5; }
+  .rp-loading { padding: 50px; text-align: center; color: #475569; background: white; border-radius: 6px; }
+  .rp-link { background: none; border: none; color: #1677d8; font-weight: 800; cursor: pointer; padding: 8px 0 0; font-family: inherit; font-size: 0.95rem; }
   .rp-print-only { display: none; }
 
   @media (max-width: 900px) {
     .rp-shell { flex-direction: column; }
-    .rp-side { width: 100%; height: auto; position: static; flex-direction: row; align-items: center; overflow-x: auto; }
-    .rp-brand { border-bottom: none; padding: 12px 16px; flex-shrink: 0; }
+    .rp-side { width: 100%; max-width: 100vw; height: auto; position: sticky; top: 0; z-index: 5; flex-direction: row; align-items: center; overflow-x: auto; }
+    .rp-brand { border-bottom: none; padding: 10px 14px; flex-shrink: 0; }
     .rp-brand-name { font-size: 1.05rem; white-space: nowrap; }
     .rp-brand-tag { display: none; }
     .rp-nav { flex-direction: row; padding: 0; }
-    .rp-nav a, .rp-nav button { padding: 16px 14px; white-space: nowrap; font-size: 0.92rem; }
+    .rp-nav button { padding: 15px 12px; white-space: nowrap; font-size: 0.95rem; border-left: none; border-bottom: 4px solid transparent; }
+    .rp-nav button[aria-current='page'] { border-bottom-color: #7cb4ff; }
     .rp-nav .rp-nav-bottom { margin-top: 0; }
   }
   @media (max-width: 560px) {
-    .rp-content { padding: 12px; } .rp-panel { padding: 16px 14px 6px; } .rp-topbar { padding: 12px 14px; }
-    .rp-grid { grid-template-columns: 1fr; } .rp-table { font-size: 0.8rem; }
-    .rp-card { overflow-x: auto; } .rp-side { max-width: 100vw; }
-    .rp-table td, .rp-table th { padding: 7px 4px; } .rp-kpis { grid-template-columns: 1fr 1fr; } .rp-kpi-value { font-size: 1.15rem; }
-    .rp-right { align-items: stretch; width: 100%; } .rp-seg { width: 100%; } .rp-seg button { flex: 1; padding: 9px 6px; }
-    .rp-select { width: 100%; } .rp-datebar input { flex: 1; min-width: 0; } .rp-chart-box { height: 240px; }
+    .rp-content { padding: 12px; gap: 14px; } .rp-topbar { padding: 12px 14px; }
+    .rp-grid { grid-template-columns: 1fr; } .rp-table { font-size: 0.85rem; }
+    .rp-table td, .rp-table th { padding: 8px 4px; } .rp-kpis { grid-template-columns: 1fr 1fr; gap: 10px; }
+    .rp-card { overflow-x: auto; padding: 16px 14px; }
+    .rp-seg { width: 100%; } .rp-seg button { flex: 1; padding: 9px 6px; }
+    .rp-period-controls { width: 100%; } .rp-datebar { width: 100%; } .rp-datebar input { flex: 1; min-width: 0; }
   }
   @media print {
     @page { size: A4; margin: 12mm; }
     .rp-shell { background: white; display: block; }
     .rp-no-print { display: none !important; }
     .rp-print-only { display: block; }
+    .rp-section-hidden { display: grid; }
     .rp-content { padding: 0; }
     .rp-topbar { padding: 0 0 10px; border-bottom: 2px solid #0f172a; margin-bottom: 12px; }
     .rp-grid { grid-template-columns: 1fr 1fr; }
     .rp-kpis { grid-template-columns: repeat(3, 1fr); }
-    .rp-scroll { max-height: none; overflow: visible; }
-    .rp-chart-box { height: 230px; }
   }
 `;
 
-const NAV = [
-  { to: '/report', icon: '📊', label: 'Дашбоард', active: true },
-  { to: '/cashier', icon: '🧾', label: 'Касс' },
-  { to: '/kitchen', icon: '👨‍🍳', label: 'Гал тогоо' },
-  { to: '/', icon: '🏠', label: 'Нүүр хуудас' },
+const SECTIONS = [
+  { key: 'overview', icon: '📊', label: 'Тойм' },
+  { key: 'income', icon: '💰', label: 'Орлого' },
+  { key: 'sales', icon: '🍽️', label: 'Хоол' },
+  { key: 'expenses', icon: '🧾', label: 'Зарлага' },
+  { key: 'profit', icon: '📑', label: 'Ашиг, алдагдал' },
 ];
+
 
 function ReportPage() {
   // ==============================================
@@ -622,7 +559,6 @@ function ReportPage() {
   // ==============================================
   const [view, setView] = useState('day'); // day | week | month
   const [anchor, setAnchor] = useState(todayInput); // сонгосон өдөр (YYYY-MM-DD)
-  const [payFilter, setPayFilter] = useState('all');
   const [isReportLoading, setIsReportLoading] = useState(false);
   const [loadError, setLoadError] = useState('');
   const [report, setReport] = useState(null);
@@ -631,7 +567,14 @@ function ReportPage() {
   const [generatedAt, setGeneratedAt] = useState(null);
   const [shiftClosureData, setShiftClosureData] = useState(null);
   const [showAllItems, setShowAllItems] = useState(false);
-  const [showChartTable, setShowChartTable] = useState(false);
+  const [section, setSection] = useState(() => {
+    try { return localStorage.getItem('zogsoo-report-section') || 'overview'; } catch { return 'overview'; }
+  });
+  const selectSection = (key) => {
+    setSection(key);
+    try { localStorage.setItem('zogsoo-report-section', key); } catch { /* зөвхөн энэ удаад */ }
+    window.scrollTo({ top: 0 });
+  };
   const requestRef = useRef(0); // хурдан шүүлтүүр солиход хуучин хариу шинийг дарахаас сэргийлнэ
 
   // Зарлагын маягт
@@ -730,37 +673,26 @@ function ReportPage() {
   };
 
   // ==============================================
-  // ГРАФИКИЙН ӨГӨГДӨЛ
+  // ӨГӨГДӨЛ
   // ==============================================
   const r = report;
   const prev = previous;
   const p = periods;
   const buckets = useMemo(() => (r && p ? buildBuckets(r, p) : []), [r, p]);
-  const chart = useMemo(() => {
-    const labels = buckets.map((b) => b.label);
-    const methods = PAYMENT_METHODS.filter(({ key }) => (payFilter === 'all' ? r?.payments[key].count > 0 : key === payFilter));
-    const build = (field) => [
-      ...(payFilter === 'all' ? [{ label: 'Нийт', color: TOTAL_COLOR, total: true, data: buckets.map((b) => (b.future ? null : b[field])) }] : []),
-      ...methods.map((m) => ({ label: m.label, color: m.color, data: buckets.map((b) => (b.future ? null : b.methods[m.key][field])) })),
-    ];
-    return { labels, amount: build('amount'), count: build('count') };
-  }, [buckets, payFilter, r]);
-  const formatMoneyTick = useMemo(() => (v) => money(v), []);
-  const formatCountTick = useMemo(() => (v) => `${num(v)} захиалга`, []);
 
   // ==============================================
   // НЭВТРЭХ ДЭЛГЭЦ
   // ==============================================
   if (!isAuthenticated) {
     return (
-      <div style={{ display: 'flex', height: '100vh', justifyContent: 'center', alignItems: 'center', backgroundColor: '#e9edf3', fontFamily: 'Arial, sans-serif' }}>
+      <div style={{ display: 'flex', height: '100vh', justifyContent: 'center', alignItems: 'center', backgroundColor: '#e9edf3', fontFamily: "'Onest', Arial, sans-serif" }}>
         <form onSubmit={handleLogin} style={{ backgroundColor: 'white', padding: '40px', borderRadius: '8px', border: '1px solid #e2e8f0', boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.1)', textAlign: 'center', width: '340px', maxWidth: 'calc(100vw - 32px)' }}>
-          <div style={{ fontSize: '1.5rem', fontWeight: 800, color: '#1d3264', marginBottom: '4px' }}>{BRAND}</div>
-          <h2 style={{ margin: '0 0 10px 0', color: '#0f172a', fontWeight: '600', fontSize: '1.1rem' }}>Санхүүгийн тайлан</h2>
-          <p style={{ color: '#64748b', margin: '0 0 25px 0', fontSize: '0.9rem' }}>Зөвхөн эрх бүхий ажилтан нэвтрэнэ.</p>
-          <input type="email" placeholder="Цахим шуудан" value={email} onChange={(e) => setEmail(e.target.value)} style={{ width: '100%', padding: '12px', fontSize: '0.95rem', borderRadius: '4px', border: '1px solid #cbd5e1', marginBottom: '15px', boxSizing: 'border-box' }} required />
-          <input type="password" placeholder="Нууц үг" value={password} onChange={(e) => setPassword(e.target.value)} style={{ width: '100%', padding: '12px', fontSize: '0.95rem', borderRadius: '4px', border: '1px solid #cbd5e1', marginBottom: '25px', boxSizing: 'border-box' }} required />
-          <button type="submit" disabled={isLoggingIn} style={{ width: '100%', padding: '12px', fontSize: '1rem', backgroundColor: isLoggingIn ? '#94a3b8' : '#1d3264', color: 'white', border: 'none', borderRadius: '4px', cursor: 'pointer', fontWeight: 'bold' }}>
+          <div style={{ fontSize: '1.6rem', fontWeight: 800, color: '#1d3264', marginBottom: '4px' }}>{BRAND}</div>
+          <h2 style={{ margin: '0 0 10px 0', color: '#0f172a', fontWeight: 700, fontSize: '1.1rem' }}>Санхүүгийн тайлан</h2>
+          <p style={{ color: '#475569', margin: '0 0 25px 0', fontSize: '0.92rem', fontWeight: 500 }}>Зөвхөн эрх бүхий ажилтан нэвтрэнэ.</p>
+          <input type="email" placeholder="Цахим шуудан" value={email} onChange={(e) => setEmail(e.target.value)} style={{ width: '100%', padding: '12px', fontSize: '1rem', borderRadius: '4px', border: '1px solid #cbd5e1', marginBottom: '15px', boxSizing: 'border-box', fontFamily: 'inherit' }} required />
+          <input type="password" placeholder="Нууц үг" value={password} onChange={(e) => setPassword(e.target.value)} style={{ width: '100%', padding: '12px', fontSize: '1rem', borderRadius: '4px', border: '1px solid #cbd5e1', marginBottom: '25px', boxSizing: 'border-box', fontFamily: 'inherit' }} required />
+          <button type="submit" disabled={isLoggingIn} style={{ width: '100%', padding: '12px', fontSize: '1rem', backgroundColor: isLoggingIn ? '#94a3b8' : '#1d3264', color: 'white', border: 'none', borderRadius: '4px', cursor: 'pointer', fontWeight: 800, fontFamily: 'inherit' }}>
             {isLoggingIn ? 'Баталгаажуулж байна...' : 'Нэвтрэх'}
           </button>
         </form>
@@ -777,7 +709,7 @@ function ReportPage() {
   const margin = r ? percent(r.net, r.income) : 0;
   const itemTotal = r ? r.items.reduce((s, [, d]) => s + d.revenue, 0) : 0;
   const itemQty = r ? r.items.reduce((s, [, d]) => s + d.qty, 0) : 0;
-  const visibleItems = r ? (showAllItems ? r.items : r.items.slice(0, 15)) : [];
+  const visibleItems = r ? (showAllItems ? r.items : r.items.slice(0, 20)) : [];
   const expenseCategories = r && prev
     ? [...new Set([...Object.keys(r.expenseByCategory), ...Object.keys(prev.expenseByCategory)])]
     : [];
@@ -786,22 +718,25 @@ function ReportPage() {
   const bucketMax = Math.max(0, ...pastBuckets.map((b) => b.amount));
   const canGoNext = periodStart(view, shiftAnchor(view, anchor, 1)) <= new Date();
   const anchorWeek = isoWeek(parseInputDate(anchor));
+  const ready = !isReportLoading && !loadError && r && prev && p;
+  const current = SECTIONS.find((s) => s.key === section) || SECTIONS[0];
+  const sectionClass = (key) => `rp-section${section === key ? '' : ' rp-section-hidden'}`;
 
   return (
     <div className="rp-shell">
       <style>{STYLES}</style>
 
-      {/* ЗҮҮН ЦЭС */}
+      {/* ЗҮҮН ЦЭС: тайлангийн хэсгүүд */}
       <aside className="rp-side rp-no-print">
         <div className="rp-brand">
           <div className="rp-brand-name">{BRAND}</div>
           <span className="rp-brand-tag">Санхүү</span>
         </div>
-        <nav className="rp-nav" aria-label="Үндсэн цэс">
-          {NAV.map((item) => (
-            <Link key={item.to} to={item.to} className={item.active ? 'active' : ''} aria-current={item.active ? 'page' : undefined}>
-              <span className="rp-nav-icon" aria-hidden="true">{item.icon}</span>{item.label}
-            </Link>
+        <nav className="rp-nav" aria-label="Тайлангийн хэсгүүд">
+          {SECTIONS.map((s) => (
+            <button key={s.key} onClick={() => selectSection(s.key)} aria-current={section === s.key ? 'page' : undefined}>
+              <span className="rp-nav-icon" aria-hidden="true">{s.icon}</span>{s.label}
+            </button>
           ))}
           <button className="rp-nav-bottom" onClick={handleLogout}><span className="rp-nav-icon" aria-hidden="true">⎋</span>Гарах</button>
         </nav>
@@ -810,75 +745,65 @@ function ReportPage() {
       <div className="rp-main">
         <header className="rp-topbar">
           <div>
-            <div className="rp-print-only" style={{ fontWeight: 700, letterSpacing: '0.08em', color: '#64748b', fontSize: '0.8rem' }}>{BRAND.toUpperCase()} ЗООГИЙН ГАЗАР</div>
-            <h1 className="rp-title">Санхүүгийн тайлан</h1>
+            <div className="rp-print-only" style={{ fontWeight: 800, letterSpacing: '0.06em', color: '#475569', fontSize: '0.8rem' }}>{BRAND.toUpperCase()} ЗООГИЙН ГАЗАР</div>
+            <h1 className="rp-title"><span className="rp-no-print">{current.label}</span><span className="rp-print-only">Санхүүгийн тайлан</span></h1>
             {generatedAt && <div className="rp-topbar-sub">Шинэчилсэн: {formatDateTime(generatedAt)} · Бүх дүн төгрөгөөр (₮)</div>}
           </div>
           <div className="rp-actions rp-no-print">
             <button className="rp-btn" onClick={fetchAdvancedReport} disabled={isReportLoading}>↻ Шинэчлэх</button>
             <button className="rp-btn" onClick={() => window.print()} disabled={!r}>🖨 Хэвлэх / PDF</button>
-            <button className="rp-btn" onClick={handleLogout}>Гарах</button>
           </div>
         </header>
 
         <div className="rp-content">
-          {/* ДАШБОАРД */}
-          <section className="rp-panel">
-            <h2 className="rp-panel-title">Дашбоард</h2>
-            <div className="rp-controls rp-no-print">
-              <select className="rp-select" value={payFilter} onChange={(e) => setPayFilter(e.target.value)} aria-label="Төлбөрийн хэлбэр сонгох">
-                <option value="all">Бүх төлбөрийн хэлбэр</option>
-                {PAYMENT_METHODS.filter(({ key }) => key !== 'unknown').map(({ key, label }) => <option key={key} value={key}>{label}</option>)}
-              </select>
-              <div className="rp-right">
-                <div className="rp-seg" role="group" aria-label="Хугацаа">
-                  {VIEWS.map(({ key, label }) => (
-                    <button key={key} aria-pressed={view === key} onClick={() => setView(key)}>{label}</button>
-                  ))}
-                </div>
-                <div className="rp-datebar">
-                  <button className="rp-step" onClick={() => setAnchor(shiftAnchor(view, anchor, -1))} aria-label="Өмнөх">‹</button>
-                  {view === 'month' ? (
-                    <input type="month" value={anchor.slice(0, 7)} max={todayInput().slice(0, 7)} aria-label="Сар сонгох"
-                      onChange={(e) => { if (e.target.value) setAnchor(`${e.target.value}-01`); }} />
-                  ) : (
-                    <input type="date" value={anchor} max={todayInput()} aria-label="Өдөр сонгох"
-                      onChange={(e) => { if (e.target.value) setAnchor(e.target.value); }} />
-                  )}
-                  <button className="rp-step" onClick={() => setAnchor(shiftAnchor(view, anchor, 1))} disabled={!canGoNext} aria-label="Дараах">›</button>
-                  {view === 'week' && <span className="rp-weeknum">{anchorWeek.year}-{anchorWeek.week}-р 7 хоног</span>}
-                  {anchor !== todayInput() && <button className="rp-btn" onClick={() => setAnchor(todayInput())}>Өнөөдөр</button>}
-                </div>
+          {/* ХУГАЦАА */}
+          <div className="rp-periodbar">
+            <div className="rp-period-text">
+              {p ? <>Тайлант хугацаа: <b>{p.label}</b><br /><span className="rp-compare">Харьцуулсан: {p.prevLabel}</span></> : 'Хугацаа сонгоно уу'}
+            </div>
+            <div className="rp-period-controls rp-no-print">
+              <div className="rp-seg" role="group" aria-label="Хугацаа">
+                {VIEWS.map(({ key, label }) => (
+                  <button key={key} aria-pressed={view === key} onClick={() => setView(key)}>{label}</button>
+                ))}
+              </div>
+              <div className="rp-datebar">
+                <button className="rp-step" onClick={() => setAnchor(shiftAnchor(view, anchor, -1))} aria-label="Өмнөх">‹</button>
+                {view === 'month' ? (
+                  <input type="month" value={anchor.slice(0, 7)} max={todayInput().slice(0, 7)} aria-label="Сар сонгох"
+                    onChange={(e) => { if (e.target.value) setAnchor(`${e.target.value}-01`); }} />
+                ) : (
+                  <input type="date" value={anchor} max={todayInput()} aria-label="Өдөр сонгох"
+                    onChange={(e) => { if (e.target.value) setAnchor(e.target.value); }} />
+                )}
+                <button className="rp-step" onClick={() => setAnchor(shiftAnchor(view, anchor, 1))} disabled={!canGoNext} aria-label="Дараах">›</button>
+                {anchor !== todayInput() && <button className="rp-btn" onClick={() => setAnchor(todayInput())}>Өнөөдөр</button>}
               </div>
             </div>
+          </div>
+          {view === 'week' && <div className="rp-muted rp-no-print" style={{ marginTop: '-12px', fontSize: '0.85rem' }}>{anchorWeek.year} оны {anchorWeek.week}-р 7 хоног (Даваа – Ням)</div>}
 
-            {p && (
-              <div className="rp-meta">
-                Тайлант хугацаа: <strong>{p.label}</strong><br />
-                Харьцуулсан: {p.prevLabel}
-              </div>
-            )}
+          {isReportLoading && <div className="rp-loading">Мэдээллийг татаж байна...</div>}
+          {!isReportLoading && loadError && <div className="rp-loading" style={{ color: '#b91c1c' }}>{loadError}</div>}
 
-            {shiftClosureData && (
-              <div className="rp-closure" style={{ marginBottom: '16px' }}>
-                <div>
-                  <strong style={{ display: 'block', marginBottom: '4px' }}>Ээлж хаагдсан</strong>
-                  <span style={{ fontSize: '0.92rem' }}>
-                    Систем дэх бэлэн мөнгө: <b>{money(shiftClosureData.expected_cash)}</b> · Кассанд тоолсон: <b>{money(shiftClosureData.actual_cash)}</b>
-                  </span>
-                </div>
-                {shiftClosureData.difference !== 0 && (
-                  <strong style={{ color: shiftClosureData.difference < 0 ? '#b91c1c' : '#a16207' }}>Зөрүү: {money(shiftClosureData.difference)}</strong>
+          {ready && (
+            <>
+              {/* ТОЙМ */}
+              <section className={sectionClass('overview')} aria-label="Тойм">
+                <h2 className="rp-section-title rp-print-only">Тойм</h2>
+                {shiftClosureData && (
+                  <div className="rp-closure">
+                    <div>
+                      <strong style={{ display: 'block', marginBottom: '4px' }}>Ээлж хаагдсан</strong>
+                      <span style={{ fontSize: '0.92rem' }}>
+                        Систем дэх бэлэн мөнгө: <b>{money(shiftClosureData.expected_cash)}</b> · Кассанд тоолсон: <b>{money(shiftClosureData.actual_cash)}</b>
+                      </span>
+                    </div>
+                    {shiftClosureData.difference !== 0 && (
+                      <strong style={{ color: shiftClosureData.difference < 0 ? '#b91c1c' : '#a16207' }}>Зөрүү: {money(shiftClosureData.difference)}</strong>
+                    )}
+                  </div>
                 )}
-              </div>
-            )}
-
-            {isReportLoading && <div className="rp-loading">Мэдээллийг татаж байна...</div>}
-            {!isReportLoading && loadError && <div className="rp-loading" style={{ color: '#b91c1c' }}>{loadError}</div>}
-
-            {!isReportLoading && !loadError && r && prev && p && (
-              <>
-                {/* ГОЛ ҮЗҮҮЛЭЛТ */}
                 <div className="rp-kpis" aria-label="Гол үзүүлэлтүүд">
                   <Kpi label="Нийт орлого" value={money(r.income)} sub={<Delta current={r.income} previous={prev.income} word={p.compareWord} />} hint="Төлбөр нь авагдсан бүх захиалгын дүн" />
                   <Kpi label="Нийт зарлага" value={money(r.expenseTotal)} tone={hasExpenses ? '' : 'rp-warn'}
@@ -893,49 +818,181 @@ function ReportPage() {
                   <Kpi label="Захиалгын тоо" value={num(r.orderCount)} sub={<Delta current={r.orderCount} previous={prev.orderCount} word={p.compareWord} />} hint={r.cancelledCount ? `Цуцлагдсан ${num(r.cancelledCount)} захиалга ороогүй` : 'Цуцлагдсан захиалга ороогүй'} />
                   <Kpi label="Нэг захиалгын дундаж" value={money(avgTicket)} sub={<Delta current={avgTicket} previous={prevAvgTicket} word={p.compareWord} />} hint="Орлого ÷ захиалгын тоо" />
                 </div>
+                <section className="rp-summary" aria-label="Товч дүгнэлт">
+                  <h2 className="rp-card-title">Товч дүгнэлт</h2>
+                  <ul>
+                    {insights.map((line, i) => <li key={i} className={line.tone || ''}>{line.text}</li>)}
+                  </ul>
+                </section>
+              </section>
 
-                {/* ГРАФИК */}
-                <LineChart title={`Орлого — дүнгээр (${p.view === 'day' ? 'цагаар' : 'өдрөөр'})`} labels={chart.labels} series={chart.amount} format={formatMoneyTick}
-                  ariaLabel={`Орлого ${p.view === 'day' ? 'цаг' : 'өдөр'} бүрээр, төлбөрийн хэлбэрээр`} />
-                <LineChart title={`Захиалга — тоогоор (${p.view === 'day' ? 'цагаар' : 'өдрөөр'})`} labels={chart.labels} series={chart.count} format={formatCountTick}
-                  ariaLabel={`Захиалгын тоо ${p.view === 'day' ? 'цаг' : 'өдөр'} бүрээр, төлбөрийн хэлбэрээр`} />
-
-                <button className="rp-link rp-no-print" onClick={() => setShowChartTable((v) => !v)} aria-expanded={showChartTable}>
-                  {showChartTable ? '▴ Хүснэгтийг нуух' : `▾ ${p.view === 'day' ? 'Цаг' : 'Өдөр'} бүрийн дүнг хүснэгтээр харах`}
-                </button>
-                {showChartTable && (
-                  <div className="rp-scroll">
+              {/* ОРЛОГО */}
+              <section className={sectionClass('income')} aria-label="Орлого">
+                <h2 className="rp-section-title rp-print-only">Орлого</h2>
+                <div className="rp-grid">
+                  <section className="rp-card">
+                    <h2 className="rp-card-title">Төлбөрийн хэлбэрээр</h2>
+                    <p className="rp-card-note">Мөнгө ямар хэлбэрээр орсныг харуулна. Рублийн төлбөрийг касс дээр оруулсан ханшаар төгрөгт шилжүүлсэн.</p>
                     <table className="rp-table">
-                      <thead><tr><th>{p.view === 'day' ? 'Цаг' : 'Өдөр'}</th><th className="c">Захиалга</th><th className="r">Орлого</th><th aria-label="График" /></tr></thead>
+                      <thead><tr><th>Хэлбэр</th><th className="c">Гүйлгээ</th><th className="r">Дүн</th><th className="r">Хувь</th><th aria-label="Хувь (зураас)" /></tr></thead>
+                      <tbody>
+                        {PAYMENT_METHODS.filter(({ key }) => key !== 'unknown' || r.payments.unknown.count).map(({ key, label, color }) => {
+                          const pm = r.payments[key];
+                          const share = percent(pm.amount, r.income);
+                          return (
+                            <tr key={key}>
+                              <td><span className="rp-dot" style={{ background: color }} aria-hidden="true" />{label}</td><td className="c">{num(pm.count)}</td><td className="r">{money(pm.amount)}</td>
+                              <td className="r">{share.toFixed(1)}%</td><td style={{ width: '22%' }}><ShareBar value={share} color={color} /></td>
+                            </tr>
+                          );
+                        })}
+                        <tr className="rp-total"><td>Нийт</td><td className="c">{num(r.orderCount)}</td><td className="r">{money(r.income)}</td><td className="r">{r.income ? '100.0%' : '0.0%'}</td><td /></tr>
+                      </tbody>
+                    </table>
+                  </section>
+
+                  <section className="rp-card">
+                    <h2 className="rp-card-title">Үйлчилгээний төрлөөр</h2>
+                    <p className="rp-card-note">Зааланд, авч явах, Тува захиалгын орлого.</p>
+                    <table className="rp-table">
+                      <thead><tr><th>Төрөл</th><th className="c">Захиалга</th><th className="r">Дүн</th><th className="r">Хувь</th><th aria-label="Хувь (зураас)" /></tr></thead>
+                      <tbody>
+                        {ORDER_TYPES.filter(({ key }) => r.types[key].count).map(({ key, label }) => {
+                          const t = r.types[key];
+                          const share = percent(t.amount, r.income);
+                          return (
+                            <tr key={key}>
+                              <td>{label}</td><td className="c">{num(t.count)}</td><td className="r">{money(t.amount)}</td>
+                              <td className="r">{share.toFixed(1)}%</td><td style={{ width: '22%' }}><ShareBar value={share} /></td>
+                            </tr>
+                          );
+                        })}
+                        {r.orderCount === 0 && <tr><td colSpan={5} className="rp-muted">Энэ хугацаанд борлуулалт алга.</td></tr>}
+                      </tbody>
+                    </table>
+                  </section>
+                </div>
+
+                <section className="rp-card">
+                  <h2 className="rp-card-title">{p.view === 'day' ? 'Цаг бүрийн орлого' : 'Өдөр бүрийн орлого'}</h2>
+                  <p className="rp-card-note">Тодруулсан мөр нь хамгийн их орлоготой {p.view === 'day' ? 'цаг' : 'өдөр'}.</p>
+                  {pastBuckets.length === 0 ? <p className="rp-muted">Мэдээлэл олдсонгүй.</p> : (
+                    <table className="rp-table" id="rp-timeline">
+                      <thead><tr><th>{p.view === 'day' ? 'Цаг' : 'Өдөр'}</th><th className="c">Захиалга</th><th className="r">Орлого</th><th aria-label="Харьцуулсан зураас" /></tr></thead>
                       <tbody>
                         {pastBuckets.map((b) => (
                           <tr key={b.key} className={b.amount > 0 && b.amount === bucketMax ? 'rp-peak' : ''}>
                             <td style={{ whiteSpace: 'nowrap' }}>{b.long}</td>
                             <td className="c">{b.count ? num(b.count) : <span className="rp-muted">—</span>}</td>
                             <td className="r">{b.amount ? money(b.amount) : <span className="rp-muted">—</span>}</td>
-                            <td style={{ width: '30%' }}><ShareBar value={percent(b.amount, bucketMax)} /></td>
+                            <td style={{ width: '32%' }}><ShareBar value={percent(b.amount, bucketMax)} /></td>
                           </tr>
                         ))}
                       </tbody>
                     </table>
-                  </div>
-                )}
-              </>
-            )}
-          </section>
-
-          {!isReportLoading && !loadError && r && prev && p && (
-            <>
-              {/* ТОВЧ ДҮГНЭЛТ */}
-              <section className="rp-summary" aria-label="Товч дүгнэлт">
-                <h2 className="rp-card-title">Товч дүгнэлт</h2>
-                <ul>
-                  {insights.map((line, i) => <li key={i} className={line.tone || ''}>{line.text}</li>)}
-                </ul>
+                  )}
+                </section>
               </section>
 
-              <div className="rp-grid">
-                {/* ОРЛОГО, ЗАРЛАГЫН ТАЙЛАН */}
+              {/* ХООЛ */}
+              <section className={sectionClass('sales')} aria-label="Хоол">
+                <h2 className="rp-section-title rp-print-only">Хоолны борлуулалт</h2>
+                <section className="rp-card">
+                  <h2 className="rp-card-title">Хоолны борлуулалт</h2>
+                  <p className="rp-card-note">Хамгийн их орлого оруулсан хоол эхэндээ. Захиалсан үеийн үнээр тооцсон.</p>
+                  {r.items.length === 0 ? <p className="rp-muted">Мэдээлэл олдсонгүй.</p> : (
+                    <>
+                      <table className="rp-table">
+                        <thead><tr><th className="c">№</th><th>Хоол</th><th className="r">Тоо</th><th className="r">Орлого</th><th className="r">Хувь</th></tr></thead>
+                        <tbody>
+                          {visibleItems.map(([name, d], idx) => (
+                            <tr key={name}>
+                              <td className="c rp-muted">{idx + 1}</td><td>{name}</td><td className="r">{num(d.qty)}</td>
+                              <td className="r">{money(d.revenue)}</td><td className="r">{percent(d.revenue, itemTotal).toFixed(1)}%</td>
+                            </tr>
+                          ))}
+                          <tr className="rp-total"><td /><td>Нийт ({r.items.length} нэр төрөл)</td><td className="r">{num(itemQty)}</td><td className="r">{money(itemTotal)}</td><td className="r">100.0%</td></tr>
+                        </tbody>
+                      </table>
+                      {r.items.length > 20 && (
+                        <button className="rp-link rp-no-print" onClick={() => setShowAllItems((v) => !v)}>
+                          {showAllItems ? 'Эхний 20-ыг харуулах' : `Бүгдийг харуулах (${r.items.length})`}
+                        </button>
+                      )}
+                      {Math.abs(itemTotal - r.income) >= 1 && (
+                        <p className="rp-card-note" style={{ marginTop: '10px', marginBottom: 0 }}>
+                          Хоолны нийлбэр нийт орлогоос {money(Math.abs(itemTotal - r.income))}-өөр {itemTotal > r.income ? 'их' : 'бага'} байна
+                          {r.ordersWithoutItems > 0 ? ` (${num(r.ordersWithoutItems)} захиалгад хоолны бүртгэл алга)` : ''}.
+                        </p>
+                      )}
+                    </>
+                  )}
+                </section>
+              </section>
+
+              {/* ЗАРЛАГА */}
+              <section className={sectionClass('expenses')} aria-label="Зарлага">
+                <h2 className="rp-section-title rp-print-only">Зарлага</h2>
+                <div className="rp-grid">
+                  <section className="rp-card">
+                    <h2 className="rp-card-title">Зарлагын жагсаалт</h2>
+                    {r.expenses.length === 0 ? <p className="rp-muted" style={{ marginTop: '10px' }}>Энэ хугацаанд зарлага бүртгэгдээгүй байна.</p> : (
+                      <table className="rp-table" style={{ marginTop: '10px' }}>
+                        <thead><tr><th>{p.view === 'day' ? 'Цаг' : 'Огноо'}</th><th>Ангилал</th><th>Тайлбар</th><th className="r">Дүн</th><th className="rp-no-print" aria-label="Устгах" /></tr></thead>
+                        <tbody>
+                          {r.expenses.map((exp) => (
+                            <tr key={exp.id}>
+                              <td className="rp-muted" style={{ whiteSpace: 'nowrap' }}>{p.view === 'day' ? formatTime(new Date(exp.created_at)) : formatDate(new Date(exp.created_at))}</td>
+                              <td>{EXPENSE_LABELS[exp.category] || exp.category}</td>
+                              <td style={{ maxWidth: '180px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }} title={exp.description}>{exp.description}</td>
+                              <td className="r">{money(exp.amount)}</td>
+                              <td className="r rp-no-print">
+                                <button className="rp-del" onClick={() => handleDeleteExpense(exp)} disabled={deletingId === exp.id} aria-label="Зарлага устгах">
+                                  {deletingId === exp.id ? '...' : 'Устгах'}
+                                </button>
+                              </td>
+                            </tr>
+                          ))}
+                          <tr className="rp-total"><td colSpan={3}>Нийт зарлага</td><td className="r">{money(r.expenseTotal)}</td><td className="rp-no-print" /></tr>
+                        </tbody>
+                      </table>
+                    )}
+                  </section>
+
+                  <section className="rp-card rp-no-print">
+                    <h2 className="rp-card-title">Зарлага бүртгэх</h2>
+                    <p className="rp-card-note">Бүртгэсэн зарлага өнөөдрийн огноогоор орж, цэвэр ашгийг шууд тооцно.</p>
+                    <form onSubmit={handleAddExpense} className="rp-form">
+                      <div>
+                        <label htmlFor="exp-amount">Зарлагын дүн (₮)</label>
+                        <input id="exp-amount" type="number" inputMode="numeric" min="1" value={expAmount} onChange={(e) => setExpAmount(e.target.value)} required placeholder="0" />
+                      </div>
+                      <div>
+                        <label htmlFor="exp-category">Зарлагын төрөл</label>
+                        <select id="exp-category" value={expCategory} onChange={(e) => setExpCategory(e.target.value)}>
+                          <option value="Цалин">Ажилчдын цалин, урамшуулал</option>
+                          <option value="Тог, ус, ашиглалт">Тог, ус, ашиглалтын зардал</option>
+                          <option value="Түүхий эд, агуулах">Түүхий эд, агуулахын татан авалт</option>
+                          <option value="Бусад">Бусад (гараар бичих)</option>
+                        </select>
+                      </div>
+                      {expCategory === 'Бусад' && (
+                        <div>
+                          <label htmlFor="exp-desc">Зарлагын утга (тайлбар)</label>
+                          <input id="exp-desc" type="text" value={expCustomDesc} onChange={(e) => setExpCustomDesc(e.target.value)} required placeholder="Жишээ: Бичиг хэргийн хэрэгсэл" />
+                        </div>
+                      )}
+                      <button type="submit" disabled={isAddingExpense} className="rp-btn rp-btn-primary" style={{ padding: '11px' }}>
+                        {isAddingExpense ? 'Хадгалж байна...' : 'Зарлага бүртгэх'}
+                      </button>
+                    </form>
+                  </section>
+                </div>
+              </section>
+
+              {/* АШИГ, АЛДАГДАЛ */}
+              <section className={sectionClass('profit')} aria-label="Ашиг, алдагдал">
+                <h2 className="rp-section-title rp-print-only">Ашиг, алдагдал</h2>
                 <section className="rp-card">
                   <h2 className="rp-card-title">Орлого, зарлагын тайлан</h2>
                   <p className="rp-card-note">Харьцуулсан: {p.prevLabel}. Ногоон нь сайн, улаан нь анхаарах өөрчлөлт.</p>
@@ -983,158 +1040,19 @@ function ReportPage() {
                   </table>
                 </section>
 
-                <div style={{ display: 'grid', gap: '20px', alignContent: 'start' }}>
-                  {/* ТӨЛБӨРИЙН ХЭЛБЭР */}
-                  <section className="rp-card">
-                    <h2 className="rp-card-title">Орлого — төлбөрийн хэлбэрээр</h2>
-                    <p className="rp-card-note">Мөнгө ямар хэлбэрээр орсныг харуулна. Рублийн төлбөрийг касс дээр оруулсан ханшаар төгрөгт шилжүүлсэн.</p>
-                    <table className="rp-table">
-                      <thead><tr><th>Хэлбэр</th><th className="c">Гүйлгээ</th><th className="r">Дүн</th><th className="r">Хувь</th><th aria-label="График" /></tr></thead>
-                      <tbody>
-                        {PAYMENT_METHODS.filter(({ key }) => key !== 'unknown' || r.payments.unknown.count).map(({ key, label, color }) => {
-                          const pm = r.payments[key];
-                          const share = percent(pm.amount, r.income);
-                          return (
-                            <tr key={key}>
-                              <td><span className="rp-dot" style={{ background: color }} aria-hidden="true" />{label}</td><td className="c">{num(pm.count)}</td><td className="r">{money(pm.amount)}</td>
-                              <td className="r">{share.toFixed(1)}%</td><td style={{ width: '22%' }}><ShareBar value={share} color={color} /></td>
-                            </tr>
-                          );
-                        })}
-                        <tr className="rp-total"><td>Нийт</td><td className="c">{num(r.orderCount)}</td><td className="r">{money(r.income)}</td><td className="r">{r.income ? '100.0%' : '0.0%'}</td><td /></tr>
-                      </tbody>
-                    </table>
-                  </section>
-
-                  {/* ҮЙЛЧИЛГЭЭНИЙ ТӨРӨЛ */}
-                  <section className="rp-card">
-                    <h2 className="rp-card-title">Орлого — үйлчилгээний төрлөөр</h2>
-                    <table className="rp-table" style={{ marginTop: '10px' }}>
-                      <thead><tr><th>Төрөл</th><th className="c">Захиалга</th><th className="r">Дүн</th><th className="r">Хувь</th><th aria-label="График" /></tr></thead>
-                      <tbody>
-                        {ORDER_TYPES.filter(({ key }) => r.types[key].count).map(({ key, label }) => {
-                          const t = r.types[key];
-                          const share = percent(t.amount, r.income);
-                          return (
-                            <tr key={key}>
-                              <td>{label}</td><td className="c">{num(t.count)}</td><td className="r">{money(t.amount)}</td>
-                              <td className="r">{share.toFixed(1)}%</td><td style={{ width: '22%' }}><ShareBar value={share} /></td>
-                            </tr>
-                          );
-                        })}
-                        {r.orderCount === 0 && <tr><td colSpan={5} className="rp-muted">Энэ хугацаанд борлуулалт алга.</td></tr>}
-                      </tbody>
-                    </table>
-                  </section>
-                </div>
-              </div>
-
-              <div className="rp-grid">
-                {/* БОРЛУУЛАЛТ (ХООЛООР) */}
                 <section className="rp-card">
-                  <h2 className="rp-card-title">Борлуулалт — хоолоор</h2>
-                  <p className="rp-card-note">Хамгийн их орлого оруулсан хоол эхэндээ. Захиалсан үеийн үнээр тооцсон.</p>
-                  {r.items.length === 0 ? <p className="rp-muted">Мэдээлэл олдсонгүй.</p> : (
-                    <>
-                      <table className="rp-table">
-                        <thead><tr><th className="c">№</th><th>Хоол</th><th className="r">Тоо</th><th className="r">Орлого</th><th className="r">Хувь</th></tr></thead>
-                        <tbody>
-                          {visibleItems.map(([name, d], idx) => (
-                            <tr key={name}>
-                              <td className="c rp-muted">{idx + 1}</td><td>{name}</td><td className="r">{num(d.qty)}</td>
-                              <td className="r">{money(d.revenue)}</td><td className="r">{percent(d.revenue, itemTotal).toFixed(1)}%</td>
-                            </tr>
-                          ))}
-                          <tr className="rp-total"><td /><td>Нийт ({r.items.length} нэр төрөл)</td><td className="r">{num(itemQty)}</td><td className="r">{money(itemTotal)}</td><td className="r">100.0%</td></tr>
-                        </tbody>
-                      </table>
-                      {r.items.length > 15 && (
-                        <button className="rp-link rp-no-print" onClick={() => setShowAllItems((v) => !v)}>
-                          {showAllItems ? 'Эхний 15-ыг харуулах' : `Бүгдийг харуулах (${r.items.length})`}
-                        </button>
-                      )}
-                      {Math.abs(itemTotal - r.income) >= 1 && (
-                        <p className="rp-card-note" style={{ marginTop: '10px', marginBottom: 0 }}>
-                          Хоолны нийлбэр нийт орлогоос {money(Math.abs(itemTotal - r.income))}-өөр {itemTotal > r.income ? 'их' : 'бага'} байна
-                          {r.ordersWithoutItems > 0 ? ` (${num(r.ordersWithoutItems)} захиалгад хоолны бүртгэл алга)` : ''}.
-                        </p>
-                      )}
-                    </>
-                  )}
+                  <h2 className="rp-card-title">Нэр томьёоны тайлбар</h2>
+                  <div className="rp-glossary" style={{ marginTop: '10px' }}>
+                    <div><b>Орлого</b> — төлбөр нь авагдсан бүх захиалгын дүн (гал тогоонд хийгдэж буй болон бэлэн болсон). Цуцлагдсан захиалга ороогүй.</div>
+                    <div><b>Зарлага</b> — "Зарлага" хэсэгт бүртгэсэн цалин, түүхий эд, тог ус зэрэг зардал.</div>
+                    <div><b>Цэвэр ашиг</b> — орлогоос зарлагыг хассан дүн. Хасах (−) тэмдэгтэй бол алдагдал.</div>
+                    <div><b>Ашгийн хувь</b> — орлогын хэдэн хувь нь ашиг болж үлдсэн бэ.</div>
+                    <div><b>Харьцуулалт</b> — өдрийг өмнөх ажилласан өдөртэй (амралтын өдрийг алгасна), дуусаагүй хугацааг өмнөх үеийн мөн цаг хүртэлх дүнтэй харьцуулна.</div>
+                    <div><b>Рубль</b> — касс дээр оруулсан ханшаар төгрөгт шилжүүлж тооцсон.</div>
+                  </div>
                 </section>
-
-                <div style={{ display: 'grid', gap: '20px', alignContent: 'start' }}>
-                  {/* ЗАРЛАГЫН ЖАГСААЛТ */}
-                  <section className="rp-card">
-                    <h2 className="rp-card-title">Зарлагын жагсаалт</h2>
-                    {r.expenses.length === 0 ? <p className="rp-muted" style={{ marginTop: '10px' }}>Энэ хугацаанд зарлага бүртгэгдээгүй байна.</p> : (
-                      <table className="rp-table" style={{ marginTop: '10px' }}>
-                        <thead><tr><th>{p.view === 'day' ? 'Цаг' : 'Огноо'}</th><th>Ангилал</th><th>Тайлбар</th><th className="r">Дүн</th><th className="rp-no-print" aria-label="Устгах" /></tr></thead>
-                        <tbody>
-                          {r.expenses.map((exp) => (
-                            <tr key={exp.id}>
-                              <td className="rp-muted" style={{ whiteSpace: 'nowrap' }}>{p.view === 'day' ? formatTime(new Date(exp.created_at)) : formatDate(new Date(exp.created_at))}</td>
-                              <td>{EXPENSE_LABELS[exp.category] || exp.category}</td>
-                              <td style={{ maxWidth: '180px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }} title={exp.description}>{exp.description}</td>
-                              <td className="r">{money(exp.amount)}</td>
-                              <td className="r rp-no-print">
-                                <button className="rp-del" onClick={() => handleDeleteExpense(exp)} disabled={deletingId === exp.id} aria-label="Зарлага устгах">
-                                  {deletingId === exp.id ? '...' : 'Устгах'}
-                                </button>
-                              </td>
-                            </tr>
-                          ))}
-                          <tr className="rp-total"><td colSpan={3}>Нийт зарлага</td><td className="r">{money(r.expenseTotal)}</td><td className="rp-no-print" /></tr>
-                        </tbody>
-                      </table>
-                    )}
-                  </section>
-
-                  {/* ЗАРЛАГА БҮРТГЭХ */}
-                  <section className="rp-card rp-no-print">
-                    <h2 className="rp-card-title">Зарлага бүртгэх</h2>
-                    <p className="rp-card-note">Бүртгэсэн зарлага өнөөдрийн огноогоор орж, цэвэр ашгийг шууд тооцно.</p>
-                    <form onSubmit={handleAddExpense} className="rp-form">
-                      <div>
-                        <label htmlFor="exp-amount">Зарлагын дүн (₮)</label>
-                        <input id="exp-amount" type="number" inputMode="numeric" min="1" value={expAmount} onChange={(e) => setExpAmount(e.target.value)} required placeholder="0" />
-                      </div>
-                      <div>
-                        <label htmlFor="exp-category">Зарлагын төрөл</label>
-                        <select id="exp-category" value={expCategory} onChange={(e) => setExpCategory(e.target.value)}>
-                          <option value="Цалин">Ажилчдын цалин, урамшуулал</option>
-                          <option value="Тог, ус, ашиглалт">Тог, ус, ашиглалтын зардал</option>
-                          <option value="Түүхий эд, агуулах">Түүхий эд, агуулахын татан авалт</option>
-                          <option value="Бусад">Бусад (гараар бичих)</option>
-                        </select>
-                      </div>
-                      {expCategory === 'Бусад' && (
-                        <div>
-                          <label htmlFor="exp-desc">Зарлагын утга (тайлбар)</label>
-                          <input id="exp-desc" type="text" value={expCustomDesc} onChange={(e) => setExpCustomDesc(e.target.value)} required placeholder="Жишээ: Бичиг хэргийн хэрэгсэл" />
-                        </div>
-                      )}
-                      <button type="submit" disabled={isAddingExpense} className="rp-btn rp-btn-primary" style={{ padding: '11px' }}>
-                        {isAddingExpense ? 'Хадгалж байна...' : 'Зарлага бүртгэх'}
-                      </button>
-                    </form>
-                  </section>
-                </div>
-              </div>
-
-              <footer className="rp-notes">
-                <strong style={{ color: '#475569' }}>Нэр томьёоны тайлбар</strong>
-                <div className="rp-glossary">
-                  <div><b>Орлого</b> — төлбөр нь авагдсан бүх захиалгын дүн (гал тогоонд хийгдэж буй болон бэлэн болсон). Цуцлагдсан захиалга ороогүй.</div>
-                  <div><b>Зарлага</b> — энэ хуудсанд бүртгэсэн цалин, түүхий эд, тог ус зэрэг зардал.</div>
-                  <div><b>Цэвэр ашиг</b> — орлогоос зарлагыг хассан дүн. Хасах (−) тэмдэгтэй бол алдагдал.</div>
-                  <div><b>Ашгийн хувь</b> — орлогын хэдэн хувь нь ашиг болж үлдсэн бэ.</div>
-                  <div><b>Харьцуулалт</b> — өдрийн тайланг өмнөх ажилласан өдөртэй (амралтын өдрийг алгасна), дуусаагүй хугацааг өмнөх үеийн мөн цаг хүртэлх дүнтэй харьцуулна.</div>
-                  <div><b>▲ / ▼</b> — хэдэн хувиар өссөн (ногоон = сайн) эсвэл буурсан (улаан = анхаарах).</div>
-                </div>
-                Бүх дүн төгрөгөөр (₮). Рублийн төлбөрийг касс дээр оруулсан ханшаар төгрөгт шилжүүлсэн дүнгээр тооцсон.
-                <span className="rp-print-only">Хэвлэсэн: {formatDateTime(new Date())}</span>
-              </footer>
+              </section>
+              <div className="rp-print-only rp-muted" style={{ fontSize: '0.8rem' }}>Хэвлэсэн: {formatDateTime(new Date())}</div>
             </>
           )}
         </div>

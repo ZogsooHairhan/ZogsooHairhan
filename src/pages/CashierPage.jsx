@@ -145,6 +145,7 @@ function CashierPage() {
 
   const totalPrice = cart.reduce((sum, item) => sum + (item.price * item.quantity), 0);
   const changeAmount = Number(receivedCash) - totalPrice;
+  const cashOk = receivedCash === '' || changeAmount >= 0; // хоосон бол "таарсан" гэж үзнэ
 
   const rate = parseFloat(String(rubRate).replace(',', '.'));
   const isRateValid = Number.isFinite(rate) && rate > 0;
@@ -305,12 +306,11 @@ function CashierPage() {
     setReceivedCash(''); setReceivedRub(''); setPaymentStep(1); setIsPaymentModalOpen(true);
   };
 
-  const numpadBtnStyle = { padding: '18px 5px', fontSize: '1.5rem', fontWeight: 'bold', borderRadius: '8px', border: '1px solid #cbd5e1', backgroundColor: 'white', color: '#0f172a', cursor: 'pointer', boxShadow: '0 2px 4px rgba(0,0,0,0.02)' };
   const getTypeLabel = (type) => { if(type === 'pickup') return '🛍️ Авч явах'; if(type === 'tuva') return '👤 Тува'; return '🍽️ Зааланд'; };
 
   if (!isAuthenticated) {
     return (
-      <div style={{ display: 'flex', height: '100vh', justifyContent: 'center', alignItems: 'center', backgroundColor: '#f1f5f9', fontFamily: 'Arial, sans-serif' }}>
+      <div style={{ display: 'flex', height: '100vh', justifyContent: 'center', alignItems: 'center', backgroundColor: '#f1f5f9', fontFamily: "'Onest', Arial, sans-serif", fontWeight: 500 }}>
         <form onSubmit={handleLogin} style={{ backgroundColor: 'white', padding: '40px', borderRadius: '8px', boxShadow: '0 4px 15px rgba(0,0,0,0.05)', textAlign: 'center', width: '340px' }}>
           <div style={{ fontSize: '1.5rem', fontWeight: 800, color: '#1d3264', marginBottom: '4px' }}>Зогсоо Хайрхан</div>
           <h2 style={{ margin: '0 0 20px', color: '#0f172a', fontSize: '1.1rem' }}>Касс нэвтрэх</h2>
@@ -323,7 +323,7 @@ function CashierPage() {
   }
 
   return (
-    <div style={{ display: 'flex', height: '100vh', fontFamily: 'Arial, sans-serif', backgroundColor: '#f8fafc', overflow: 'hidden' }}>
+    <div style={{ display: 'flex', height: '100vh', fontFamily: "'Onest', Arial, sans-serif", fontWeight: 500, backgroundColor: '#f8fafc', overflow: 'hidden' }}>
       <div style={{ flex: 1, display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
         <div style={{ backgroundColor: 'white', borderBottom: '1px solid #e2e8f0' }}>
           <div style={{ padding: '15px 25px', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
@@ -480,24 +480,27 @@ function CashierPage() {
               </div>
             )}
             {paymentStep === 2 && (
-              <div style={{ display: 'flex', flexDirection: 'column', gap: '15px' }}>
-                <div>
-                  <label style={{ display: 'block', color: '#475569', marginBottom: '8px', fontWeight: 'bold' }}>Өгсөн мөнгө (₮):</label>
-                  <div style={{ width: '100%', padding: '15px', fontSize: '2rem', borderRadius: '8px', border: '2px solid #3b82f6', backgroundColor: '#f8fafc', textAlign: 'right', fontWeight: '900', minHeight: '65px', display: 'flex', alignItems: 'center', justifyContent: 'flex-end', boxSizing: 'border-box' }}>{receivedCash ? Number(receivedCash).toLocaleString() : '0'}</div>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
+                {/* Өгсөн мөнгө ба хариулт хажуу хажуудаа — цонх жижиг, iPad-д багтана */}
+                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '8px' }}>
+                  <div style={{ border: '2px solid #3b82f6', backgroundColor: '#eff6ff', borderRadius: '8px', padding: '8px 10px' }}>
+                    <div style={{ color: '#1e3a8a', fontSize: '0.85rem', fontWeight: 700 }}>Өгсөн мөнгө</div>
+                    <div id="cash-received" style={{ color: '#0f172a', fontSize: '1.4rem', fontWeight: 800, textAlign: 'right' }}>{receivedCash ? Number(receivedCash).toLocaleString() : '0'} ₮</div>
+                  </div>
+                  <div style={{ backgroundColor: cashOk ? '#dcfce7' : '#fee2e2', border: `1px solid ${cashOk ? '#bbf7d0' : '#fecaca'}`, borderRadius: '8px', padding: '8px 10px' }}>
+                    <div style={{ color: cashOk ? '#166534' : '#991b1b', fontSize: '0.85rem', fontWeight: 700 }}>Хариулах дүн</div>
+                    <div id="cash-change" style={{ color: cashOk ? '#15803d' : '#b91c1c', fontSize: '1.4rem', fontWeight: 800, textAlign: 'right' }}>{receivedCash === '' ? '0' : changeAmount.toLocaleString()} ₮</div>
+                  </div>
                 </div>
-                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: '10px' }}>
-                  <button onClick={() => handleKeypad('1')} style={numpadBtnStyle}>1</button><button onClick={() => handleKeypad('2')} style={numpadBtnStyle}>2</button><button onClick={() => handleKeypad('3')} style={numpadBtnStyle}>3</button><button onClick={() => handleKeypad('DEL')} style={{...numpadBtnStyle, backgroundColor: '#e2e8f0', color: '#475569'}}>⌫</button>
-                  <button onClick={() => handleKeypad('4')} style={numpadBtnStyle}>4</button><button onClick={() => handleKeypad('5')} style={numpadBtnStyle}>5</button><button onClick={() => handleKeypad('6')} style={numpadBtnStyle}>6</button><button onClick={() => handleKeypad('20000')} style={{...numpadBtnStyle, backgroundColor: '#dbeafe', color: '#1d4ed8', fontSize: '1rem'}}>20,000</button>
-                  <button onClick={() => handleKeypad('7')} style={numpadBtnStyle}>7</button><button onClick={() => handleKeypad('8')} style={numpadBtnStyle}>8</button><button onClick={() => handleKeypad('9')} style={numpadBtnStyle}>9</button><button onClick={() => handleKeypad('50000')} style={{...numpadBtnStyle, backgroundColor: '#dbeafe', color: '#1d4ed8', fontSize: '1rem'}}>50,000</button>
-                  <button onClick={() => handleKeypad('C')} style={{...numpadBtnStyle, backgroundColor: '#fee2e2', color: '#ef4444'}}>C</button><button onClick={() => handleKeypad('0')} style={numpadBtnStyle}>0</button><button onClick={() => handleKeypad('000')} style={numpadBtnStyle}>000</button><button onClick={() => handleKeypad('EXACT')} style={{...numpadBtnStyle, backgroundColor: '#dcfce7', color: '#166534', fontSize: '1rem'}}>Таарсан</button>
+                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: '6px' }}>
+                  <button onClick={() => handleKeypad('1')} style={rubPadBtn}>1</button><button onClick={() => handleKeypad('2')} style={rubPadBtn}>2</button><button onClick={() => handleKeypad('3')} style={rubPadBtn}>3</button><button onClick={() => handleKeypad('DEL')} style={{...rubPadBtn, backgroundColor: '#e2e8f0', color: '#475569'}}>⌫</button>
+                  <button onClick={() => handleKeypad('4')} style={rubPadBtn}>4</button><button onClick={() => handleKeypad('5')} style={rubPadBtn}>5</button><button onClick={() => handleKeypad('6')} style={rubPadBtn}>6</button><button onClick={() => handleKeypad('20000')} style={{...rubPadBtn, backgroundColor: '#dbeafe', color: '#1d4ed8', fontSize: '0.95rem'}}>20,000</button>
+                  <button onClick={() => handleKeypad('7')} style={rubPadBtn}>7</button><button onClick={() => handleKeypad('8')} style={rubPadBtn}>8</button><button onClick={() => handleKeypad('9')} style={rubPadBtn}>9</button><button onClick={() => handleKeypad('50000')} style={{...rubPadBtn, backgroundColor: '#dbeafe', color: '#1d4ed8', fontSize: '0.95rem'}}>50,000</button>
+                  <button onClick={() => handleKeypad('C')} style={{...rubPadBtn, backgroundColor: '#fee2e2', color: '#ef4444'}}>C</button><button onClick={() => handleKeypad('0')} style={rubPadBtn}>0</button><button onClick={() => handleKeypad('000')} style={rubPadBtn}>000</button><button onClick={() => handleKeypad('EXACT')} style={{...rubPadBtn, backgroundColor: '#dcfce7', color: '#166534', fontSize: '0.95rem'}}>Таарсан</button>
                 </div>
-                <div style={{ backgroundColor: changeAmount >= 0 ? '#dcfce7' : '#fee2e2', padding: '15px', borderRadius: '8px', border: `1px solid ${changeAmount >= 0 ? '#bbf7d0' : '#fecaca'}`, marginTop: '5px' }}>
-                  <div style={{ color: changeAmount >= 0 ? '#166534' : '#991b1b', fontSize: '1rem', fontWeight: 'bold' }}>Хариулах дүн:</div>
-                  <div style={{ color: changeAmount >= 0 ? '#15803d' : '#b91c1c', fontSize: '2.2rem', fontWeight: '900', textAlign: 'right' }}>{receivedCash === '' ? '0' : changeAmount.toLocaleString()} ₮</div>
-                </div>
-                <div style={{ display: 'flex', gap: '10px', marginTop: '10px' }}>
-                  <button onClick={() => setPaymentStep(1)} style={{ flex: 1, padding: '15px', borderRadius: '8px', border: '1px solid #cbd5e1', backgroundColor: 'white', color: '#475569', fontWeight: 'bold', cursor: 'pointer', fontSize: '1.1rem' }}>Буцах</button>
-                  <button onClick={() => handleProcessPayment('cash')} disabled={isSubmitting || (receivedCash !== '' && changeAmount < 0)} style={{ flex: 2, padding: '15px', borderRadius: '8px', border: 'none', backgroundColor: '#10b981', color: 'white', fontWeight: 'bold', cursor: 'pointer', fontSize: '1.2rem' }}>{isSubmitting ? 'Уншиж байна...' : 'Баталгаажуулах'}</button>
+                <div style={{ display: 'flex', gap: '8px' }}>
+                  <button onClick={() => setPaymentStep(1)} style={{ flex: 1, padding: '12px', borderRadius: '8px', border: '1px solid #cbd5e1', backgroundColor: 'white', color: '#475569', fontWeight: 'bold', cursor: 'pointer', fontSize: '1.05rem' }}>Буцах</button>
+                  <button onClick={() => handleProcessPayment('cash')} disabled={isSubmitting || (receivedCash !== '' && changeAmount < 0)} style={{ flex: 2, padding: '12px', borderRadius: '8px', border: 'none', backgroundColor: '#10b981', color: 'white', fontWeight: 'bold', cursor: 'pointer', fontSize: '1.1rem' }}>{isSubmitting ? 'Уншиж байна...' : 'Баталгаажуулах'}</button>
                 </div>
               </div>
             )}

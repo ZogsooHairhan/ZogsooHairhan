@@ -14,10 +14,13 @@
   box-sizing: border-box;
   margin: 0;
   padding: 0;
-  font-family: 'Inter', 'Roboto', sans-serif;
+  /* Бүх элемент эцгийнхээ фонтыг авна. Onest нь монгол Ө, Ү үсэгтэй тул бүх дэлгэцэд адил харагдана. */
+  font-family: inherit;
 }
 
 body {
+  font-family: 'Onest', Arial, sans-serif;
+  -webkit-font-smoothing: antialiased;
   background-color: var(--bg-color);
   color: var(--text-color);
   font-size: 18px;
