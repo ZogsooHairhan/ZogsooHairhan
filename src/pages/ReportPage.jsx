@@ -251,7 +251,7 @@ function summarise(orders, expenses) {
   };
 }
 
-// Графикийн тэнхлэг: өдөр → цаг, 7 хоног → Даваа..Ням, сар → 1..31
+// Хүснэгтийн мөрүүд: өдөр бол цаг, 7 хоног бол Даваа..Ням, сар бол 1..31
 function buildBuckets(r, p) {
   const now = new Date();
   const buckets = [];
@@ -512,11 +512,11 @@ const STYLES = `
 `;
 
 const SECTIONS = [
-  { key: 'overview', icon: '📊', label: 'Тойм' },
-  { key: 'income', icon: '💰', label: 'Орлого' },
-  { key: 'sales', icon: '🍽️', label: 'Хоол' },
-  { key: 'expenses', icon: '🧾', label: 'Зарлага' },
-  { key: 'profit', icon: '📑', label: 'Ашиг, алдагдал' },
+  { key: 'overview', label: 'Тойм' },
+  { key: 'income', label: 'Орлого' },
+  { key: 'sales', label: 'Хоол' },
+  { key: 'expenses', label: 'Зарлага' },
+  { key: 'profit', label: 'Ашиг, алдагдал' },
 ];
 
 
@@ -735,10 +735,10 @@ function ReportPage() {
         <nav className="rp-nav" aria-label="Тайлангийн хэсгүүд">
           {SECTIONS.map((s) => (
             <button key={s.key} onClick={() => selectSection(s.key)} aria-current={section === s.key ? 'page' : undefined}>
-              <span className="rp-nav-icon" aria-hidden="true">{s.icon}</span>{s.label}
+              {s.label}
             </button>
           ))}
-          <button className="rp-nav-bottom" onClick={handleLogout}><span className="rp-nav-icon" aria-hidden="true">⎋</span>Гарах</button>
+          <button className="rp-nav-bottom" onClick={handleLogout}>Гарах</button>
         </nav>
       </aside>
 
@@ -750,8 +750,8 @@ function ReportPage() {
             {generatedAt && <div className="rp-topbar-sub">Шинэчилсэн: {formatDateTime(generatedAt)} · Бүх дүн төгрөгөөр (₮)</div>}
           </div>
           <div className="rp-actions rp-no-print">
-            <button className="rp-btn" onClick={fetchAdvancedReport} disabled={isReportLoading}>↻ Шинэчлэх</button>
-            <button className="rp-btn" onClick={() => window.print()} disabled={!r}>🖨 Хэвлэх / PDF</button>
+            <button className="rp-btn" onClick={fetchAdvancedReport} disabled={isReportLoading}>Шинэчлэх</button>
+            <button className="rp-btn" onClick={() => window.print()} disabled={!r}>Хэвлэх / PDF</button>
           </div>
         </header>
 

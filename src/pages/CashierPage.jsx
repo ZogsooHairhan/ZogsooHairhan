@@ -2,7 +2,7 @@ import { useState, useEffect, useRef } from 'react';
 import { supabase } from '../supabaseClient';
 
 const RUB_RATE_KEY = 'zogsoo-rub-rate';
-const PAYMENT_LABELS = { cash: '💵 Бэлэн', ruble: '₽ Рубль', card: '💳 Карт', qpay: '📱 QPay', transfer: '🏦 Данс' };
+const PAYMENT_LABELS = { cash: 'Бэлэн', ruble: 'Рубль', card: 'Карт', qpay: 'QPay', transfer: 'Данс' };
 
 function CashierPage() {
   const [isAuthenticated, setIsAuthenticated] = useState(false);
@@ -60,7 +60,7 @@ function CashierPage() {
 
   const [historyOrders, setHistoryOrders] = useState([]);
 
-  // ✨ ШИНЭ: Хоол нэмэх модал төлөвүүд
+  // Хоол нэмэх модал төлөвүүд
   const [isAddMenuModalOpen, setIsAddMenuModalOpen] = useState(false);
   const [newMenuName, setNewMenuName] = useState('');
   const [newMenuPrice, setNewMenuPrice] = useState('');
@@ -274,7 +274,7 @@ function CashierPage() {
     }
   };
 
-  // ✨ ШИНЭ: Шинэ хоол нэмэх функц (Кассчин шууд нэмнэ)
+  // Шинэ хоол нэмэх функц (Кассчин шууд нэмнэ)
   const handleAddMenuItem = async (e) => {
     e.preventDefault();
     if (!newMenuName.trim() || !newMenuPrice || !newMenuCategory.trim()) return alert("Мэдээллийг бүрэн оруулна уу!");
@@ -306,7 +306,7 @@ function CashierPage() {
     setReceivedCash(''); setReceivedRub(''); setPaymentStep(1); setIsPaymentModalOpen(true);
   };
 
-  const getTypeLabel = (type) => { if(type === 'pickup') return '🛍️ Авч явах'; if(type === 'tuva') return '👤 Тува'; return '🍽️ Зааланд'; };
+  const getTypeLabel = (type) => { if(type === 'pickup') return 'Авч явах'; if(type === 'tuva') return 'Тува'; return 'Зааланд'; };
 
   if (!isAuthenticated) {
     return (
@@ -332,7 +332,7 @@ function CashierPage() {
                 <span style={{ color: '#1d3264', fontWeight: 800 }}>Зогсоо Хайрхан</span>
                 <span style={{ color: '#94a3b8', fontWeight: 400, margin: '0 10px' }}>|</span>Касс
               </h1>
-              <button onClick={() => setIsAddMenuModalOpen(true)} style={{ padding: '8px 15px', backgroundColor: '#10b981', color: 'white', border: 'none', borderRadius: '6px', fontWeight: 'bold', cursor: 'pointer' }}>➕ Шинэ хоол</button>
+              <button onClick={() => setIsAddMenuModalOpen(true)} style={{ padding: '8px 15px', backgroundColor: '#10b981', color: 'white', border: 'none', borderRadius: '6px', fontWeight: 'bold', cursor: 'pointer' }}>+ Шинэ хоол</button>
             </div>
             <button onClick={handleLogout} style={{ padding: '8px 16px', backgroundColor: '#f1f5f9', color: '#475569', border: 'none', borderRadius: '4px', fontWeight: 'bold', cursor: 'pointer' }}>Гарах</button>
           </div>
@@ -386,9 +386,9 @@ function CashierPage() {
                   )}
                   {historyOrders.map(order => (
                     <tr key={order.id} style={{ borderBottom: '1px solid #e2e8f0' }}>
-                      <td style={{ padding: '12px' }}>{new Date(order.created_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</td>
+                      <td style={{ padding: '12px' }}>{new Date(order.created_at).toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit', hour12: false })}</td>
                       <td style={{ padding: '12px', fontWeight: 'bold' }}>#{order.order_number || String(order.id).slice(-4).toUpperCase()}</td>
-                      <td style={{ padding: '12px', fontWeight: 'bold' }}>{order.order_type === 'pickup' ? '🛍️ Авч явах' : (order.order_type === 'tuva' ? '👤 Тува' : (order.order_type === 'mixed' ? '🔄 Холимог' : '🍽️ Зааланд'))}</td>
+                      <td style={{ padding: '12px', fontWeight: 'bold' }}>{order.order_type === 'pickup' ? 'Авч явах' : (order.order_type === 'tuva' ? 'Тува' : (order.order_type === 'mixed' ? 'Холимог' : 'Зааланд'))}</td>
                       <td style={{ padding: '12px', fontWeight: 'bold' }}>{order.total_amount?.toLocaleString()} ₮</td>
                       <td style={{ padding: '12px', whiteSpace: 'nowrap' }}>{PAYMENT_LABELS[order.payment_method] || order.payment_method || '—'}</td>
                       <td style={{ padding: '12px' }}><span style={{ padding: '4px 8px', borderRadius: '4px', fontSize: '0.85rem', fontWeight: 'bold', backgroundColor: order.status === 'completed' ? '#dcfce7' : (order.status === 'cancelled' ? '#fee2e2' : '#fef3c7'), color: order.status === 'completed' ? '#16a34a' : (order.status === 'cancelled' ? '#dc2626' : '#d97706') }}>{order.status === 'completed' ? 'Бэлэн' : (order.status === 'cancelled' ? 'Цуцлагдсан' : 'Хийгдэж буй')}</span></td>
@@ -446,11 +446,11 @@ function CashierPage() {
         </div>
       )}
 
-      {/* 🍔 ХООЛ НЭМЭХ МОДАЛ */}
+      {/* ХООЛ НЭМЭХ МОДАЛ */}
       {isAddMenuModalOpen && (
         <div style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, backgroundColor: 'rgba(15, 23, 42, 0.75)', display: 'flex', justifyContent: 'center', alignItems: 'center', zIndex: 1100, padding: '20px' }}>
           <div style={{ backgroundColor: 'white', padding: '30px', borderRadius: '12px', width: '100%', maxWidth: '420px', boxShadow: '0 25px 50px -12px rgba(0, 0, 0, 0.25)' }}>
-            <h2 style={{ textAlign: 'center', margin: '0 0 20px 0', color: '#0f172a' }}>➕ Шинэ хоол нэмэх</h2>
+            <h2 style={{ textAlign: 'center', margin: '0 0 20px 0', color: '#0f172a' }}>Шинэ хоол нэмэх</h2>
             <form onSubmit={handleAddMenuItem} style={{ display: 'flex', flexDirection: 'column', gap: '15px' }}>
               <div><label style={{ fontWeight: 'bold', color: '#475569', fontSize: '0.9rem' }}>Хоолны нэр:</label><input type="text" value={newMenuName} onChange={e => setNewMenuName(e.target.value)} required style={{ width: '100%', padding: '12px', borderRadius: '8px', border: '1px solid #cbd5e1', marginTop: '5px', boxSizing: 'border-box' }} /></div>
               <div><label style={{ fontWeight: 'bold', color: '#475569', fontSize: '0.9rem' }}>Үнэ (MNT):</label><input type="number" value={newMenuPrice} onChange={e => setNewMenuPrice(e.target.value)} required style={{ width: '100%', padding: '12px', borderRadius: '8px', border: '1px solid #cbd5e1', marginTop: '5px', boxSizing: 'border-box' }} /></div>
@@ -464,18 +464,18 @@ function CashierPage() {
         </div>
       )}
 
-      {/* 💳 ТӨЛБӨРИЙН МОДАЛ (Numpad) */}
+      {/* ТӨЛБӨРИЙН МОДАЛ (Numpad) */}
       {isPaymentModalOpen && (
         <div style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, backgroundColor: 'rgba(15, 23, 42, 0.8)', display: 'flex', justifyContent: 'center', alignItems: 'center', zIndex: 1000, padding: '20px' }}>
           <div style={{ backgroundColor: 'white', padding: '20px 24px', borderRadius: '8px', width: '100%', maxWidth: '400px', maxHeight: 'calc(100vh - 40px)', overflowY: 'auto', boxSizing: 'border-box' }}>
             <div style={{ borderBottom: '1px solid #e2e8f0', paddingBottom: '10px', marginBottom: '14px', textAlign: 'center' }}><h2 style={{ margin: 0, color: '#0f172a', fontSize: '1.6rem' }}>{totalPrice.toLocaleString()} ₮</h2></div>
             {paymentStep === 1 && (
               <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
-                <button onClick={() => setPaymentStep(2)} disabled={isSubmitting} style={{ padding: '15px', borderRadius: '8px', border: '2px solid #cbd5e1', backgroundColor: '#f8fafc', color: '#0f172a', fontSize: '1.1rem', fontWeight: 'bold', cursor: 'pointer' }}>💵 Бэлэн мөнгө</button>
-                <button onClick={openRubStep} disabled={isSubmitting} style={{ padding: '15px', borderRadius: '8px', border: 'none', backgroundColor: '#0f766e', color: 'white', fontSize: '1.1rem', fontWeight: 'bold', cursor: 'pointer' }}>₽ Рубль</button>
-                <button onClick={() => handleProcessPayment('card')} disabled={isSubmitting} style={{ padding: '15px', borderRadius: '8px', border: 'none', backgroundColor: '#3b82f6', color: 'white', fontSize: '1.1rem', fontWeight: 'bold', cursor: 'pointer' }}>💳 Карт</button>
-                <button onClick={() => handleProcessPayment('qpay')} disabled={isSubmitting} style={{ padding: '15px', borderRadius: '8px', border: 'none', backgroundColor: '#f59e0b', color: 'white', fontSize: '1.1rem', fontWeight: 'bold', cursor: 'pointer' }}>📱 QPay</button>
-                <button onClick={() => handleProcessPayment('transfer')} disabled={isSubmitting} style={{ padding: '15px', borderRadius: '8px', border: 'none', backgroundColor: '#8b5cf6', color: 'white', fontSize: '1.1rem', fontWeight: 'bold', cursor: 'pointer' }}>🏦 Данс</button>
+                <button onClick={() => setPaymentStep(2)} disabled={isSubmitting} style={{ padding: '15px', borderRadius: '8px', border: '2px solid #cbd5e1', backgroundColor: '#f8fafc', color: '#0f172a', fontSize: '1.1rem', fontWeight: 'bold', cursor: 'pointer' }}>Бэлэн мөнгө</button>
+                <button onClick={openRubStep} disabled={isSubmitting} style={{ padding: '15px', borderRadius: '8px', border: 'none', backgroundColor: '#0f766e', color: 'white', fontSize: '1.1rem', fontWeight: 'bold', cursor: 'pointer' }}>Рубль (₽)</button>
+                <button onClick={() => handleProcessPayment('card')} disabled={isSubmitting} style={{ padding: '15px', borderRadius: '8px', border: 'none', backgroundColor: '#3b82f6', color: 'white', fontSize: '1.1rem', fontWeight: 'bold', cursor: 'pointer' }}>Карт</button>
+                <button onClick={() => handleProcessPayment('qpay')} disabled={isSubmitting} style={{ padding: '15px', borderRadius: '8px', border: 'none', backgroundColor: '#f59e0b', color: 'white', fontSize: '1.1rem', fontWeight: 'bold', cursor: 'pointer' }}>QPay</button>
+                <button onClick={() => handleProcessPayment('transfer')} disabled={isSubmitting} style={{ padding: '15px', borderRadius: '8px', border: 'none', backgroundColor: '#8b5cf6', color: 'white', fontSize: '1.1rem', fontWeight: 'bold', cursor: 'pointer' }}>Данс</button>
                 <button onClick={() => setIsPaymentModalOpen(false)} style={{ padding: '15px', borderRadius: '8px', border: 'none', backgroundColor: 'transparent', color: '#ef4444', fontSize: '1.1rem', fontWeight: 'bold', cursor: 'pointer' }}>Цуцлах</button>
               </div>
             )}
