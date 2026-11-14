@@ -1,6 +1,8 @@
 import React, { useState, useEffect } from 'react';
 import { supabase } from '../supabaseClient';
 
+const RUB_RATE_KEY = 'zogsoo-rub-rate';
+
 function CashierPage() {
   const [isAuthenticated, setIsAuthenticated] = useState(false);
   const [email, setEmail] = useState('');
@@ -46,6 +48,12 @@ function CashierPage() {
   const [selectedPayment, setSelectedPayment] = useState(null); 
   const [receivedCash, setReceivedCash] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
+
+  // ₽ Рублийн төлбөр: ханшийг энэ төхөөрөмж дээр хадгална (1 ₽ = ? ₮)
+  const [rubRate, setRubRate] = useState(() => {
+    try { return localStorage.getItem(RUB_RATE_KEY) || ''; } catch { return ''; }
+  });
+  const [receivedRub, setReceivedRub] = useState('');
 
   const [historyOrders, setHistoryOrders] = useState([]);
 
@@ -132,9 +140,33 @@ function CashierPage() {
   const totalPrice = cart.reduce((sum, item) => sum + (item.price * item.quantity), 0);
   const changeAmount = Number(receivedCash) - totalPrice;
 
+  const rate = parseFloat(String(rubRate).replace(',', '.'));
+  const isRateValid = Number.isFinite(rate) && rate > 0;
+  const rubToPay = isRateValid ? Math.ceil(totalPrice / rate) : 0; // бүхэл рубль хүртэл дээш бөөрөнхийлнө
+  const rubChange = Number(receivedRub) - rubToPay;
+  const rubChangeMnt = isRateValid ? Math.round(rubChange * rate) : 0;
+
+  const updateRubRate = (value) => {
+    const cleaned = value.replace(/[^0-9.,]/g, '');
+    setRubRate(cleaned);
+    try { localStorage.setItem(RUB_RATE_KEY, cleaned); } catch { /* хадгалах боломжгүй бол зөвхөн энэ удаад */ }
+  };
+
+  const handleRubKeypad = (value) => {
+    if (value === 'C') setReceivedRub('');
+    else if (value === 'DEL') setReceivedRub(prev => String(prev).slice(0, -1));
+    else if (value === 'EXACT') setReceivedRub(String(rubToPay));
+    else if (value === '500' || value === '1000') setReceivedRub(value);
+    else setReceivedRub(prev => { const current = String(prev); if (current === '0' && value !== '0' && value !== '000') return value; return current + value; });
+  };
+
   const handleProcessPayment = async (paymentMethod) => {
     if (paymentMethod === 'cash' && receivedCash !== '' && Number(receivedCash) < totalPrice) {
       return alert('Өгсөн мөнгө хүрэхгүй байна!');
+    }
+    if (paymentMethod === 'ruble') {
+      if (!isRateValid) return alert('Рублийн ханшаа оруулна уу!');
+      if (receivedRub !== '' && Number(receivedRub) < rubToPay) return alert('Өгсөн рубль хүрэхгүй байна!');
     }
     
     setIsSubmitting(true);
@@ -168,11 +200,16 @@ function CashierPage() {
 
       alert(`Захиалга баталгаажлаа!\nДугаар: #${newOrder.order_number || String(newOrder.id).slice(-4).toUpperCase()}`);
       
-      setCart([]); setOrderNote(''); setReceivedCash(''); setSelectedPayment(null); setPaymentStep(1); setIsPaymentModalOpen(false);
+      setCart([]); setOrderNote(''); setReceivedCash(''); setReceivedRub(''); setSelectedPayment(null); setPaymentStep(1); setIsPaymentModalOpen(false);
       fetchMenu(); // Цэсийг шинэчилж үлдэгдлийг дахин дуудна
       
     } catch (err) {
-      alert("Алдаа гарлаа: " + err.message);
+      // 23514: өгөгдлийн сангийн дүрэм энэ төлбөрийн төрлийг (жишээ нь шинэ "Рубль") зөвшөөрөөгүй.
+      if (err.code === '23514') {
+        alert("Алдаа гарлаа: Энэ төлбөрийн төрлийг өгөгдлийн сан хүлээж авсангүй. Захиалга хадгалагдаагүй тул өөр төрлөөр төлүүлнэ үү.\n(" + err.message + ")");
+      } else {
+        alert("Алдаа гарлаа: " + err.message);
+      }
     } finally {
       setIsSubmitting(false);
     }
@@ -362,9 +399,11 @@ function CashierPage() {
             <div style={{ borderBottom: '1px solid #e2e8f0', paddingBottom: '15px', marginBottom: '20px', textAlign: 'center' }}><h2 style={{ margin: 0, color: '#0f172a', fontSize: '1.8rem' }}>{totalPrice.toLocaleString()} ₮</h2></div>
             {paymentStep === 1 && (
               <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
-                <button onClick={() => setPaymentStep(2)} style={{ padding: '15px', borderRadius: '8px', border: '2px solid #cbd5e1', backgroundColor: '#f8fafc', color: '#0f172a', fontSize: '1.1rem', fontWeight: 'bold', cursor: 'pointer' }}>💵 Бэлэн мөнгө</button>
-                <button onClick={() => handleProcessPayment('card')} style={{ padding: '15px', borderRadius: '8px', border: 'none', backgroundColor: '#3b82f6', color: 'white', fontSize: '1.1rem', fontWeight: 'bold', cursor: 'pointer' }}>💳 Картаар</button>
-                <button onClick={() => handleProcessPayment('qpay')} style={{ padding: '15px', borderRadius: '8px', border: 'none', backgroundColor: '#f59e0b', color: 'white', fontSize: '1.1rem', fontWeight: 'bold', cursor: 'pointer' }}>📱 QPay / Дансаар</button>
+                <button onClick={() => setPaymentStep(2)} disabled={isSubmitting} style={{ padding: '15px', borderRadius: '8px', border: '2px solid #cbd5e1', backgroundColor: '#f8fafc', color: '#0f172a', fontSize: '1.1rem', fontWeight: 'bold', cursor: 'pointer' }}>💵 Бэлэн мөнгө</button>
+                <button onClick={() => setPaymentStep(3)} disabled={isSubmitting} style={{ padding: '15px', borderRadius: '8px', border: 'none', backgroundColor: '#0f766e', color: 'white', fontSize: '1.1rem', fontWeight: 'bold', cursor: 'pointer' }}>₽ Рубль</button>
+                <button onClick={() => handleProcessPayment('card')} disabled={isSubmitting} style={{ padding: '15px', borderRadius: '8px', border: 'none', backgroundColor: '#3b82f6', color: 'white', fontSize: '1.1rem', fontWeight: 'bold', cursor: 'pointer' }}>💳 Карт</button>
+                <button onClick={() => handleProcessPayment('qpay')} disabled={isSubmitting} style={{ padding: '15px', borderRadius: '8px', border: 'none', backgroundColor: '#f59e0b', color: 'white', fontSize: '1.1rem', fontWeight: 'bold', cursor: 'pointer' }}>📱 QPay</button>
+                <button onClick={() => handleProcessPayment('transfer')} disabled={isSubmitting} style={{ padding: '15px', borderRadius: '8px', border: 'none', backgroundColor: '#8b5cf6', color: 'white', fontSize: '1.1rem', fontWeight: 'bold', cursor: 'pointer' }}>🏦 Данс</button>
                 <button onClick={() => setIsPaymentModalOpen(false)} style={{ padding: '15px', borderRadius: '8px', border: 'none', backgroundColor: 'transparent', color: '#ef4444', fontSize: '1.1rem', fontWeight: 'bold', cursor: 'pointer' }}>Цуцлах</button>
               </div>
             )}
@@ -387,6 +426,48 @@ function CashierPage() {
                 <div style={{ display: 'flex', gap: '10px', marginTop: '10px' }}>
                   <button onClick={() => setPaymentStep(1)} style={{ flex: 1, padding: '15px', borderRadius: '8px', border: '1px solid #cbd5e1', backgroundColor: 'white', color: '#475569', fontWeight: 'bold', cursor: 'pointer', fontSize: '1.1rem' }}>Буцах</button>
                   <button onClick={() => handleProcessPayment('cash')} disabled={isSubmitting || (receivedCash !== '' && changeAmount < 0)} style={{ flex: 2, padding: '15px', borderRadius: '8px', border: 'none', backgroundColor: '#10b981', color: 'white', fontWeight: 'bold', cursor: 'pointer', fontSize: '1.2rem' }}>{isSubmitting ? 'Уншиж байна...' : 'Баталгаажуулах'}</button>
+                </div>
+              </div>
+            )}
+            {paymentStep === 3 && (
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                  <label htmlFor="rub-rate" style={{ color: '#475569', fontWeight: 'bold', whiteSpace: 'nowrap' }}>Ханш: 1 ₽ =</label>
+                  <input
+                    id="rub-rate"
+                    type="text"
+                    inputMode="decimal"
+                    placeholder="жишээ: 38.5"
+                    value={rubRate}
+                    onChange={(e) => updateRubRate(e.target.value)}
+                    style={{ flex: 1, minWidth: 0, padding: '12px', fontSize: '1.3rem', fontWeight: 'bold', borderRadius: '8px', border: `2px solid ${isRateValid ? '#cbd5e1' : '#f87171'}`, textAlign: 'right', boxSizing: 'border-box' }}
+                  />
+                  <span style={{ color: '#475569', fontWeight: 'bold' }}>₮</span>
+                </div>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', backgroundColor: '#f0fdfa', border: '1px solid #99f6e4', borderRadius: '8px', padding: '12px 15px' }}>
+                  <span style={{ color: '#0f766e', fontWeight: 'bold' }}>Төлөх дүн:</span>
+                  <strong style={{ color: '#0f766e', fontSize: '1.8rem' }}>{isRateValid ? `${rubToPay.toLocaleString()} ₽` : 'Ханшаа оруулна уу'}</strong>
+                </div>
+                <div>
+                  <label style={{ display: 'block', color: '#475569', marginBottom: '6px', fontWeight: 'bold' }}>Өгсөн рубль (₽):</label>
+                  <div style={{ width: '100%', padding: '12px 15px', fontSize: '1.8rem', borderRadius: '8px', border: '2px solid #0f766e', backgroundColor: '#f8fafc', textAlign: 'right', fontWeight: '900', minHeight: '58px', boxSizing: 'border-box' }}>{receivedRub ? Number(receivedRub).toLocaleString() : '0'}</div>
+                </div>
+                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: '8px' }}>
+                  <button onClick={() => handleRubKeypad('1')} style={numpadBtnStyle}>1</button><button onClick={() => handleRubKeypad('2')} style={numpadBtnStyle}>2</button><button onClick={() => handleRubKeypad('3')} style={numpadBtnStyle}>3</button><button onClick={() => handleRubKeypad('DEL')} style={{...numpadBtnStyle, backgroundColor: '#e2e8f0', color: '#475569'}}>⌫</button>
+                  <button onClick={() => handleRubKeypad('4')} style={numpadBtnStyle}>4</button><button onClick={() => handleRubKeypad('5')} style={numpadBtnStyle}>5</button><button onClick={() => handleRubKeypad('6')} style={numpadBtnStyle}>6</button><button onClick={() => handleRubKeypad('500')} style={{...numpadBtnStyle, backgroundColor: '#ccfbf1', color: '#0f766e', fontSize: '1rem'}}>500 ₽</button>
+                  <button onClick={() => handleRubKeypad('7')} style={numpadBtnStyle}>7</button><button onClick={() => handleRubKeypad('8')} style={numpadBtnStyle}>8</button><button onClick={() => handleRubKeypad('9')} style={numpadBtnStyle}>9</button><button onClick={() => handleRubKeypad('1000')} style={{...numpadBtnStyle, backgroundColor: '#ccfbf1', color: '#0f766e', fontSize: '1rem'}}>1,000 ₽</button>
+                  <button onClick={() => handleRubKeypad('C')} style={{...numpadBtnStyle, backgroundColor: '#fee2e2', color: '#ef4444'}}>C</button><button onClick={() => handleRubKeypad('0')} style={numpadBtnStyle}>0</button><button onClick={() => handleRubKeypad('000')} style={numpadBtnStyle}>000</button><button onClick={() => handleRubKeypad('EXACT')} disabled={!isRateValid} style={{...numpadBtnStyle, backgroundColor: '#dcfce7', color: '#166534', fontSize: '1rem'}}>Таарсан</button>
+                </div>
+                <div style={{ backgroundColor: rubChange >= 0 ? '#dcfce7' : '#fee2e2', padding: '12px 15px', borderRadius: '8px', border: `1px solid ${rubChange >= 0 ? '#bbf7d0' : '#fecaca'}` }}>
+                  <div style={{ color: rubChange >= 0 ? '#166534' : '#991b1b', fontSize: '1rem', fontWeight: 'bold' }}>Хариулах дүн:</div>
+                  <div style={{ color: rubChange >= 0 ? '#15803d' : '#b91c1c', fontSize: '2rem', fontWeight: '900', textAlign: 'right' }}>{receivedRub === '' ? '0' : rubChange.toLocaleString()} ₽</div>
+                  {receivedRub !== '' && isRateValid && (
+                    <div style={{ color: rubChange >= 0 ? '#166534' : '#991b1b', fontSize: '1rem', fontWeight: 'bold', textAlign: 'right' }}>≈ {rubChangeMnt.toLocaleString()} ₮</div>
+                  )}
+                </div>
+                <div style={{ display: 'flex', gap: '10px' }}>
+                  <button onClick={() => setPaymentStep(1)} style={{ flex: 1, padding: '15px', borderRadius: '8px', border: '1px solid #cbd5e1', backgroundColor: 'white', color: '#475569', fontWeight: 'bold', cursor: 'pointer', fontSize: '1.1rem' }}>Буцах</button>
+                  <button onClick={() => handleProcessPayment('ruble')} disabled={isSubmitting || !isRateValid || (receivedRub !== '' && rubChange < 0)} style={{ flex: 2, padding: '15px', borderRadius: '8px', border: 'none', backgroundColor: isRateValid ? '#0f766e' : '#94a3b8', color: 'white', fontWeight: 'bold', cursor: 'pointer', fontSize: '1.2rem' }}>{isSubmitting ? 'Уншиж байна...' : 'Баталгаажуулах'}</button>
                 </div>
               </div>
             )}

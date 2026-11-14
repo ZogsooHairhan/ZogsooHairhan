@@ -49,7 +49,7 @@ function ReportPage() {
     orderCount: 0, 
     cancelledCount: 0, 
     topItems: [], 
-    paymentBreakdown: { cash: 0, card: 0, transfer: 0, qpay: 0 },
+    paymentBreakdown: { cash: 0, ruble: 0, card: 0, transfer: 0, qpay: 0 },
     expensesList: []
   });
   
@@ -129,7 +129,7 @@ function ReportPage() {
 
       // Calculate Income
       let income = 0, count = 0, cancelled = 0, itemMap = {};
-      let payments = { cash: 0, card: 0, transfer: 0, qpay: 0 };
+      let payments = { cash: 0, ruble: 0, card: 0, transfer: 0, qpay: 0 };
 
       currentData?.forEach(order => {
         if (order.status === 'cancelled') {
@@ -225,6 +225,7 @@ function ReportPage() {
 
     csvContent += "--- ТӨЛБӨРИЙН ЗАДАРГАА ---\n";
     csvContent += `Бэлэн мөнгө:,${reportData.paymentBreakdown.cash} MNT\n`;
+    csvContent += `Рубль (₮-өөр):,${reportData.paymentBreakdown.ruble} MNT\n`;
     csvContent += `Картаар:,${reportData.paymentBreakdown.card} MNT\n`;
     csvContent += `Дансаар:,${reportData.paymentBreakdown.transfer} MNT\n`;
     csvContent += `QPay:,${reportData.paymentBreakdown.qpay} MNT\n\n`;
@@ -367,6 +368,10 @@ function ReportPage() {
                     <div style={{ padding: '15px', backgroundColor: '#f8fafc', borderRadius: '4px', border: '1px solid #e2e8f0' }}>
                       <div style={{ fontSize: '0.85rem', color: '#64748b', marginBottom: '5px' }}>Бэлэн мөнгө</div>
                       <div style={{ fontSize: '1.3rem', fontWeight: '700' }}>{reportData.paymentBreakdown.cash.toLocaleString()}</div>
+                    </div>
+                    <div style={{ padding: '15px', backgroundColor: '#f8fafc', borderRadius: '4px', border: '1px solid #e2e8f0' }}>
+                      <div style={{ fontSize: '0.85rem', color: '#64748b', marginBottom: '5px' }}>Рубль (₮-өөр)</div>
+                      <div style={{ fontSize: '1.3rem', fontWeight: '700' }}>{reportData.paymentBreakdown.ruble.toLocaleString()}</div>
                     </div>
                     <div style={{ padding: '15px', backgroundColor: '#f8fafc', borderRadius: '4px', border: '1px solid #e2e8f0' }}>
                       <div style={{ fontSize: '0.85rem', color: '#64748b', marginBottom: '5px' }}>Карт</div>
