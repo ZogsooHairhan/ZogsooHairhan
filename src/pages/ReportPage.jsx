@@ -430,7 +430,7 @@ function ReportPage() {
         </div>
         <div className="rp-actions rp-no-print">
           <button className="rp-btn rp-btn-primary" onClick={() => window.print()} disabled={!r}>Хэвлэх / PDF</button>
-          <button className="rp-btn" onClick={() => { window.location.href = '/admin'; }}>Буцах</button>
+          <button className="rp-btn" onClick={() => { window.location.href = '/cashier'; }}>Касс</button>
           <button className="rp-btn rp-btn-danger" onClick={handleLogout}>Гарах</button>
         </div>
       </header>
