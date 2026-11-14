@@ -68,16 +68,39 @@ function KitchenPage() {
   useEffect(() => {
     if (isAuthenticated) {
       fetchOrders();
+
+      // Касс захиалгыг эхлээд, хоолнуудыг нь дараа нь хадгалдаг. Захиалга орсон агшинд татвал
+      // хоолгүй хоосон карт гарч болох тул хоол нэмэгдэх үед болон хэсэг хугацааны дараа дахин татна.
+      let refetchTimer = null;
+      const delayedTimers = [];
+      const scheduleFetch = (delay = 300) => {
+        clearTimeout(refetchTimer);
+        refetchTimer = setTimeout(fetchOrders, delay);
+      };
+
       const channel = supabase.channel('kitchen_orders')
-        .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'orders' }, () => { 
-          playBellSound(); 
-          fetchOrders(); 
+        .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'orders' }, () => {
+          playBellSound();
+          fetchOrders();
+          delayedTimers.push(setTimeout(fetchOrders, 1500));
         })
-        .on('postgres_changes', { event: 'UPDATE', schema: 'public', table: 'orders' }, () => { 
-          fetchOrders(); 
+        .on('postgres_changes', { event: 'UPDATE', schema: 'public', table: 'orders' }, () => {
+          fetchOrders();
+        })
+        .on('postgres_changes', { event: '*', schema: 'public', table: 'order_items' }, () => {
+          scheduleFetch();
         })
         .subscribe();
-      return () => supabase.removeChannel(channel);
+
+      // Сүлжээ тасрах, iPad унтах үед мэдэгдэл алдагдаж болох тул 30 секунд тутам шинэчилнэ.
+      const pollTimer = setInterval(fetchOrders, 30000);
+
+      return () => {
+        supabase.removeChannel(channel);
+        clearTimeout(refetchTimer);
+        delayedTimers.forEach(clearTimeout);
+        clearInterval(pollTimer);
+      };
     }
   }, [isAuthenticated]);
 
