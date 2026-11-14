@@ -35,10 +35,8 @@ function KitchenPage() {
   };
 
   const [orders, setOrders] = useState([]);
-  const [menuItems, setMenuItems] = useState([]);
   const [isLoading, setIsLoading] = useState(true);
   const [activeTab, setActiveTab] = useState('cooking'); 
-  const [searchQuery, setSearchQuery] = useState('');
 
   // 🔓 Дэлгэц дээр дарахад аудиог идэвхжүүлэх
   const autoUnlockAudio = () => {
@@ -72,11 +70,6 @@ function KitchenPage() {
       if (error) throw error;
       setOrders(data);
     } catch (err) { console.error(err.message); } finally { setIsLoading(false); }
-  };
-
-  const fetchMenuItems = async () => {
-    const { data, error } = await supabase.from('menu_items').select('*').order('name');
-    if (!error) setMenuItems(data);
   };
 
   useEffect(() => {
@@ -118,12 +111,6 @@ function KitchenPage() {
     }
   }, [isAuthenticated]);
 
-  useEffect(() => {
-    if (activeTab === 'menu' && isAuthenticated) {
-      fetchMenuItems();
-    }
-  }, [activeTab, isAuthenticated]);
-
   const updateOrderStatus = async (orderId, newStatus) => {
     autoUnlockAudio();
     try {
@@ -142,40 +129,16 @@ function KitchenPage() {
     } catch (err) { console.error(err.message); }
   };
 
-  const updateStock = async (id, newStockValue) => {
-    try {
-      const stock = String(newStockValue).trim() === '' ? null : parseInt(newStockValue, 10);
-      if (stock !== null && (!Number.isFinite(stock) || stock < 0)) return alert("Үлдэгдэл 0 эсвэл түүнээс их бүхэл тоо байна. Хязгааргүй бол хоосон үлдээнэ үү.");
-      const isActive = stock === 0 ? false : true;
-      const { error } = await supabase.from('menu_items').update({ stock: stock, is_active: isActive }).eq('id', id);
-      if (error) throw error;
-      fetchMenuItems();
-    } catch (err) { alert("Алдаа: " + err.message); }
-  };
-
-  const updateItemStatus = async (id, newStatus) => {
-    try {
-      const newStock = newStatus ? null : 0; 
-      const { error } = await supabase.from('menu_items').update({ is_active: newStatus, stock: newStock }).eq('id', id);
-      if (error) throw error;
-      fetchMenuItems();
-    } catch (err) { alert("Алдаа: " + err.message); }
-  };
-
   const cookingOrders = orders.filter(o => o.status === 'cooking');
   const completedOrders = orders.filter(o => o.status === 'completed').sort((a, b) => new Date(b.updated_at || b.created_at) - new Date(a.updated_at || a.created_at));
-
-  const filteredMenuItems = menuItems.filter(item =>
-    (item.name || '').toLowerCase().includes(searchQuery.toLowerCase()) ||
-    (item.category && item.category.toLowerCase().includes(searchQuery.toLowerCase()))
-  );
 
   if (!isAuthenticated) {
     return (
       <div style={{ display: 'flex', height: '100vh', justifyContent: 'center', alignItems: 'center', backgroundColor: '#f1f5f9', fontFamily: 'Arial, sans-serif' }}>
         <form onSubmit={handleLogin} style={{ backgroundColor: 'white', padding: '40px', borderRadius: '16px', boxShadow: '0 10px 30px rgba(0,0,0,0.08)', textAlign: 'center', width: '340px' }}>
-          <div style={{ fontSize: '50px', marginBottom: '15px' }}>👨‍🍳</div>
-          <h2 style={{ marginBottom: '10px', color: '#0f172a' }}>Гал тогоо нэвтрэх</h2>
+          <div style={{ fontSize: '50px', marginBottom: '10px' }}>👨‍🍳</div>
+          <div style={{ fontSize: '1.5rem', fontWeight: 800, color: '#1d3264', marginBottom: '4px' }}>Зогсоо Хайрхан</div>
+          <h2 style={{ margin: '0 0 20px', color: '#0f172a', fontSize: '1.1rem' }}>Гал тогоо нэвтрэх</h2>
           <input type="email" placeholder="И-мэйл хаяг" value={email} onChange={(e) => setEmail(e.target.value)} style={{ width: '100%', padding: '14px', fontSize: '1rem', borderRadius: '8px', border: '1px solid #cbd5e1', marginBottom: '15px', boxSizing: 'border-box' }} required />
           <input type="password" placeholder="Нууц үг" value={password} onChange={(e) => setPassword(e.target.value)} style={{ width: '100%', padding: '14px', fontSize: '1rem', borderRadius: '8px', border: '1px solid #cbd5e1', marginBottom: '25px', boxSizing: 'border-box' }} required />
           <button type="submit" disabled={isLoggingIn} style={{ width: '100%', padding: '15px', fontSize: '1.1rem', backgroundColor: isLoggingIn ? '#94a3b8' : '#f59e0b', color: 'white', border: 'none', borderRadius: '8px', cursor: 'pointer', fontWeight: 'bold' }}>Нэвтрэх</button>
@@ -195,7 +158,10 @@ function KitchenPage() {
       )}
 
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderBottom: '2px solid #e2e8f0', paddingBottom: '10px', marginBottom: '20px', flexWrap: 'wrap', gap: '10px' }}>
-        <h1 style={{ color: '#0f172a', margin: 0, fontSize: '1.5rem' }}>👨‍🍳 Гал тогоо</h1>
+        <h1 style={{ color: '#0f172a', margin: 0, fontSize: '1.5rem', textAlign: 'left', border: 'none', padding: 0 }}>
+          <span style={{ color: '#1d3264', fontWeight: 800 }}>Зогсоо Хайрхан</span>
+          <span style={{ color: '#94a3b8', fontWeight: 400, margin: '0 10px' }}>|</span>👨‍🍳 Гал тогоо
+        </h1>
         
         <div style={{ display: 'flex', gap: '10px', flexWrap: 'wrap' }}>
           <button onClick={() => { autoUnlockAudio(); setActiveTab('cooking'); }} style={{ padding: '10px 15px', fontSize: '1rem', fontWeight: 'bold', border: 'none', borderRadius: '8px', cursor: 'pointer', backgroundColor: activeTab === 'cooking' ? '#f59e0b' : '#e2e8f0', color: activeTab === 'cooking' ? 'white' : '#475569' }}>
@@ -203,9 +169,6 @@ function KitchenPage() {
           </button>
           <button onClick={() => { autoUnlockAudio(); setActiveTab('completed'); }} style={{ padding: '10px 15px', fontSize: '1rem', fontWeight: 'bold', border: 'none', borderRadius: '8px', cursor: 'pointer', backgroundColor: activeTab === 'completed' ? '#10b981' : '#e2e8f0', color: activeTab === 'completed' ? 'white' : '#475569' }}>
             ✅ Бэлэн ({completedOrders.length})
-          </button>
-          <button onClick={() => { autoUnlockAudio(); setActiveTab('menu'); }} style={{ padding: '10px 15px', fontSize: '1rem', fontWeight: 'bold', border: 'none', borderRadius: '8px', cursor: 'pointer', backgroundColor: activeTab === 'menu' ? '#8b5cf6' : '#e2e8f0', color: activeTab === 'menu' ? 'white' : '#475569' }}>
-            📦 Үлдэгдэл
           </button>
 
           <button onClick={handleLogout} style={{ padding: '10px 15px', fontSize: '1rem', fontWeight: 'bold', border: 'none', borderRadius: '8px', cursor: 'pointer', backgroundColor: '#ef4444', color: 'white' }}>Гарах</button>
@@ -318,63 +281,6 @@ function KitchenPage() {
               )}
             </div>
           )}
-
-          {activeTab === 'menu' && (
-            <div>
-              <div style={{ marginBottom: '20px' }}>
-                <input 
-                  type="text" 
-                  placeholder="🔍 Хоолны нэр эсвэл ангиллаар хайх..." 
-                  value={searchQuery}
-                  onChange={(e) => setSearchQuery(e.target.value)}
-                  style={{ width: '100%', padding: '15px', borderRadius: '12px', border: '2px solid #cbd5e1', fontSize: '1.1rem', outline: 'none', boxSizing: 'border-box' }}
-                />
-              </div>
-
-              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(300px, 1fr))', gap: '15px' }}>
-                {filteredMenuItems.map(item => (
-                  <div key={item.id} style={{ backgroundColor: 'white', padding: '20px', borderRadius: '12px', border: '1px solid #cbd5e1', boxShadow: '0 4px 6px rgba(0,0,0,0.02)', opacity: item.is_active ? 1 : 0.6 }}>
-                    <h3 style={{ margin: '0 0 15px 0', color: '#1e293b', fontSize: '1.2rem', textDecoration: item.is_active ? 'none' : 'line-through' }}>{item.name}</h3>
-                    
-                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                      <div>
-                        <label style={{ fontSize: '0.9rem', color: '#64748b', display: 'block', marginBottom: '8px', fontWeight: 'bold' }}>Үлдэгдэл (ш):</label>
-                        <div style={{ display: 'flex', gap: '8px' }}>
-                          <input
-                            type="number"
-                            min="0"
-                            key={`stock-${item.id}-${item.stock}`}
-                            id={`stock-${item.id}`}
-                            defaultValue={item.stock === null ? '' : item.stock} 
-                            placeholder="Хязгааргүй" 
-                            style={{ width: '100px', padding: '10px', borderRadius: '8px', border: '2px solid #cbd5e1', fontSize: '1.1rem', textAlign: 'center', outline: 'none' }}
-                          />
-                          <button onClick={() => {
-                            const val = document.getElementById(`stock-${item.id}`).value;
-                            updateStock(item.id, val);
-                          }} style={{ padding: '10px 15px', backgroundColor: '#3b82f6', color: 'white', border: 'none', borderRadius: '8px', cursor: 'pointer', fontWeight: 'bold' }}>
-                            Хадгалах
-                          </button>
-                        </div>
-                      </div>
-                      
-                      <button 
-                        onClick={() => updateItemStatus(item.id, !item.is_active)}
-                        style={{ padding: '12px 15px', borderRadius: '8px', border: 'none', fontWeight: 'bold', cursor: 'pointer', backgroundColor: item.is_active ? '#10b981' : '#ef4444', color: 'white', height: 'fit-content' }}
-                      >
-                        {item.is_active ? '✅ БАЙГАА' : '❌ ДУУССАН'}
-                      </button>
-                    </div>
-                  </div>
-                ))}
-                
-                {filteredMenuItems.length === 0 && (
-                  <p style={{ gridColumn: '1 / -1', textAlign: 'center', color: '#64748b', fontSize: '1.1rem', marginTop: '20px' }}>Хайсан хоол олдсонгүй.</p>
-                )}
-              </div>
-            </div>
-          )}
-
         </>
       )}
     </div>

@@ -312,7 +312,8 @@ function CashierPage() {
     return (
       <div style={{ display: 'flex', height: '100vh', justifyContent: 'center', alignItems: 'center', backgroundColor: '#f1f5f9', fontFamily: 'Arial, sans-serif' }}>
         <form onSubmit={handleLogin} style={{ backgroundColor: 'white', padding: '40px', borderRadius: '8px', boxShadow: '0 4px 15px rgba(0,0,0,0.05)', textAlign: 'center', width: '340px' }}>
-          <h2 style={{ marginBottom: '10px', color: '#0f172a' }}>Касс нэвтрэх</h2>
+          <div style={{ fontSize: '1.5rem', fontWeight: 800, color: '#1d3264', marginBottom: '4px' }}>Зогсоо Хайрхан</div>
+          <h2 style={{ margin: '0 0 20px', color: '#0f172a', fontSize: '1.1rem' }}>Касс нэвтрэх</h2>
           <input type="email" placeholder="И-мэйл" value={email} onChange={(e) => setEmail(e.target.value)} style={{ width: '100%', padding: '12px', fontSize: '1rem', borderRadius: '4px', border: '1px solid #cbd5e1', marginBottom: '15px', boxSizing: 'border-box' }} required />
           <input type="password" placeholder="Нууц үг" value={password} onChange={(e) => setPassword(e.target.value)} style={{ width: '100%', padding: '12px', fontSize: '1rem', borderRadius: '4px', border: '1px solid #cbd5e1', marginBottom: '25px', boxSizing: 'border-box' }} required />
           <button type="submit" disabled={isLoggingIn} style={{ width: '100%', padding: '12px', fontSize: '1rem', backgroundColor: isLoggingIn ? '#94a3b8' : '#0f172a', color: 'white', border: 'none', borderRadius: '4px', cursor: 'pointer', fontWeight: 'bold' }}>Нэвтрэх</button>
@@ -327,7 +328,10 @@ function CashierPage() {
         <div style={{ backgroundColor: 'white', borderBottom: '1px solid #e2e8f0' }}>
           <div style={{ padding: '15px 25px', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
             <div style={{ display: 'flex', alignItems: 'center', gap: '20px' }}>
-              <h1 style={{ margin: 0, fontSize: '1.4rem', color: '#0f172a', fontWeight: 'bold' }}>ПОС Систем</h1>
+              <h1 style={{ margin: 0, fontSize: '1.4rem', color: '#0f172a', fontWeight: 'bold', textAlign: 'left', border: 'none', padding: 0 }}>
+                <span style={{ color: '#1d3264', fontWeight: 800 }}>Зогсоо Хайрхан</span>
+                <span style={{ color: '#94a3b8', fontWeight: 400, margin: '0 10px' }}>|</span>Касс
+              </h1>
               <button onClick={() => setIsAddMenuModalOpen(true)} style={{ padding: '8px 15px', backgroundColor: '#10b981', color: 'white', border: 'none', borderRadius: '6px', fontWeight: 'bold', cursor: 'pointer' }}>➕ Шинэ хоол</button>
             </div>
             <button onClick={handleLogout} style={{ padding: '8px 16px', backgroundColor: '#f1f5f9', color: '#475569', border: 'none', borderRadius: '4px', fontWeight: 'bold', cursor: 'pointer' }}>Гарах</button>
