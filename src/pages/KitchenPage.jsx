@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import { useState, useEffect } from 'react';
 import { supabase } from '../supabaseClient';
 
 function KitchenPage() {
@@ -6,8 +6,13 @@ function KitchenPage() {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [isLoggingIn, setIsLoggingIn] = useState(false);
-  
+
   const [isAudioUnlocked, setIsAudioUnlocked] = useState(false);
+
+  const checkUser = async () => {
+    const { data: { session } } = await supabase.auth.getSession();
+    setIsAuthenticated(!!session);
+  };
 
   useEffect(() => {
     checkUser();
@@ -16,11 +21,6 @@ function KitchenPage() {
     });
     return () => authListener.subscription.unsubscribe();
   }, []);
-
-  const checkUser = async () => {
-    const { data: { session } } = await supabase.auth.getSession();
-    setIsAuthenticated(!!session);
-  };
 
   const handleLogin = async (e) => {
     e.preventDefault();
@@ -48,7 +48,7 @@ function KitchenPage() {
         testAudio.play().then(() => {
           setIsAudioUnlocked(true);
         }).catch(() => {});
-      } catch (e) {}
+      } catch { /* хөтөч аудиог дэмжихгүй */ }
     }
   };
 
@@ -63,6 +63,20 @@ function KitchenPage() {
     } catch (e) {
       console.error("Аудио алдаа:", e);
     }
+  };
+
+  const fetchOrders = async () => {
+    try {
+      const startOfToday = new Date(); startOfToday.setHours(0, 0, 0, 0);
+      const { data, error } = await supabase.from('orders').select(`*, order_items (id, quantity, is_done, item_type, menu_items (name))`).in('status', ['cooking', 'completed']).gte('created_at', startOfToday.toISOString()).order('created_at', { ascending: true });
+      if (error) throw error;
+      setOrders(data);
+    } catch (err) { console.error(err.message); } finally { setIsLoading(false); }
+  };
+
+  const fetchMenuItems = async () => {
+    const { data, error } = await supabase.from('menu_items').select('*').order('name');
+    if (!error) setMenuItems(data);
   };
 
   useEffect(() => {
@@ -110,20 +124,6 @@ function KitchenPage() {
     }
   }, [activeTab, isAuthenticated]);
 
-  const fetchOrders = async () => {
-    try {
-      const startOfToday = new Date(); startOfToday.setHours(0, 0, 0, 0);
-      const { data, error } = await supabase.from('orders').select(`*, order_items (id, quantity, is_done, item_type, menu_items (name))`).in('status', ['cooking', 'completed']).gte('created_at', startOfToday.toISOString()).order('created_at', { ascending: true });
-      if (error) throw error;
-      setOrders(data);
-    } catch (err) { console.error(err.message); } finally { setIsLoading(false); }
-  };
-
-  const fetchMenuItems = async () => {
-    const { data, error } = await supabase.from('menu_items').select('*').order('name');
-    if (!error) setMenuItems(data);
-  };
-
   const updateOrderStatus = async (orderId, newStatus) => {
     autoUnlockAudio();
     try {
@@ -144,8 +144,9 @@ function KitchenPage() {
 
   const updateStock = async (id, newStockValue) => {
     try {
-      const stock = newStockValue === '' ? null : parseInt(newStockValue);
-      const isActive = stock === 0 ? false : true; 
+      const stock = String(newStockValue).trim() === '' ? null : parseInt(newStockValue, 10);
+      if (stock !== null && (!Number.isFinite(stock) || stock < 0)) return alert("Үлдэгдэл 0 эсвэл түүнээс их бүхэл тоо байна. Хязгааргүй бол хоосон үлдээнэ үү.");
+      const isActive = stock === 0 ? false : true;
       const { error } = await supabase.from('menu_items').update({ stock: stock, is_active: isActive }).eq('id', id);
       if (error) throw error;
       fetchMenuItems();
@@ -164,8 +165,8 @@ function KitchenPage() {
   const cookingOrders = orders.filter(o => o.status === 'cooking');
   const completedOrders = orders.filter(o => o.status === 'completed').sort((a, b) => new Date(b.updated_at || b.created_at) - new Date(a.updated_at || a.created_at));
 
-  const filteredMenuItems = menuItems.filter(item => 
-    item.name.toLowerCase().includes(searchQuery.toLowerCase()) || 
+  const filteredMenuItems = menuItems.filter(item =>
+    (item.name || '').toLowerCase().includes(searchQuery.toLowerCase()) ||
     (item.category && item.category.toLowerCase().includes(searchQuery.toLowerCase()))
   );
 
@@ -247,6 +248,9 @@ function KitchenPage() {
                           )}
 
                           <div style={{ minHeight: '60px', marginBottom: '15px' }}>
+                            {pendingItems.length === 0 && doneItems.length === 0 && (
+                              <div style={{ color: '#64748b', fontSize: '1rem', padding: '10px 0' }}>⏳ Хоолны жагсаалт ачаалж байна...</div>
+                            )}
                             {pendingItems.map((item, idx) => {
                               let itemIcon = '🍽️'; if (item.item_type === 'pickup') itemIcon = '🛍️'; if (item.item_type === 'tuva') itemIcon = '👤';
                               return (
@@ -336,9 +340,11 @@ function KitchenPage() {
                       <div>
                         <label style={{ fontSize: '0.9rem', color: '#64748b', display: 'block', marginBottom: '8px', fontWeight: 'bold' }}>Үлдэгдэл (ш):</label>
                         <div style={{ display: 'flex', gap: '8px' }}>
-                          <input 
-                            type="number" 
-                            id={`stock-${item.id}`} 
+                          <input
+                            type="number"
+                            min="0"
+                            key={`stock-${item.id}-${item.stock}`}
+                            id={`stock-${item.id}`}
                             defaultValue={item.stock === null ? '' : item.stock} 
                             placeholder="Хязгааргүй" 
                             style={{ width: '100px', padding: '10px', borderRadius: '8px', border: '2px solid #cbd5e1', fontSize: '1.1rem', textAlign: 'center', outline: 'none' }}

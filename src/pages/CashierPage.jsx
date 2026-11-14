@@ -1,13 +1,19 @@
-import React, { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { supabase } from '../supabaseClient';
 
 const RUB_RATE_KEY = 'zogsoo-rub-rate';
+const PAYMENT_LABELS = { cash: '💵 Бэлэн', ruble: '₽ Рубль', card: '💳 Карт', qpay: '📱 QPay', transfer: '🏦 Данс' };
 
 function CashierPage() {
   const [isAuthenticated, setIsAuthenticated] = useState(false);
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [isLoggingIn, setIsLoggingIn] = useState(false);
+
+  const checkUser = async () => {
+    const { data: { session } } = await supabase.auth.getSession();
+    setIsAuthenticated(!!session);
+  };
 
   useEffect(() => {
     checkUser();
@@ -16,11 +22,6 @@ function CashierPage() {
     });
     return () => authListener.subscription.unsubscribe();
   }, []);
-
-  const checkUser = async () => {
-    const { data: { session } } = await supabase.auth.getSession();
-    setIsAuthenticated(!!session);
-  };
 
   const handleLogin = async (e) => {
     e.preventDefault();
@@ -44,10 +45,10 @@ function CashierPage() {
   const [currentInputType, setCurrentInputType] = useState('dine-in'); 
   
   const [isPaymentModalOpen, setIsPaymentModalOpen] = useState(false);
-  const [paymentStep, setPaymentStep] = useState(1); 
-  const [selectedPayment, setSelectedPayment] = useState(null); 
+  const [paymentStep, setPaymentStep] = useState(1);
   const [receivedCash, setReceivedCash] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const submittingRef = useRef(false); // хоёр удаа хурдан дарахад давхар захиалга үүсэхээс сэргийлнэ
 
   // ₽ Рублийн төлбөр: ханшийг энэ төхөөрөмж дээр хадгална (1 ₽ = ? ₮)
   const [rubRate, setRubRate] = useState(() => {
@@ -66,10 +67,6 @@ function CashierPage() {
   const [newMenuCategory, setNewMenuCategory] = useState('');
   const [isAddingMenu, setIsAddingMenu] = useState(false);
 
-  useEffect(() => {
-    if (isAuthenticated) fetchMenu();
-  }, [isAuthenticated]);
-
   const fetchMenu = async () => {
     try {
       // Цэсийг татахдаа дууссан байсан ч харуулна (гэхдээ саарал болгоно)
@@ -82,6 +79,14 @@ function CashierPage() {
       setIsLoading(false);
     }
   };
+
+  useEffect(() => {
+    if (!isAuthenticated) return undefined;
+    fetchMenu();
+    // Гал тогоо хоолыг "ДУУССАН" болгох, үлдэгдэл өөрчлөхөд касс 1 минутын дотор мэдэнэ.
+    const timer = setInterval(fetchMenu, 60000);
+    return () => clearInterval(timer);
+  }, [isAuthenticated]);
 
   const fetchHistory = async () => {
     try {
@@ -102,17 +107,15 @@ function CashierPage() {
     if (!item.is_active || item.stock === 0) return alert("Энэ хоол дууссан байна!");
 
     setCart((prev) => {
+      // Нэг хоолыг "Зааланд", "Авч явах" гэж тусад нь нэмсэн ч үлдэгдлийг нийлбэрээр нь шалгана
+      const inCart = prev.filter(c => c.id === item.id).reduce((sum, c) => sum + c.quantity, 0);
+      if (item.stock !== null && inCart + 1 > item.stock) {
+        alert(inCart === 0 ? `Уучлаарай, ${item.name} дууссан байна!` : `Уучлаарай, ${item.name} зөвхөн ${item.stock} ширхэг үлдсэн байна!`);
+        return prev;
+      }
       const existing = prev.find(c => c.id === item.id && c.itemType === currentInputType);
       if (existing) {
-        if (item.stock !== null && existing.quantity + 1 > item.stock) {
-          alert(`Уучлаарай, ${item.name} зөвхөн ${item.stock} ширхэг үлдсэн байна!`);
-          return prev;
-        }
         return prev.map(c => (c.id === item.id && c.itemType === currentInputType) ? { ...c, quantity: c.quantity + 1 } : c);
-      }
-      if (item.stock !== null && 1 > item.stock) {
-        alert(`Уучлаарай, ${item.name} дууссан байна!`);
-        return prev;
       }
       return [...prev, { ...item, quantity: 1, itemType: currentInputType, cartId: Date.now() + Math.random() }];
     });
@@ -122,7 +125,8 @@ function CashierPage() {
     setCart((prev) => prev.map(item => {
       if (item.cartId === cartId) {
         const newQty = item.quantity + delta;
-        if (item.stock !== null && newQty > item.stock) {
+        const otherQty = prev.filter(c => c.id === item.id && c.cartId !== cartId).reduce((sum, c) => sum + c.quantity, 0);
+        if (delta > 0 && item.stock !== null && newQty + otherQty > item.stock) {
           alert(`Уучлаарай, ${item.name} зөвхөн ${item.stock} ширхэг үлдсэн байна!`);
           return item;
         }
@@ -209,11 +213,14 @@ function CashierPage() {
       if (!isRateValid) return alert('Рублийн ханшаа оруулна уу!');
       if (receivedRub !== '' && Number(receivedRub) < rubToPay) return alert('Өгсөн рубль хүрэхгүй байна!');
     }
-    
+    if (cart.length === 0) return;
+    if (submittingRef.current) return;
+    submittingRef.current = true;
+
     setIsSubmitting(true);
     try {
       const uniqueTypes = [...new Set(cart.map(item => item.itemType))];
-      const mainOrderType = uniqueTypes.length === 1 ? uniqueTypes[0] : 'mixed'; 
+      const mainOrderType = uniqueTypes.length === 1 ? uniqueTypes[0] : 'mixed';
 
       const { data: orderData, error: orderError } = await supabase
         .from('orders')
@@ -228,22 +235,31 @@ function CashierPage() {
       }));
 
       const { error: itemsError } = await supabase.from('order_items').insert(orderItemsData);
-      if (itemsError) throw itemsError;
+      if (itemsError) {
+        // Хоол нь хадгалагдаагүй захиалга гал тогоонд хоосон, тайланд илүү орлого болж үлдэхгүйн тулд цуцална
+        await supabase.from('orders').update({ status: 'cancelled' }).eq('id', newOrder.id);
+        throw new Error(`Хоолны жагсаалт хадгалагдсангүй, захиалгыг цуцаллаа. Дахин оролдоно уу.\n(${itemsError.message})`);
+      }
 
-      // ✨ ШИНЭ: Үлдэгдэл тооноос автоматаар хасах
-      for (const item of cart) {
-        if (item.stock !== null) {
-          const newStock = Math.max(0, item.stock - item.quantity);
-          const isActive = newStock > 0;
-          await supabase.from('menu_items').update({ stock: newStock, is_active: isActive }).eq('id', item.id);
+      // Үлдэгдлийг хасах: гал тогоо өөрчилсөн байж болох тул хамгийн сүүлийн тоог авч хасна
+      const stockIds = [...new Set(cart.filter(item => item.stock !== null).map(item => item.id))];
+      if (stockIds.length) {
+        const { data: fresh } = await supabase.from('menu_items').select('id, stock').in('id', stockIds);
+        for (const id of stockIds) {
+          const sold = cart.filter(item => item.id === id).reduce((sum, item) => sum + item.quantity, 0);
+          const current = fresh?.find(m => m.id === id)?.stock;
+          if (current === null) continue; // энэ хооронд хязгааргүй болгосон
+          const base = typeof current === 'number' ? current : cart.find(item => item.id === id).stock;
+          const newStock = Math.max(0, base - sold);
+          await supabase.from('menu_items').update({ stock: newStock, is_active: newStock > 0 }).eq('id', id);
         }
       }
 
       alert(`Захиалга баталгаажлаа!\nДугаар: #${newOrder.order_number || String(newOrder.id).slice(-4).toUpperCase()}`);
-      
-      setCart([]); setOrderNote(''); setReceivedCash(''); setReceivedRub(''); setSelectedPayment(null); setPaymentStep(1); setIsPaymentModalOpen(false);
+
+      setCart([]); setOrderNote(''); setReceivedCash(''); setReceivedRub(''); setPaymentStep(1); setIsPaymentModalOpen(false);
       fetchMenu(); // Цэсийг шинэчилж үлдэгдлийг дахин дуудна
-      
+
     } catch (err) {
       // 23514: өгөгдлийн сангийн дүрэм энэ төлбөрийн төрлийг (жишээ нь шинэ "Рубль") зөвшөөрөөгүй.
       if (err.code === '23514') {
@@ -252,6 +268,7 @@ function CashierPage() {
         alert("Алдаа гарлаа: " + err.message);
       }
     } finally {
+      submittingRef.current = false;
       setIsSubmitting(false);
     }
   };
@@ -259,11 +276,12 @@ function CashierPage() {
   // ✨ ШИНЭ: Шинэ хоол нэмэх функц (Кассчин шууд нэмнэ)
   const handleAddMenuItem = async (e) => {
     e.preventDefault();
-    if (!newMenuName || !newMenuPrice || !newMenuCategory) return alert("Мэдээллийг бүрэн оруулна уу!");
+    if (!newMenuName.trim() || !newMenuPrice || !newMenuCategory.trim()) return alert("Мэдээллийг бүрэн оруулна уу!");
+    if (!(Number(newMenuPrice) > 0)) return alert("Үнэ 0-ээс их байх ёстой!");
     setIsAddingMenu(true);
     try {
       const { error } = await supabase.from('menu_items').insert([{
-        name: newMenuName, price: Number(newMenuPrice), category: newMenuCategory, is_active: true, stock: null
+        name: newMenuName.trim(), price: Number(newMenuPrice), category: newMenuCategory.trim(), is_active: true, stock: null
       }]);
       if (error) throw error;
       alert("Шинэ хоол амжилттай нэмэгдлээ!");
@@ -279,7 +297,12 @@ function CashierPage() {
     else if (value === 'DEL') setReceivedCash(prev => String(prev).slice(0, -1));
     else if (value === 'EXACT') setReceivedCash(String(totalPrice));
     else if (value === '20000' || value === '50000') setReceivedCash(value);
-    else setReceivedCash(prev => { const current = String(prev); if (current === '0' && value !== '0' && value !== '000') return value; return current + value; });
+    else setReceivedCash(prev => { const current = String(prev); if (current === '0' && value !== '0' && value !== '000') return value; return (current + value).slice(0, 9); });
+  };
+
+  const openPaymentModal = () => {
+    // Өмнө нь цуцалсан тооцооны үлдсэн дүн дараагийн захиалгад орохгүй
+    setReceivedCash(''); setReceivedRub(''); setPaymentStep(1); setIsPaymentModalOpen(true);
   };
 
   const numpadBtnStyle = { padding: '18px 5px', fontSize: '1.5rem', fontWeight: 'bold', borderRadius: '8px', border: '1px solid #cbd5e1', backgroundColor: 'white', color: '#0f172a', cursor: 'pointer', boxShadow: '0 2px 4px rgba(0,0,0,0.02)' };
@@ -333,7 +356,7 @@ function CashierPage() {
                     return (
                       <div key={item.id} onClick={() => !isOutOfStock && addToCart(item)} style={{ backgroundColor: 'white', borderRadius: '8px', padding: '15px', cursor: isOutOfStock ? 'not-allowed' : 'pointer', border: '1px solid #cbd5e1', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', textAlign: 'center', minHeight: '80px', transition: '0.1s', opacity: isOutOfStock ? 0.4 : 1 }}>
                         <h3 style={{ margin: '0 0 8px 0', fontSize: '1rem', color: '#1e293b' }}>{item.name}</h3>
-                        <div style={{ fontWeight: 'bold', color: '#3b82f6', fontSize: '1.1rem', marginBottom: '5px' }}>{item.price.toLocaleString()} ₮</div>
+                        <div style={{ fontWeight: 'bold', color: '#3b82f6', fontSize: '1.1rem', marginBottom: '5px' }}>{Number(item.price || 0).toLocaleString()} ₮</div>
                         {isOutOfStock ? (
                           <span style={{ fontSize: '0.8rem', color: '#ef4444', fontWeight: 'bold' }}>ДУУССАН</span>
                         ) : (
@@ -351,15 +374,19 @@ function CashierPage() {
             <div style={{ backgroundColor: 'white', borderRadius: '8px', border: '1px solid #cbd5e1', overflow: 'hidden' }}>
               <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '0.95rem' }}>
                 <thead style={{ backgroundColor: '#f1f5f9', borderBottom: '2px solid #cbd5e1' }}>
-                  <tr><th style={{ padding: '12px', textAlign: 'left' }}>Цаг</th><th style={{ padding: '12px', textAlign: 'left' }}>Дугаар</th><th style={{ padding: '12px', textAlign: 'left' }}>Төрөл</th><th style={{ padding: '12px', textAlign: 'left' }}>Дүн</th><th style={{ padding: '12px', textAlign: 'left' }}>Төлөв</th></tr>
+                  <tr><th style={{ padding: '12px', textAlign: 'left' }}>Цаг</th><th style={{ padding: '12px', textAlign: 'left' }}>Дугаар</th><th style={{ padding: '12px', textAlign: 'left' }}>Төрөл</th><th style={{ padding: '12px', textAlign: 'left' }}>Дүн</th><th style={{ padding: '12px', textAlign: 'left' }}>Төлбөр</th><th style={{ padding: '12px', textAlign: 'left' }}>Төлөв</th></tr>
                 </thead>
                 <tbody>
+                  {historyOrders.length === 0 && (
+                    <tr><td colSpan={6} style={{ padding: '20px', textAlign: 'center', color: '#64748b' }}>Өнөөдөр гүйлгээ алга байна.</td></tr>
+                  )}
                   {historyOrders.map(order => (
                     <tr key={order.id} style={{ borderBottom: '1px solid #e2e8f0' }}>
                       <td style={{ padding: '12px' }}>{new Date(order.created_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</td>
                       <td style={{ padding: '12px', fontWeight: 'bold' }}>#{order.order_number || String(order.id).slice(-4).toUpperCase()}</td>
                       <td style={{ padding: '12px', fontWeight: 'bold' }}>{order.order_type === 'pickup' ? '🛍️ Авч явах' : (order.order_type === 'tuva' ? '👤 Тува' : (order.order_type === 'mixed' ? '🔄 Холимог' : '🍽️ Зааланд'))}</td>
                       <td style={{ padding: '12px', fontWeight: 'bold' }}>{order.total_amount?.toLocaleString()} ₮</td>
+                      <td style={{ padding: '12px', whiteSpace: 'nowrap' }}>{PAYMENT_LABELS[order.payment_method] || order.payment_method || '—'}</td>
                       <td style={{ padding: '12px' }}><span style={{ padding: '4px 8px', borderRadius: '4px', fontSize: '0.85rem', fontWeight: 'bold', backgroundColor: order.status === 'completed' ? '#dcfce7' : (order.status === 'cancelled' ? '#fee2e2' : '#fef3c7'), color: order.status === 'completed' ? '#16a34a' : (order.status === 'cancelled' ? '#dc2626' : '#d97706') }}>{order.status === 'completed' ? 'Бэлэн' : (order.status === 'cancelled' ? 'Цуцлагдсан' : 'Хийгдэж буй')}</span></td>
                     </tr>
                   ))}
@@ -410,7 +437,7 @@ function CashierPage() {
               <span style={{ color: '#64748b', fontWeight: 'bold' }}>Нийт дүн:</span>
               <strong style={{ fontSize: '1.6rem', color: '#0f172a' }}>{totalPrice.toLocaleString()} ₮</strong>
             </div>
-            <button onClick={() => { setPaymentStep(1); setIsPaymentModalOpen(true); }} disabled={cart.length === 0} style={{ width: '100%', padding: '16px', backgroundColor: cart.length === 0 ? '#cbd5e1' : '#10b981', color: 'white', border: 'none', borderRadius: '4px', fontSize: '1.2rem', fontWeight: 'bold', cursor: cart.length === 0 ? 'not-allowed' : 'pointer' }}>Тооцоо хийх</button>
+            <button onClick={openPaymentModal} disabled={cart.length === 0} style={{ width: '100%', padding: '16px', backgroundColor: cart.length === 0 ? '#cbd5e1' : '#10b981', color: 'white', border: 'none', borderRadius: '4px', fontSize: '1.2rem', fontWeight: 'bold', cursor: cart.length === 0 ? 'not-allowed' : 'pointer' }}>Тооцоо хийх</button>
           </div>
         </div>
       )}
